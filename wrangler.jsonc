@@ -17,11 +17,10 @@
   ],
   "d1_databases": [
     {
-      // banco SQLite da Cloudflare. Crie com: npx wrangler d1 create professor-db
-      // e cole aqui o "database_id" que o comando mostrar.
+      // banco SQLite da Cloudflare (D1). As tabelas são criadas pelas migrações em drizzle/
       "binding": "DB",
       "database_name": "professor-db",
-      "database_id": "COLE-AQUI-O-ID-DO-BANCO",
+      "database_id": "07723695-b1b8-4ee4-9cbb-25f3106a4923",
       "migrations_dir": "drizzle"
     }
   ],

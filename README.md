@@ -113,8 +113,7 @@ Passo a passo, uma vez só, no seu computador:
 npm install
 npx wrangler login                      # abre o navegador para autorizar sua conta Cloudflare
 
-npx wrangler d1 create professor-db     # cria o banco; copie o "database_id" que aparecer
-#   → cole o id em wrangler.jsonc, no lugar de COLE-AQUI-O-ID-DO-BANCO
+# o banco D1 "professor-db" já existe e o id dele está no wrangler.jsonc
 
 npm run cf:migrar                       # cria as tabelas no D1
 
