@@ -1,15 +1,16 @@
-import { CloudDownload, CloudUpload, Download, Pencil, Trash2 } from "lucide-react";
+import { CloudDownload, Download, ExternalLink, Link2, Pencil, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { excluirMaterial } from "@/app/acoes/materiais";
 import { BotaoAcao } from "@/components/botao-acao";
-import { IconeArquivo } from "@/components/icone-arquivo";
+import { IconeMaterial } from "@/components/icone-material";
 import { BotaoLink, Cabecalho, Card, EsqueletoPagina, Selo, Vazio } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { listarMateriais } from "@/lib/consultas";
-import { dataBR, tamanhoArquivo } from "@/lib/formato";
+import { NOME_TIPO_DRIVE } from "@/lib/drive";
+import { dataBR } from "@/lib/formato";
 
 export const metadata: Metadata = { title: "Central de downloads" };
 
@@ -18,10 +19,10 @@ export default function PaginaMateriais() {
     <>
       <Cabecalho
         titulo="Central de downloads"
-        descricao="Partituras, playbacks, vídeos e exercícios. Escolha quem pode baixar cada material."
+        descricao="Materiais guardados no seu Google Drive. Escolha quem pode acessar cada um."
       >
         <BotaoLink href="/materiais/novo">
-          <CloudUpload /> Enviar material
+          <Link2 /> Adicionar material
         </BotaoLink>
       </Cabecalho>
       <Suspense fallback={<EsqueletoPagina />}>
@@ -39,7 +40,7 @@ async function Lista() {
     return (
       <Card>
         <Vazio icone={<CloudDownload />} titulo="Nenhum material ainda">
-          Envie o primeiro arquivo e libere para seus alunos.
+          Cole o link de um arquivo ou pasta do seu Google Drive e libere para seus alunos.
         </Vazio>
       </Card>
     );
@@ -51,12 +52,12 @@ async function Lista() {
         <Card key={m.id} className="flex flex-col p-5">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-marca-suave p-2.5 text-marca-texto">
-              <IconeArquivo nome={m.nomeOriginal} className="size-5" />
+              <IconeMaterial tipo={m.tipoDrive} categoria={m.categoria} className="size-5" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{m.titulo}</p>
               <p className="truncate text-xs text-suave">
-                {m.nomeOriginal} · {tamanhoArquivo(m.tamanho)} · {dataBR(m.criadoEm)}
+                {NOME_TIPO_DRIVE[m.tipoDrive]} · {dataBR(m.criadoEm)}
               </p>
             </div>
             {m.categoria && <Selo cor="marca">{m.categoria}</Selo>}
@@ -74,9 +75,19 @@ async function Lista() {
             )}
           </div>
           <div className="mt-4 flex gap-2 border-t border-borda pt-4">
-            <a href={`/api/materiais/${m.id}`} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-fundo">
-              <Download className="size-4" /> Baixar
+            <a
+              href={`/api/materiais/${m.id}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-fundo"
+            >
+              <ExternalLink className="size-4" /> Abrir no Drive
             </a>
+            {m.tipoDrive === "arquivo" && (
+              <a href={`/api/materiais/${m.id}?baixar=1`} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-fundo">
+                <Download className="size-4" /> Baixar
+              </a>
+            )}
             <Link href={`/materiais/${m.id}/editar`} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-fundo">
               <Pencil className="size-4" /> Editar
             </Link>

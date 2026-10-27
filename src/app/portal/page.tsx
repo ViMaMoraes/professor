@@ -1,13 +1,14 @@
-import { CalendarCheck, CloudDownload, Download, FileDown, QrCode, ReceiptText } from "lucide-react";
+import { CalendarCheck, CloudDownload, Download, ExternalLink, FileDown, QrCode, ReceiptText } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { IconeArquivo } from "@/components/icone-arquivo";
+import { IconeMaterial } from "@/components/icone-material";
 import { SeloPresenca } from "@/components/selos";
 import { Card, CardTitulo, EsqueletoPagina, Selo, Vazio } from "@/components/ui";
 import { exigirAluno } from "@/lib/auth";
 import { frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, professorPrincipal, recibosDoAluno } from "@/lib/consultas";
-import { dataBR, moeda, numeroRecibo, primeiroNome, tamanhoArquivo } from "@/lib/formato";
+import { NOME_TIPO_DRIVE } from "@/lib/drive";
+import { dataBR, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
 
 import { CopiarPix } from "./copiar-pix";
 
@@ -45,25 +46,38 @@ async function Conteudo() {
           <CardTitulo icone={<CloudDownload />}>Meus materiais</CardTitulo>
           {materiais.length === 0 ? (
             <Vazio icone={<CloudDownload />} titulo="Nenhum material ainda">
-              Quando o professor liberar partituras ou áudios, eles aparecem aqui.
+              Quando o professor liberar partituras, áudios ou vídeos, eles aparecem aqui.
             </Vazio>
           ) : (
             <ul className="divide-y divide-borda">
               {materiais.map((m) => (
-                <li key={m.id}>
-                  <a href={`/api/materiais/${m.id}`} className="group flex items-center gap-4 px-5 py-4 hover:bg-fundo/60">
-                    <div className="rounded-xl bg-marca-suave p-2.5 text-marca-texto">
-                      <IconeArquivo nome={m.nomeOriginal} className="size-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{m.titulo}</p>
-                      {m.descricao && <p className="text-sm text-suave">{m.descricao}</p>}
-                      <p className="mt-0.5 text-xs text-suave">
-                        {[m.categoria, tamanhoArquivo(m.tamanho), dataBR(m.criadoEm)].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    <Download className="size-5 text-suave transition-colors group-hover:text-marca-texto" />
+                <li key={m.id} className="flex items-center gap-4 px-5 py-4">
+                  <div className="rounded-xl bg-marca-suave p-2.5 text-marca-texto">
+                    <IconeMaterial tipo={m.tipoDrive} categoria={m.categoria} className="size-5" />
+                  </div>
+                  <a href={`/api/materiais/${m.id}`} target="_blank" rel="noopener" className="group min-w-0 flex-1">
+                    <p className="font-medium group-hover:text-marca-texto">{m.titulo}</p>
+                    {m.descricao && <p className="text-sm text-suave">{m.descricao}</p>}
+                    <p className="mt-0.5 text-xs text-suave">
+                      {[m.categoria, NOME_TIPO_DRIVE[m.tipoDrive], dataBR(m.criadoEm)].filter(Boolean).join(" · ")}
+                    </p>
                   </a>
+                  <div className="flex gap-1">
+                    {m.tipoDrive === "arquivo" && (
+                      <a href={`/api/materiais/${m.id}?baixar=1`} className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-marca-texto" title="Baixar">
+                        <Download className="size-5" />
+                      </a>
+                    )}
+                    <a
+                      href={`/api/materiais/${m.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-marca-texto"
+                      title="Abrir no Drive"
+                    >
+                      <ExternalLink className="size-5" />
+                    </a>
+                  </div>
                 </li>
               ))}
             </ul>

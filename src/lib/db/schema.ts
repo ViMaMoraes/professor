@@ -71,10 +71,9 @@ export const materiais = sqliteTable("materiais", {
   titulo: text("titulo").notNull(),
   descricao: text("descricao"),
   categoria: text("categoria"),
-  arquivo: text("arquivo").notNull(), // nome salvo em disco
-  nomeOriginal: text("nome_original").notNull(),
-  tipo: text("tipo"),
-  tamanho: integer("tamanho").notNull(),
+  link: text("link").notNull(), // link de compartilhamento do Google Drive
+  tipoDrive: text("tipo_drive", { enum: ["arquivo", "pasta", "documento"] }).notNull(),
+  driveId: text("drive_id").notNull(),
   paraTodos: integer("para_todos", { mode: "boolean" }).notNull().default(false),
   criadoEm: criadoEm(),
 });
@@ -98,3 +97,4 @@ export type Presenca = typeof presencas.$inferSelect;
 export type Recibo = typeof recibos.$inferSelect;
 export type Material = typeof materiais.$inferSelect;
 export type StatusPresenca = Presenca["status"];
+export type TipoDrive = Material["tipoDrive"];

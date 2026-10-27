@@ -7,12 +7,12 @@ import { listarAlunos } from "@/lib/consultas";
 
 import { FormMaterial } from "../form-material";
 
-export const metadata: Metadata = { title: "Enviar material" };
+export const metadata: Metadata = { title: "Adicionar material" };
 
 export default function PaginaNovoMaterial() {
   return (
     <>
-      <Cabecalho titulo="Enviar material" />
+      <Cabecalho titulo="Adicionar material" descricao="O arquivo fica no seu Google Drive; aqui você só cola o link e escolhe quem pode acessar." />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo />
       </Suspense>

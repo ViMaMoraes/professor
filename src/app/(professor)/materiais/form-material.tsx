@@ -1,13 +1,13 @@
 "use client";
 
-import { Check, CloudUpload, Search } from "lucide-react";
+import { Check, CircleAlert, CircleCheck, ExternalLink, Search } from "lucide-react";
 import { useState } from "react";
 
 import { salvarMaterial } from "@/app/acoes/materiais";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { BotaoLink, Campo, Card, cn, Input, Select, Textarea } from "@/components/ui";
 import { CATEGORIAS_MATERIAL } from "@/lib/constantes";
-import { tamanhoArquivo } from "@/lib/formato";
+import { lerLinkDrive, NOME_TIPO_DRIVE } from "@/lib/drive";
 
 type Material = {
   id: number;
@@ -15,8 +15,7 @@ type Material = {
   descricao: string | null;
   categoria: string | null;
   paraTodos: boolean;
-  nomeOriginal: string;
-  tamanho: number;
+  link: string;
   alunoIds: number[];
 };
 
@@ -29,37 +28,44 @@ export function FormMaterial({
 }) {
   const [paraTodos, setParaTodos] = useState(material?.paraTodos ?? false);
   const [filtro, setFiltro] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [link, setLink] = useState(material?.link ?? "");
+  const drive = lerLinkDrive(link);
   const acao = salvarMaterial.bind(null, material?.id ?? null);
 
   return (
     <Formulario acao={acao}>
       <Card className="grid gap-4 p-5 sm:grid-cols-3">
-        {material ? (
-          <p className="text-sm text-suave sm:col-span-3">
-            Arquivo: <span className="text-texto">{material.nomeOriginal}</span> ({tamanhoArquivo(material.tamanho)})
-          </p>
-        ) : (
-          <label
-            className={cn(
-              "flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-borda p-8 text-center transition-colors hover:border-marca hover:bg-marca-suave/40 sm:col-span-3",
-              arquivo && "border-marca bg-marca-suave/40",
-            )}
-          >
-            <CloudUpload className="size-8 text-marca-texto" />
-            {arquivo ? (
-              <span className="font-medium">
-                {arquivo.name} <span className="text-suave">({tamanhoArquivo(arquivo.size)})</span>
+        <div className="sm:col-span-3">
+          <Campo rotulo="Link do Google Drive *">
+            <Input
+              name="link"
+              required
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="https://drive.google.com/file/d/..."
+              autoComplete="off"
+            />
+          </Campo>
+          {link.trim() === "" ? (
+            <p className="mt-1.5 text-xs text-suave">
+              No Drive: clique com o botão direito no arquivo ou pasta → <b>Compartilhar</b> → em “Acesso geral” escolha{" "}
+              <b>Qualquer pessoa com o link</b> → <b>Copiar link</b>.
+            </p>
+          ) : drive ? (
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-emerald-700 dark:text-emerald-400">
+              <span className="flex items-center gap-1">
+                <CircleCheck className="size-3.5" /> {NOME_TIPO_DRIVE[drive.tipo]} reconhecido
               </span>
-            ) : (
-              <>
-                <span className="font-medium">Clique para escolher o arquivo</span>
-                <span className="text-xs text-suave">PDF, áudio, vídeo, imagem, MIDI, MusicXML, Guitar Pro, MuseScore, ZIP… até 100 MB</span>
-              </>
-            )}
-            <input type="file" name="arquivo" required className="sr-only" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
-          </label>
-        )}
+              <a href={drive.link} target="_blank" rel="noopener" className="flex items-center gap-1 text-marca-texto hover:underline">
+                Testar link <ExternalLink className="size-3" />
+              </a>
+            </p>
+          ) : (
+            <p className="mt-1.5 flex items-center gap-1 text-xs text-red-600 dark:text-red-400">
+              <CircleAlert className="size-3.5" /> Esse não parece um link do Google Drive.
+            </p>
+          )}
+        </div>
 
         <Campo rotulo="Título *" className="sm:col-span-2">
           <Input name="titulo" required defaultValue={material?.titulo} placeholder="Ex.: Escala pentatônica - exercícios" />
@@ -77,7 +83,7 @@ export function FormMaterial({
         </Campo>
 
         <fieldset className="sm:col-span-3">
-          <legend className="mb-2 text-sm font-medium">Quem pode baixar?</legend>
+          <legend className="mb-2 text-sm font-medium">Quem pode acessar?</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
               { valor: "todos", titulo: "Todos os alunos", desc: "Qualquer aluno com acesso ao portal." },

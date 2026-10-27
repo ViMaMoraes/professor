@@ -1,10 +1,8 @@
 /** `npm run demo`: popula um banco vazio com dados de exemplo. */
-import fs from "node:fs/promises";
-
 import bcrypt from "bcryptjs";
 
-import { caminhoUpload, PASTA_UPLOADS } from "../lib/caminhos";
 import { getDb, schema } from "../lib/db";
+import { lerLinkDrive } from "../lib/drive";
 import { hojeISO, somarDias } from "../lib/formato";
 
 async function main() {
@@ -80,25 +78,41 @@ async function main() {
     }
   }
 
-  await fs.mkdir(PASTA_UPLOADS, { recursive: true });
+  // links de exemplo (IDs fictícios): troque pelos links reais do seu Drive
   const exemplos = [
-    { titulo: "Escalas maiores - guia", categoria: "Teoria", paraTodos: true, para: [] as number[] },
-    { titulo: "Asa Branca - cifra", categoria: "Partitura", paraTodos: false, para: [alunos[0].id] },
+    {
+      titulo: "Escalas maiores - guia",
+      categoria: "Teoria",
+      paraTodos: true,
+      para: [] as number[],
+      link: "https://drive.google.com/file/d/1ExemploEscalasMaiores000000000/view?usp=sharing",
+    },
+    {
+      titulo: "Asa Branca - cifra",
+      categoria: "Partitura",
+      paraTodos: false,
+      para: [alunos[0].id],
+      link: "https://drive.google.com/file/d/1ExemploAsaBrancaCifra0000000000/view?usp=sharing",
+    },
+    {
+      titulo: "Playbacks de rock",
+      categoria: "Áudio / Playback",
+      paraTodos: false,
+      para: [alunos[1].id, alunos[3].id],
+      link: "https://drive.google.com/drive/folders/1ExemploPastaPlaybacks000000000?usp=sharing",
+    },
   ];
   for (const ex of exemplos) {
-    const arquivo = `${crypto.randomUUID()}.txt`;
-    const conteudo = `${ex.titulo}\n(arquivo de exemplo)\n`;
-    await fs.writeFile(caminhoUpload(arquivo), conteudo);
+    const drive = lerLinkDrive(ex.link)!;
     const [material] = await db
       .insert(schema.materiais)
       .values({
         titulo: ex.titulo,
         categoria: ex.categoria,
         paraTodos: ex.paraTodos,
-        arquivo,
-        nomeOriginal: `${ex.titulo}.txt`,
-        tipo: "text/plain",
-        tamanho: Buffer.byteLength(conteudo),
+        link: drive.link,
+        tipoDrive: drive.tipo,
+        driveId: drive.id,
       })
       .returning();
     if (ex.para.length) {

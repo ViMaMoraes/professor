@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { valorPorExtenso, numeroPorExtenso } from "../extenso";
-import { centavosParaCampo, dataBR, dataPorExtenso, isoValido, lerValorEmCentavos, moeda, somarDias, tamanhoArquivo } from "../formato";
+import { centavosParaCampo, dataBR, dataPorExtenso, isoValido, lerValorEmCentavos, moeda, somarDias } from "../formato";
 import { linkWhatsapp } from "../mensagens";
 
 describe("valores", () => {
@@ -63,12 +63,6 @@ describe("datas", () => {
 });
 
 describe("outros", () => {
-  it("tamanho de arquivo", () => {
-    expect(tamanhoArquivo(500)).toBe("500 B");
-    expect(tamanhoArquivo(1536)).toBe("1,5 KB");
-    expect(tamanhoArquivo(5 * 1024 * 1024)).toBe("5,0 MB");
-  });
-
   it("link do WhatsApp com DDI do Brasil", () => {
     expect(linkWhatsapp("(11) 98888-0001", "oi")).toBe("https://wa.me/5511988880001?text=oi");
     expect(linkWhatsapp(null, "oi")).toBe("https://wa.me/?text=oi");

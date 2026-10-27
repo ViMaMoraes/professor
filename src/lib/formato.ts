@@ -23,18 +23,6 @@ export function dataPorExtenso(iso: string) {
   return `${d} de ${MESES[m - 1]} de ${a}`;
 }
 
-export function tamanhoArquivo(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  const unidades = ["KB", "MB", "GB"];
-  let valor = bytes / 1024;
-  let i = 0;
-  while (valor >= 1024 && i < unidades.length - 1) {
-    valor /= 1024;
-    i++;
-  }
-  return `${valor.toFixed(1).replace(".", ",")} ${unidades[i]}`;
-}
-
 /** Aceita "150", "150,00", "1.250,50", "R$ 99,9" ou "1250.50". Retorna centavos ou null. */
 export function lerValorEmCentavos(texto: FormDataEntryValue | null | undefined): number | null {
   if (texto == null) return null;

@@ -21,7 +21,7 @@ beforeAll(async () => {
     .insert(schema.alunos)
     .values([{ nome: "Ana" }, { nome: "Bruno" }])
     .returning({ id: schema.alunos.id });
-  const base = { arquivo: "x.pdf", nomeOriginal: "x.pdf", tamanho: 1 };
+  const base = { link: "https://drive.google.com/file/d/1abcdefghijk/view", tipoDrive: "arquivo" as const, driveId: "1abcdefghijk" };
   [{ id: soDaAna }, { id: paraTodos }] = await db
     .insert(schema.materiais)
     .values([

@@ -96,7 +96,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               {materiais.length === 0 && <li className="text-suave">Nenhum material.</li>}
               {materiais.map((m) => (
                 <li key={m.id} className="flex items-center justify-between gap-2">
-                  <a href={`/api/materiais/${m.id}`} className="truncate hover:text-marca-texto">
+                  <a href={`/api/materiais/${m.id}`} target="_blank" rel="noopener" className="truncate hover:text-marca-texto">
                     {m.titulo}
                   </a>
                   {m.paraTodos && <Selo>todos</Selo>}
