@@ -3,13 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { FolhaRecibo } from "@/components/folha-recibo";
 import { EsqueletoPagina } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarRecibo } from "@/lib/consultas";
 import { numeroRecibo } from "@/lib/formato";
 import { linkEmail, linkWhatsapp, mensagemRecibo } from "@/lib/mensagens";
 import { pagadorDoRecibo } from "@/lib/pagador";
-import { linhaDataRecibo, textoRecibo } from "@/lib/recibo-pdf";
 
 import { AcoesRecibo } from "./acoes-recibo";
 
@@ -77,23 +77,7 @@ async function Conteudo({ params }: { params: PageProps<"/recibos/[id]">["params
       )}
 
       {/* mesma aparência do PDF: folha branca, como no papel */}
-      <div className="max-w-3xl rounded-2xl border border-borda bg-white p-8 text-zinc-900 shadow-xs sm:p-14">
-        <div className="relative mb-12 text-center">
-          <p className="font-bold tracking-wide">RECIBO</p>
-          <p className="absolute top-0.5 right-0 text-xs text-zinc-500">Nº {numero}</p>
-        </div>
-        <p className="leading-relaxed">{textoRecibo(recibo, pagador, professor)}</p>
-        <p className="mt-10">{linhaDataRecibo(recibo.dataPagamento, professor.cidade)}</p>
-        <div className="mt-16 w-64">
-          <div className="flex h-20 items-end">
-            {professor.assinatura && (
-              // eslint-disable-next-line @next/next/no-img-element -- data URL salva no banco
-              <img src={professor.assinatura} alt="Assinatura" className="max-h-full max-w-full" />
-            )}
-          </div>
-          <div className="border-t border-zinc-800 pt-1 text-sm">{professor.nome}</div>
-        </div>
-      </div>
+      <FolhaRecibo recibo={recibo} pagador={pagador} professor={professor} className="max-w-3xl rounded-2xl border border-borda shadow-xs" />
     </>
   );
 }

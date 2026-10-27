@@ -8,6 +8,8 @@ import { exigirProfessor } from "@/lib/auth";
 import { listarAlunos, listarInstituicoes, listarRecibos } from "@/lib/consultas";
 import { dataBR, moeda, numeroRecibo } from "@/lib/formato";
 
+import { VerRecibo } from "./ver-recibo";
+
 export const metadata: Metadata = { title: "Recibos" };
 
 export default function PaginaRecibos(props: PageProps<"/recibos">) {
@@ -99,7 +101,8 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/recibos">["se
                   </td>
                   <td className="text-suave">{recibo.referente}</td>
                   <td className="text-right font-medium whitespace-nowrap tabular-nums">{moeda(recibo.valorCentavos)}</td>
-                  <td className="text-right">
+                  <td className="text-right whitespace-nowrap">
+                    <VerRecibo id={recibo.id} numero={numeroRecibo(recibo.numero)} />
                     <a href={`/api/recibos/${recibo.id}?baixar=1`} className="inline-flex rounded-lg p-2 text-suave hover:bg-fundo" title="Baixar PDF">
                       <FileDown className="size-4" />
                     </a>
