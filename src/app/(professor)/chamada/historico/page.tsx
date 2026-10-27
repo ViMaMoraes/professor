@@ -25,14 +25,14 @@ export default function PaginaHistorico(props: PageProps<"/chamada/historico">) 
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/historico">["searchParams"] }) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const params = await searchParams;
   const hoje = hojeISO();
   const inicio = typeof params.inicio === "string" && isoValido(params.inicio) ? params.inicio : hoje.slice(0, 8) + "01";
   const fim = typeof params.fim === "string" && isoValido(params.fim) ? params.fim : hoje;
   const alunoId = Number(params.aluno) || undefined;
 
-  const [registros, alunos] = await Promise.all([historicoPresencas(inicio, fim, alunoId), listarAlunos({ situacao: "todos" })]);
+  const [registros, alunos] = await Promise.all([historicoPresencas(professor.id, inicio, fim, alunoId), listarAlunos(professor.id, { situacao: "todos" })]);
   const filtroAluno = alunoId ? `&aluno=${alunoId}` : "";
   const exportar = `/api/chamada/planilha?inicio=${inicio}&fim=${fim}${filtroAluno}`;
   const inicioMes = hoje.slice(0, 8) + "01";

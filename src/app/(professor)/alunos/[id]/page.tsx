@@ -20,15 +20,15 @@ export default function PaginaAluno(props: PageProps<"/alunos/[id]">) {
 }
 
 async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"] }) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const id = Number((await params).id);
-  const aluno = await buscarAluno(id);
+  const aluno = await buscarAluno(professor.id, id);
   if (!aluno) notFound();
   const [presencas, frequencia, recibos, materiais] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
     recibosDoAluno(id),
-    materiaisDoAluno(id),
+    materiaisDoAluno(aluno),
   ]);
 
   return (

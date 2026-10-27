@@ -7,7 +7,7 @@ export default async function LayoutProfessor({ children }: LayoutProps<"/">) {
   const professor = await exigirProfessor();
   return (
     <>
-      <MenuLateral rodape={<CaixaUsuario nome={professor.nome} detalhe={professor.email} />} />
+      <MenuLateral master={professor.master} rodape={<CaixaUsuario nome={professor.nome} detalhe={professor.email} />} />
       <main className="px-4 py-6 sm:px-6 lg:ml-64 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>

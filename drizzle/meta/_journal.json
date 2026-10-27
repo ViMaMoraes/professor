@@ -22,6 +22,13 @@
       "when": 1793126671411,
       "tag": "0002_remove_upload",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793132427951,
+      "tag": "0003_multi_professor",
+      "breakpoints": true
     }
   ]
 }

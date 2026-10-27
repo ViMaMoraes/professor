@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const fim = isoValido(params.get("fim")) ? params.get("fim")! : hoje;
   const alunoId = Number(params.get("aluno")) || undefined;
 
-  const linhas = await historicoPresencas(inicio, fim, alunoId);
+  const linhas = await historicoPresencas(usuario.professor.id, inicio, fim, alunoId);
   const registros = linhas.map(({ presenca, aluno }) => ({ ...presenca, aluno }));
   const arquivo = await gerarPlanilhaChamada(registros, { inicio, fim });
 

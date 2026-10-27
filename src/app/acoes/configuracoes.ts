@@ -1,10 +1,11 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { and, eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { exigirAluno, exigirProfessor } from "@/lib/auth";
+import { emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 
@@ -17,10 +18,7 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
   const novaSenha = String(dados.get("novaSenha") ?? "");
   if (!nome || !email) return { erro: "Nome e e-mail são obrigatórios." };
 
-  const emUso =
-    (await db.query.professores.findFirst({ where: and(eq(schema.professores.email, email), ne(schema.professores.id, professor.id)) })) ||
-    (await db.query.alunos.findFirst({ where: eq(schema.alunos.email, email) }));
-  if (emUso) return { erro: "Esse e-mail já está em uso." };
+  if (await emailEmUso(email, { professorId: professor.id })) return { erro: "Esse e-mail já está em uso." };
 
   if (novaSenha) {
     if (novaSenha.length < 6) return { erro: "A nova senha precisa ter pelo menos 6 caracteres." };

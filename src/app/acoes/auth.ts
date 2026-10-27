@@ -5,6 +5,7 @@ import { count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { contaLiberada } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { COOKIE_SESSAO, criarToken, opcoesCookie, type Sessao } from "@/lib/sessao";
@@ -21,11 +22,16 @@ export async function entrar(_: EstadoForm, dados: FormData): Promise<EstadoForm
   const db = await getDb();
   const professor = await db.query.professores.findFirst({ where: eq(schema.professores.email, email) });
   if (professor && (await bcrypt.compare(senha, professor.senhaHash))) {
+    if (!contaLiberada(professor)) {
+      return { erro: "Sua conta está suspensa ou o acesso expirou. Fale com o administrador do site para reativar." };
+    }
     await iniciarSessao({ tipo: "professor", id: professor.id });
     redirect("/painel");
   }
   const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.email, email) });
   if (aluno?.ativo && aluno.senhaHash && (await bcrypt.compare(senha, aluno.senhaHash))) {
+    const dono = await db.query.professores.findFirst({ where: eq(schema.professores.id, aluno.professorId) });
+    if (!dono || !contaLiberada(dono)) return { erro: "O acesso ao portal está indisponível no momento. Fale com seu professor." };
     await iniciarSessao({ tipo: "aluno", id: aluno.id });
     redirect("/portal");
   }
@@ -43,7 +49,10 @@ export async function existeProfessor() {
   return total > 0;
 }
 
-/** Primeiro acesso: cria a conta do professor (só funciona enquanto não existe nenhuma). */
+/**
+ * Primeiro acesso: cria a conta do professor master (o administrador da plataforma).
+ * Só funciona enquanto não existe nenhuma conta; depois, novos professores são criados pelo master.
+ */
 export async function criarConta(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
   if (await existeProfessor()) redirect("/login");
 
@@ -57,7 +66,7 @@ export async function criarConta(_: EstadoForm, dados: FormData): Promise<Estado
   const db = await getDb();
   const [professor] = await db
     .insert(schema.professores)
-    .values({ nome, email, senhaHash: await bcrypt.hash(senha, 10) })
+    .values({ nome, email, senhaHash: await bcrypt.hash(senha, 10), master: true })
     .returning();
   await iniciarSessao({ tipo: "professor", id: professor.id });
   redirect("/painel");

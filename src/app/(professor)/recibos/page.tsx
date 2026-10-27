@@ -26,9 +26,9 @@ export default function PaginaRecibos(props: PageProps<"/recibos">) {
 }
 
 async function Lista({ searchParams }: { searchParams: PageProps<"/recibos">["searchParams"] }) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const alunoId = Number((await searchParams).aluno) || undefined;
-  const [linhas, alunos] = await Promise.all([listarRecibos(alunoId), listarAlunos({ situacao: "todos" })]);
+  const [linhas, alunos] = await Promise.all([listarRecibos(professor.id, alunoId), listarAlunos(professor.id, { situacao: "todos" })]);
   const total = linhas.reduce((soma, l) => soma + l.recibo.valorCentavos, 0);
 
   return (

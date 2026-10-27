@@ -33,13 +33,13 @@ export default function PaginaChamada(props: PageProps<"/chamada">) {
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">["searchParams"] }) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const params = await searchParams;
   const dia = typeof params.data === "string" && isoValido(params.data) ? params.data : hojeISO();
   const todos = params.todos === "1";
   const diaSemana = DIAS_SEMANA[new Date(`${dia}T12:00:00Z`).getUTCDay()];
 
-  const [ativos, registros] = await Promise.all([listarAlunos(), presencasNaData(dia)]);
+  const [ativos, registros] = await Promise.all([listarAlunos(professor.id), presencasNaData(professor.id, dia)]);
   const porAluno = new Map(registros.map((r) => [r.alunoId, r]));
   // por padrão mostra quem tem aula nesse dia da semana ou já tem marcação na data
   const alunos = (todos ? ativos : ativos.filter((a) => a.diaAula === diaSemana || porAluno.has(a.id))).sort((a, b) =>

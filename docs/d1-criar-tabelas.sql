@@ -1,4 +1,5 @@
--- Cria todas as tabelas do site no Cloudflare D1, de uma vez.
+-- Cria todas as tabelas do site no Cloudflare D1, de uma vez (para um banco NOVO, vazio).
+-- Se o banco já existe e só falta atualizar, use: npx wrangler d1 migrations apply professor-db --remote
 -- Rode no console do D1 (Storage & Databases → D1 → professor-db → Console)
 -- ou pelo terminal: npx wrangler d1 execute professor-db --remote --file docs/d1-criar-tabelas.sql
 -- É seguro rodar mais de uma vez (IF NOT EXISTS / INSERT OR IGNORE).
@@ -12,12 +13,17 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `telefone` text,
   `endereco` text,
   `cidade` text,
-  `chave_pix` text
+  `chave_pix` text,
+  `master` integer DEFAULT false NOT NULL,
+  `ativo` integer DEFAULT true NOT NULL,
+  `acesso_ate` text,
+  `criado_em` text
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `professores_email_unique` ON `professores` (`email`);
 
 CREATE TABLE IF NOT EXISTS `alunos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer REFERENCES professores(id) ON DELETE cascade,
   `nome` text NOT NULL,
   `email` text,
   `senha_hash` text,
@@ -35,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `alunos` (
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `alunos_email_unique` ON `alunos` (`email`);
+CREATE INDEX IF NOT EXISTS `alunos_professor` ON `alunos` (`professor_id`);
 
 CREATE TABLE IF NOT EXISTS `presencas` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -48,6 +55,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS `presenca_aluno_data` ON `presencas` (`aluno_i
 
 CREATE TABLE IF NOT EXISTS `recibos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer REFERENCES professores(id) ON DELETE cascade,
   `numero` integer NOT NULL,
   `aluno_id` integer NOT NULL,
   `valor_centavos` integer NOT NULL,
@@ -58,10 +66,11 @@ CREATE TABLE IF NOT EXISTS `recibos` (
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
   FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
 );
-CREATE UNIQUE INDEX IF NOT EXISTS `recibos_numero_unique` ON `recibos` (`numero`);
+CREATE UNIQUE INDEX IF NOT EXISTS `recibos_professor_numero` ON `recibos` (`professor_id`, `numero`);
 
 CREATE TABLE IF NOT EXISTS `materiais` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer REFERENCES professores(id) ON DELETE cascade,
   `titulo` text NOT NULL,
   `descricao` text,
   `categoria` text,
@@ -71,6 +80,7 @@ CREATE TABLE IF NOT EXISTS `materiais` (
   `para_todos` integer DEFAULT false NOT NULL,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL
 );
+CREATE INDEX IF NOT EXISTS `materiais_professor` ON `materiais` (`professor_id`);
 
 CREATE TABLE IF NOT EXISTS `materiais_alunos` (
   `material_id` integer NOT NULL,
@@ -90,4 +100,5 @@ CREATE TABLE IF NOT EXISTS `d1_migrations` (
 INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0000_inicial.sql'),
   ('0001_materiais_drive.sql'),
-  ('0002_remove_upload.sql');
+  ('0002_remove_upload.sql'),
+  ('0003_multi_professor.sql');

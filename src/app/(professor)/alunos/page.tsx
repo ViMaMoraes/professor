@@ -26,11 +26,11 @@ export default function PaginaAlunos(props: PageProps<"/alunos">) {
 }
 
 async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["searchParams"] }) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const params = await searchParams;
   const busca = typeof params.q === "string" ? params.q.trim() : "";
   const situacao = typeof params.situacao === "string" ? params.situacao : "ativos";
-  const alunos = await listarAlunos({ busca, situacao });
+  const alunos = await listarAlunos(professor.id, { busca, situacao });
 
   return (
     <>

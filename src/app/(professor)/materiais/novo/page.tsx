@@ -21,7 +21,7 @@ export default function PaginaNovoMaterial() {
 }
 
 async function Conteudo() {
-  await exigirProfessor();
-  const alunos = await listarAlunos();
+  const professor = await exigirProfessor();
+  const alunos = await listarAlunos(professor.id);
   return <FormMaterial alunos={alunos.map(({ id, nome, instrumento }) => ({ id, nome, instrumento }))} />;
 }

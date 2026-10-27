@@ -38,6 +38,19 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - **download em lote:** marque vários e baixe tudo num **ZIP** (arquivos separados) ou num **PDF único** (páginas em ordem alfabética). O site avisa quais arquivos não puderam entrar.
 - **Configurações:** dados que saem no recibo (CPF/CNPJ, telefone, endereço, cidade) e chave Pix.
 
+### Vários professores (venda para outros professores)
+
+O mesmo site atende vários professores, cada um com os próprios alunos, chamadas, recibos (numeração própria) e materiais. Um professor nunca enxerga os dados de outro.
+
+- **Master:** a primeira conta criada (no `/configurar`) é a do administrador do site. Só ela vê o menu **Administração**.
+- **Administração:**
+  - criar a conta de cada professor cliente (nome, e-mail, senha inicial e data de validade);
+  - bloquear ou liberar contas;
+  - renovar a data de acesso;
+  - excluir a conta (apaga todos os dados daquele professor).
+- **Conta bloqueada ou vencida:** o professor e os alunos dele não conseguem entrar, mas nada é apagado. Ao liberar ou renovar, tudo volta como estava.
+- O e-mail é o login, então é único no site inteiro, entre todos os professores e alunos.
+
 ### Portal do aluno
 
 O aluno entra com o e-mail e a senha cadastrados pelo professor e vê:
@@ -142,7 +155,9 @@ Antes do primeiro deploy pelo GitHub:
 - as tabelas precisam existir. Rode `npm run cf:migrar` uma vez no seu computador (e de novo sempre que houver migração nova em `drizzle/`), ou cole o conteúdo de [`docs/d1-criar-tabelas.sql`](docs/d1-criar-tabelas.sql) no console do D1 no painel;
 - o `SESSION_SECRET` precisa estar cadastrado (pelo `wrangler secret put` ou no painel, em *Settings → Variables and Secrets*, como tipo **Secret**).
 
-**Quando o banco mudar** (nova migração em `drizzle/`), rode `npm run cf:migrar` antes do `npm run deploy`.
+**Quando o banco mudar** (nova migração em `drizzle/`), rode `npm run cf:migrar` antes do `npm run deploy`. Também dá para deixar automático, usando como Deploy command no Workers Builds: `npx wrangler d1 migrations apply professor-db --remote && npx wrangler deploy`.
+
+Para aplicar uma migração pelo console do D1, sem terminal: cole o conteúdo do arquivo `drizzle/000X_nome.sql` e, em seguida, registre a migração com `INSERT INTO d1_migrations (name) VALUES ('000X_nome.sql');`.
 
 **Testar o build da Cloudflare localmente:**
 

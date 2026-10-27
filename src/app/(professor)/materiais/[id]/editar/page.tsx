@@ -19,9 +19,9 @@ export default function PaginaEditarMaterial(props: PageProps<"/materiais/[id]/e
 }
 
 async function Conteudo({ params }: { params: PageProps<"/materiais/[id]/editar">["params"] }) {
-  await exigirProfessor();
-  const material = await buscarMaterial(Number((await params).id));
+  const professor = await exigirProfessor();
+  const material = await buscarMaterial(professor.id, Number((await params).id));
   if (!material) notFound();
-  const alunos = await listarAlunos();
+  const alunos = await listarAlunos(professor.id);
   return <FormMaterial material={material} alunos={alunos.map(({ id, nome, instrumento }) => ({ id, nome, instrumento }))} />;
 }

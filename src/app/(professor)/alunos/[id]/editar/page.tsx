@@ -16,8 +16,8 @@ export default function PaginaEditarAluno(props: PageProps<"/alunos/[id]/editar"
 }
 
 async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["params"] }) {
-  await exigirProfessor();
-  const aluno = await buscarAluno(Number((await params).id));
+  const professor = await exigirProfessor();
+  const aluno = await buscarAluno(professor.id, Number((await params).id));
   if (!aluno) notFound();
   const { senhaHash, ...dados } = aluno;
   return (

@@ -1,18 +1,20 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirProfessor } from "@/lib/auth";
+import { buscarAluno, emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
 
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const db = await getDb();
+  if (id && !(await buscarAluno(professor.id, id))) return { erro: "Aluno não encontrado." };
 
   const nome = texto(dados, "nome");
   const email = texto(dados, "email")?.toLowerCase() ?? null;
@@ -24,13 +26,9 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   if (valorDigitado && mensalidade == null) return { erro: "Valor da mensalidade inválido." };
   if (senha && senha.length < 6) return { erro: "A senha do portal precisa ter pelo menos 6 caracteres." };
   if (senha && !email) return { erro: "Para liberar o portal, informe o e-mail do aluno." };
-  if (email) {
-    const outro = await db.query.alunos.findFirst({
-      where: and(eq(schema.alunos.email, email), id ? ne(schema.alunos.id, id) : undefined),
-    });
-    if (outro) return { erro: "Já existe outro aluno com esse e-mail." };
-    const professor = await db.query.professores.findFirst({ where: eq(schema.professores.email, email) });
-    if (professor) return { erro: "Esse é o e-mail do professor; use outro para o aluno." };
+  // o e-mail é o login, então precisa ser único no site inteiro (entre todos os professores e alunos)
+  if (email && (await emailEmUso(email, { alunoId: id ?? undefined }))) {
+    return { erro: "Esse e-mail já está em uso por outra pessoa no site. Use outro." };
   }
 
   const data = (campo: string) => {
@@ -56,9 +54,15 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
 
   let alunoId = id;
   if (id) {
-    await db.update(schema.alunos).set(valores).where(eq(schema.alunos.id, id));
+    await db
+      .update(schema.alunos)
+      .set(valores)
+      .where(and(eq(schema.alunos.id, id), eq(schema.alunos.professorId, professor.id)));
   } else {
-    const [novo] = await db.insert(schema.alunos).values(valores).returning({ id: schema.alunos.id });
+    const [novo] = await db
+      .insert(schema.alunos)
+      .values({ ...valores, professorId: professor.id })
+      .returning({ id: schema.alunos.id });
     alunoId = novo.id;
   }
   revalidatePath("/", "layout");
@@ -66,17 +70,17 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
 }
 
 export async function alternarSituacao(id: number) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const db = await getDb();
-  const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.id, id) });
+  const aluno = await buscarAluno(professor.id, id);
   if (aluno) await db.update(schema.alunos).set({ ativo: !aluno.ativo }).where(eq(schema.alunos.id, id));
   revalidatePath("/", "layout");
 }
 
 export async function excluirAluno(id: number) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const db = await getDb();
-  await db.delete(schema.alunos).where(eq(schema.alunos.id, id));
+  await db.delete(schema.alunos).where(and(eq(schema.alunos.id, id), eq(schema.alunos.professorId, professor.id)));
   revalidatePath("/", "layout");
   redirect("/alunos");
 }

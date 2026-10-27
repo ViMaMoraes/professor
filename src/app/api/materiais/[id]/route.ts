@@ -5,16 +5,18 @@ import { urlAbrir, urlBaixar, urlVer } from "@/lib/drive";
 /**
  * Abre o material no Google Drive; ?baixar=1 baixa direto e ?ver=1 devolve a visualização
  * usada dentro do site (iframe).
- * O link só é entregue depois de conferir a permissão: o professor acessa todos; o aluno só os liberados para ele.
+ * O link só é entregue depois de conferir a permissão: o professor acessa os materiais dele; o aluno só os liberados para ele.
  */
 export async function GET(request: Request, ctx: RouteContext<"/api/materiais/[id]">) {
   const usuario = await usuarioAtual();
   if (!usuario) return new Response("Não autorizado", { status: 401 });
 
   const id = Number((await ctx.params).id);
-  const material = await buscarMaterial(id);
-  const permitido = material && (usuario.tipo === "professor" || (await alunoPodeBaixar(id, usuario.aluno.id)));
-  if (!material || !permitido) return new Response("Material não encontrado", { status: 404 });
+  const material =
+    usuario.tipo === "professor"
+      ? await buscarMaterial(usuario.professor.id, id)
+      : (await alunoPodeBaixar(id, usuario.aluno)) && (await buscarMaterial(null, id));
+  if (!material) return new Response("Material não encontrado", { status: 404 });
 
   const params = new URL(request.url).searchParams;
   const destino =

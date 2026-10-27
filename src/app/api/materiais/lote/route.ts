@@ -27,7 +27,9 @@ export async function POST(request: Request) {
   const { ids, formato, nome } = pedido.data;
 
   const permitidos =
-    usuario.tipo === "professor" ? await buscarMateriaisPorIds(ids) : (await materiaisDoAluno(usuario.aluno.id)).filter((m) => ids.includes(m.id));
+    usuario.tipo === "professor"
+      ? await buscarMateriaisPorIds(usuario.professor.id, ids)
+      : (await materiaisDoAluno(usuario.aluno)).filter((m) => ids.includes(m.id));
   if (permitidos.length === 0) return Response.json({ erro: "Nenhum material encontrado." }, { status: 404 });
 
   const { dados, falhas } = await montarLote(permitidos, formato);

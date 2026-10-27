@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheckBig, CloudDownload, LayoutDashboard, Menu, Music, ReceiptText, Settings, Users, X } from "lucide-react";
+import { CircleCheckBig, CloudDownload, Crown, LayoutDashboard, Menu, Music, ReceiptText, Settings, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
@@ -15,15 +15,16 @@ const ITENS = [
   { href: "/materiais", nome: "Downloads", icone: CloudDownload },
   { href: "/configuracoes", nome: "Configurações", icone: Settings },
 ];
+const ITEM_ADMIN = { href: "/admin", nome: "Administração", icone: Crown };
 
-export function MenuLateral({ rodape }: { rodape: ReactNode }) {
+export function MenuLateral({ rodape, master = false }: { rodape: ReactNode; master?: boolean }) {
   const [aberto, setAberto] = useState(false);
 
   const fechar = () => setAberto(false);
   // usePathname depende da URL; o fallback mostra os mesmos links sem destaque enquanto ela chega
   const navegacao = (
-    <Suspense fallback={<Navegacao caminho="" aoNavegar={fechar} />}>
-      <NavegacaoAtiva aoNavegar={fechar} />
+    <Suspense fallback={<Navegacao caminho="" aoNavegar={fechar} master={master} />}>
+      <NavegacaoAtiva aoNavegar={fechar} master={master} />
     </Suspense>
   );
 
@@ -71,14 +72,14 @@ export function MenuLateral({ rodape }: { rodape: ReactNode }) {
   );
 }
 
-function NavegacaoAtiva({ aoNavegar }: { aoNavegar: () => void }) {
-  return <Navegacao caminho={usePathname()} aoNavegar={aoNavegar} />;
+function NavegacaoAtiva({ aoNavegar, master }: { aoNavegar: () => void; master: boolean }) {
+  return <Navegacao caminho={usePathname()} aoNavegar={aoNavegar} master={master} />;
 }
 
-function Navegacao({ caminho, aoNavegar }: { caminho: string; aoNavegar: () => void }) {
+function Navegacao({ caminho, aoNavegar, master }: { caminho: string; aoNavegar: () => void; master: boolean }) {
   return (
     <nav className="flex flex-col gap-1">
-      {ITENS.map(({ href, nome, icone: Icone }) => {
+      {(master ? [...ITENS, ITEM_ADMIN] : ITENS).map(({ href, nome, icone: Icone }) => {
         const ativo = caminho === href || caminho.startsWith(href + "/");
         return (
           <Link

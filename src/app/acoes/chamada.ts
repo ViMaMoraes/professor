@@ -5,17 +5,20 @@ import { revalidatePath } from "next/cache";
 
 import { STATUS_PRESENCA } from "@/lib/constantes";
 import { exigirProfessor } from "@/lib/auth";
+import { listarAlunos } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import type { StatusPresenca } from "@/lib/db/schema";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { dataBR, isoValido } from "@/lib/formato";
 
 export async function salvarChamada(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const data = texto(dados, "data");
   if (!isoValido(data)) return { erro: "Data inválida." };
 
-  const ids = dados.getAll("alunos").map(Number).filter(Number.isInteger);
+  // só aceita alunos deste professor
+  const meus = new Set((await listarAlunos(professor.id, { situacao: "todos" })).map((a) => a.id));
+  const ids = dados.getAll("alunos").map(Number).filter((id) => meus.has(id));
   const db = await getDb();
   const { presencas } = schema;
   let marcados = 0;

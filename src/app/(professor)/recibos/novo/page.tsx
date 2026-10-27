@@ -23,9 +23,9 @@ export default function PaginaNovoRecibo(props: PageProps<"/recibos/novo">) {
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/recibos/novo">["searchParams"] }) {
-  await exigirProfessor();
+  const professor = await exigirProfessor();
   const alunoId = Number((await searchParams).aluno) || undefined;
-  const alunos = await listarAlunos();
+  const alunos = await listarAlunos(professor.id);
   if (alunos.length === 0) {
     return (
       <Card>

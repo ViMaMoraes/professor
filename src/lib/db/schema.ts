@@ -17,10 +17,22 @@ export const professores = sqliteTable("professores", {
   endereco: text("endereco"),
   cidade: text("cidade"),
   chavePix: text("chave_pix"),
+  // administração da plataforma
+  master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
+  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true), // conta liberada
+  acessoAte: text("acesso_ate"), // AAAA-MM-DD; vazio = sem data de validade
+  criadoEm: text("criado_em").$defaultFn(() => new Date().toISOString().slice(0, 10)),
 });
+
+/** Coluna que liga cada registro ao professor dono (cada professor só enxerga os próprios dados). */
+const professorId = () =>
+  integer("professor_id")
+    .notNull()
+    .references(() => professores.id, { onDelete: "cascade" });
 
 export const alunos = sqliteTable("alunos", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  professorId: professorId(),
   nome: text("nome").notNull(),
   email: text("email").unique(),
   senhaHash: text("senha_hash"),
@@ -52,22 +64,28 @@ export const presencas = sqliteTable(
   (t) => [uniqueIndex("presenca_aluno_data").on(t.alunoId, t.data)],
 );
 
-export const recibos = sqliteTable("recibos", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  numero: integer("numero").notNull().unique(),
-  alunoId: integer("aluno_id")
-    .notNull()
-    .references(() => alunos.id, { onDelete: "cascade" }),
-  valorCentavos: integer("valor_centavos").notNull(),
-  referente: text("referente").notNull(),
-  formaPagamento: text("forma_pagamento"),
-  dataPagamento: text("data_pagamento").notNull(),
-  observacoes: text("observacoes"),
-  criadoEm: criadoEm(),
-});
+export const recibos = sqliteTable(
+  "recibos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    numero: integer("numero").notNull(), // sequencial por professor
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    valorCentavos: integer("valor_centavos").notNull(),
+    referente: text("referente").notNull(),
+    formaPagamento: text("forma_pagamento"),
+    dataPagamento: text("data_pagamento").notNull(),
+    observacoes: text("observacoes"),
+    criadoEm: criadoEm(),
+  },
+  (t) => [uniqueIndex("recibos_professor_numero").on(t.professorId, t.numero)],
+);
 
 export const materiais = sqliteTable("materiais", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  professorId: professorId(),
   titulo: text("titulo").notNull(),
   descricao: text("descricao"),
   categoria: text("categoria"),

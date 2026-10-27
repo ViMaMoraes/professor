@@ -6,8 +6,8 @@ import { IconeMaterial } from "@/components/icone-material";
 import { BotaoVer, CaixaSelecao, ProvedorSelecao } from "@/components/materiais-selecao";
 import { SeloPresenca } from "@/components/selos";
 import { Card, CardTitulo, EsqueletoPagina, Selo, Vazio } from "@/components/ui";
-import { exigirAluno } from "@/lib/auth";
-import { frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, professorPrincipal, recibosDoAluno } from "@/lib/consultas";
+import { exigirAlunoComProfessor } from "@/lib/auth";
+import { frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, recibosDoAluno } from "@/lib/consultas";
 import { NOME_TIPO_DRIVE, podeBaixarEmLote, urlBaixar } from "@/lib/drive";
 import { dataBR, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
 
@@ -24,13 +24,12 @@ export default function PaginaPortal() {
 }
 
 async function Conteudo() {
-  const aluno = await exigirAluno();
-  const [materiais, recibos, presencas, frequencia, professor] = await Promise.all([
-    materiaisDoAluno(aluno.id),
+  const { aluno, professor } = await exigirAlunoComProfessor();
+  const [materiais, recibos, presencas, frequencia] = await Promise.all([
+    materiaisDoAluno(aluno),
     recibosDoAluno(aluno.id),
     presencasDoAluno(aluno.id, 12),
     frequenciaDoAluno(aluno.id),
-    professorPrincipal(),
   ]);
 
   return (

@@ -25,11 +25,11 @@ async function Painel() {
   const hoje = hojeISO();
   const diaSemana = DIAS_SEMANA[new Date(`${hoje}T12:00:00Z`).getUTCDay()];
   const [resumo, porMes, recibos, alunos, chamadasHoje] = await Promise.all([
-    resumoPainel(hoje),
-    recebidoPorMes(hoje),
-    listarRecibos(),
-    listarAlunos(),
-    presencasNaData(hoje),
+    resumoPainel(professor.id, hoje),
+    recebidoPorMes(professor.id, hoje),
+    listarRecibos(professor.id),
+    listarAlunos(professor.id),
+    presencasNaData(professor.id, hoje),
   ]);
   const aulasHoje = alunos
     .filter((a) => a.diaAula === diaSemana)

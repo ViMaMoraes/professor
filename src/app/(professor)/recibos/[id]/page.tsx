@@ -22,7 +22,7 @@ export default function PaginaRecibo(props: PageProps<"/recibos/[id]">) {
 
 async function Conteudo({ params }: { params: PageProps<"/recibos/[id]">["params"] }) {
   const professor = await exigirProfessor();
-  const linha = await buscarRecibo(Number((await params).id));
+  const linha = await buscarRecibo(Number((await params).id), { professorId: professor.id });
   if (!linha) notFound();
   const { recibo, aluno } = linha;
   const numero = numeroRecibo(recibo.numero);

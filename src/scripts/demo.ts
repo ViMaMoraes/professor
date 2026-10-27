@@ -12,15 +12,19 @@ async function main() {
     return;
   }
 
-  await db.insert(schema.professores).values({
-    nome: "Professor Exemplo",
-    email: "professor@exemplo.com",
-    senhaHash: await bcrypt.hash("professor", 10),
-    documento: "123.456.789-00",
-    telefone: "(11) 99999-0000",
-    cidade: "São Paulo/SP",
-    chavePix: "professor@exemplo.com",
-  });
+  const [professor] = await db
+    .insert(schema.professores)
+    .values({
+      master: true,
+      nome: "Professor Exemplo",
+      email: "professor@exemplo.com",
+      senhaHash: await bcrypt.hash("professor", 10),
+      documento: "123.456.789-00",
+      telefone: "(11) 99999-0000",
+      cidade: "São Paulo/SP",
+      chavePix: "professor@exemplo.com",
+    })
+    .returning();
 
   const hoje = hojeISO();
   const senhaAluno = await bcrypt.hash("aluno123", 10);
@@ -34,6 +38,7 @@ async function main() {
     .insert(schema.alunos)
     .values(
       dados.map(([nome, instrumento, nivel, diaAula, horario, mensalidadeCentavos, responsavel], i) => ({
+        professorId: professor.id,
         nome,
         instrumento,
         nivel,
@@ -68,6 +73,7 @@ async function main() {
     if (data > hoje) continue;
     for (const aluno of alunos.slice(0, m === 0 ? 3 : 4)) {
       await db.insert(schema.recibos).values({
+        professorId: professor.id,
         numero: numero++,
         alunoId: aluno.id,
         valorCentavos: aluno.mensalidadeCentavos!,
@@ -107,6 +113,7 @@ async function main() {
     const [material] = await db
       .insert(schema.materiais)
       .values({
+        professorId: professor.id,
         titulo: ex.titulo,
         categoria: ex.categoria,
         paraTodos: ex.paraTodos,
@@ -120,7 +127,28 @@ async function main() {
     }
   }
 
-  console.log("Pronto! Professor: professor@exemplo.com / professor · Alunos: ana@exemplo.com (etc.) / aluno123");
+  // uma segunda professora (cliente), com um aluno, para ver que um professor não enxerga os dados do outro
+  const [outra] = await db
+    .insert(schema.professores)
+    .values({
+      nome: "Marina Costa",
+      email: "marina@exemplo.com",
+      senhaHash: await bcrypt.hash("professor", 10),
+      acessoAte: somarDias(hoje, 30),
+    })
+    .returning();
+  await db.insert(schema.alunos).values({
+    professorId: outra.id,
+    nome: "Lucas Prado",
+    instrumento: "Canto",
+    diaAula: "Quinta",
+    email: "lucas@exemplo.com",
+    senhaHash: senhaAluno,
+  });
+
+  console.log(
+    "Pronto! Master: professor@exemplo.com / professor · Outra professora: marina@exemplo.com / professor · Alunos: ana@exemplo.com (etc.) / aluno123",
+  );
 }
 
 main();
