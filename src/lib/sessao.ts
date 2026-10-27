@@ -12,10 +12,16 @@ const DURACAO_SEGUNDOS = 60 * 60 * 24 * 30; // 30 dias
 
 let chaveEmCache: Uint8Array | undefined;
 
-/** Usa SESSION_SECRET; sem ela, gera uma chave e guarda em data/ para não derrubar as sessões a cada reinício. */
+/**
+ * Usa SESSION_SECRET; sem ela (só fora da Cloudflare), gera uma chave e guarda em data/
+ * para não derrubar as sessões a cada reinício.
+ */
 function chave() {
   if (chaveEmCache) return chaveEmCache;
   let segredo = process.env.SESSION_SECRET;
+  if (!segredo && typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers") {
+    throw new Error("Defina o secret SESSION_SECRET: npx wrangler secret put SESSION_SECRET");
+  }
   if (!segredo) {
     const arquivo = path.join(/*turbopackIgnore: true*/ PASTA_DADOS, ".session-secret");
     fs.mkdirSync(PASTA_DADOS, { recursive: true });

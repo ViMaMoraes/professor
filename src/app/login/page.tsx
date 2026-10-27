@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { existeProfessor } from "@/app/acoes/auth";
@@ -23,6 +24,7 @@ export default function PaginaLogin() {
 
 /** Sem professor cadastrado ainda, manda para a criação de conta. */
 async function PrimeiroAcesso() {
+  await connection(); // consulta o banco a cada acesso, nunca no build
   if (!(await existeProfessor())) redirect("/configurar");
   return null;
 }

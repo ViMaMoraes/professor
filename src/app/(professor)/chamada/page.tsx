@@ -1,9 +1,9 @@
-import { ChevronLeft, ChevronRight, History } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileSpreadsheet, History } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { BotaoLink, Cabecalho, EsqueletoPagina } from "@/components/ui";
+import { BotaoLink, Cabecalho, EsqueletoPagina, estiloBotao } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { DIAS_SEMANA } from "@/lib/constantes";
 import { listarAlunos, presencasNaData } from "@/lib/consultas";
@@ -21,6 +21,9 @@ export default function PaginaChamada(props: PageProps<"/chamada">) {
         <BotaoLink href="/chamada/historico" variante="secundario">
           <History /> Histórico
         </BotaoLink>
+        <a href="/api/chamada/planilha" download className={estiloBotao({ variante: "sucesso" })} title="Chamada do mês atual em Excel">
+          <FileSpreadsheet /> Exportar mês
+        </a>
       </Cabecalho>
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo searchParams={props.searchParams} />

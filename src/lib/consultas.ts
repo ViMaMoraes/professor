@@ -133,7 +133,7 @@ export async function presencasNaData(data: string) {
 export async function historicoPresencas(inicio: string, fim: string, alunoId?: number) {
   const db = await getDb();
   return db
-    .select({ presenca: presencas, aluno: { id: alunos.id, nome: alunos.nome } })
+    .select({ presenca: presencas, aluno: { id: alunos.id, nome: alunos.nome, instrumento: alunos.instrumento } })
     .from(presencas)
     .innerJoin(alunos, eq(alunos.id, presencas.alunoId))
     .where(and(gte(presencas.data, inicio), lte(presencas.data, fim), alunoId ? eq(presencas.alunoId, alunoId) : undefined))

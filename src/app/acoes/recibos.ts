@@ -24,22 +24,19 @@ export async function criarRecibo(_: EstadoForm, dados: FormData): Promise<Estad
   if (!isoValido(dataPagamento)) return { erro: "Informe a data do pagamento." };
   if (!referente) return { erro: "Informe a que se refere o pagamento." };
 
-  const recibo = await db.transaction(async (tx) => {
-    const [{ ultimo }] = await tx.select({ ultimo: sql<number | null>`max(${schema.recibos.numero})` }).from(schema.recibos);
-    const [novo] = await tx
-      .insert(schema.recibos)
-      .values({
-        numero: (ultimo ?? 0) + 1,
-        alunoId,
-        valorCentavos: valor,
-        referente,
-        dataPagamento,
-        formaPagamento: texto(dados, "formaPagamento"),
-        observacoes: texto(dados, "observacoes"),
-      })
-      .returning();
-    return novo;
-  });
+  // o próximo número é calculado dentro do próprio INSERT, então dois recibos simultâneos não repetem número
+  const [recibo] = await db
+    .insert(schema.recibos)
+    .values({
+      numero: sql`(select coalesce(max(${schema.recibos.numero}), 0) + 1 from ${schema.recibos})`,
+      alunoId,
+      valorCentavos: valor,
+      referente,
+      dataPagamento,
+      formaPagamento: texto(dados, "formaPagamento"),
+      observacoes: texto(dados, "observacoes"),
+    })
+    .returning();
 
   revalidatePath("/", "layout");
   redirect(`/recibos/${recibo.id}`);

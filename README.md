@@ -2,7 +2,7 @@
 
 Site para professor de música, com cadastro de alunos, chamada, recibos em PDF e central de downloads com materiais liberados por aluno. Os alunos têm um portal próprio.
 
-Feito com **Next.js 16** (App Router, Server Actions, Cache Components), **React 19**, **Tailwind CSS 4**, **Drizzle ORM** e **SQLite/libSQL**.
+Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind CSS 4** e **Drizzle ORM**, com banco **SQLite**: arquivo local no desenvolvimento e **Cloudflare D1** em produção.
 
 ## Funcionalidades
 
@@ -17,7 +17,11 @@ Feito com **Next.js 16** (App Router, Server Actions, Cache Components), **React
   - por data, já mostrando quem tem aula naquele dia da semana;
   - situações Presente, Falta, Falta justificada e Reposição, com anotação da aula;
   - botão "todos presentes";
-  - histórico com filtros e totais.
+  - histórico com filtros, atalhos (este mês, mês passado, este ano) e totais;
+  - **exportação para Excel (.xlsx)** do período, com três abas:
+    - **Chamada:** grade de alunos × datas com P/F/J/R coloridos, totais e frequência;
+    - **Resumo:** totais e frequência por aluno;
+    - **Registros:** todas as marcações, com as observações das aulas.
 - **Recibos:**
   - numeração automática;
   - valor por extenso;
@@ -93,8 +97,52 @@ O comando cria:
 | `npm run lint` / `npm run typecheck` | ESLint e TypeScript |
 | `npm run db:generate` | gera migração depois de mudar `src/lib/db/schema.ts` |
 | `npm run demo` | popula um banco vazio com exemplos |
+| `npm run preview` | build para Cloudflare e roda localmente no runtime deles (workerd + D1 local) |
+| `npm run deploy` | build e publica na Cloudflare |
+| `npm run cf:migrar` / `cf:migrar-local` | aplica as migrações no D1 (produção / local) |
 
-## Onde ficam os dados
+## Colocar no ar na Cloudflare (Workers)
+
+O site roda na Cloudflare Workers (em "Compute" no painel) usando o adaptador oficial [OpenNext](https://opennext.js.org/cloudflare) e o banco **D1**. A configuração está pronta em `wrangler.jsonc` e `open-next.config.ts`.
+
+> **Plano:** use o **Workers Paid (US$ 5/mês)**. O plano grátis limita cada requisição a 10 ms de CPU, e só conferir a senha no login gasta cerca de 80 ms (gerar PDF, ZIP e planilha também passa disso). O tamanho do app (cerca de 1,8 MB compactado) cabe em qualquer plano.
+
+Passo a passo, uma vez só, no seu computador:
+
+```bash
+npm install
+npx wrangler login                      # abre o navegador para autorizar sua conta Cloudflare
+
+npx wrangler d1 create professor-db     # cria o banco; copie o "database_id" que aparecer
+#   → cole o id em wrangler.jsonc, no lugar de COLE-AQUI-O-ID-DO-BANCO
+
+npm run cf:migrar                       # cria as tabelas no D1
+
+openssl rand -hex 32                    # gera uma chave aleatória (ou invente um texto longo)
+npx wrangler secret put SESSION_SECRET  # cole a chave quando pedir
+
+npm run deploy                          # build + publicação
+```
+
+No fim aparece o endereço `https://professor.<sua-conta>.workers.dev`. Abra e crie a conta de professor, porque o banco começa vazio.
+
+**Domínio próprio:** no painel da Cloudflare, abra *Workers & Pages → professor → Settings → Domains & Routes → Add → Custom domain*. O domínio precisa estar na sua conta Cloudflare.
+
+**Deploy automático pelo GitHub (opcional):** em *Workers & Pages → professor → Settings → Build*, conecte o repositório. Use `npx opennextjs-cloudflare build` como comando de build e `npx opennextjs-cloudflare deploy` como comando de deploy. O D1 e o `SESSION_SECRET` continuam os mesmos.
+
+**Quando o banco mudar** (nova migração em `drizzle/`), rode `npm run cf:migrar` antes do `npm run deploy`.
+
+**Testar o build da Cloudflare localmente:**
+
+```bash
+cp .dev.vars.example .dev.vars          # define SESSION_SECRET local
+npm run cf:migrar-local
+npm run preview                         # http://localhost:8787
+```
+
+**Backup do D1:** `npx wrangler d1 export professor-db --remote --output backup.sql`. O D1 também tem *Time Travel*, que restaura o banco para qualquer momento dos últimos 30 dias.
+
+## Onde ficam os dados (desenvolvimento local)
 
 Por padrão tudo fica em `data/`, que não vai para o git:
 
@@ -111,13 +159,12 @@ Variáveis de ambiente opcionais:
 | `DATA_DIR` | outra pasta para o banco |
 | `DATABASE_URL` / `DATABASE_AUTH_TOKEN` | banco libSQL remoto (ex.: [Turso](https://turso.tech)) em vez do arquivo local |
 
-> **Hospedagem:** os materiais ficam no Google Drive; o site só guarda o banco. Com um servidor que tenha disco (VPS, Railway, Render, Fly.io...) basta o arquivo SQLite. Na Vercel, use um banco libSQL na nuvem ([Turso](https://turso.tech)) com `DATABASE_URL` e `DATABASE_AUTH_TOKEN`.
+> **Outras hospedagens:** fora da Cloudflare o app roda como um Next.js comum (`npm run build && npm start`). Com disco persistente (VPS, Railway, Render, Fly.io...) basta o arquivo SQLite; sem disco, use um banco libSQL na nuvem ([Turso](https://turso.tech)) com `DATABASE_URL` e `DATABASE_AUTH_TOKEN`.
 
 ## Estrutura
 
 ```
 src/
-  proxy.ts                 # encaminha "/" e protege rotas (checagem otimista)
   app/
     (professor)/           # painel, alunos, chamada, recibos, materiais, configurações
     portal/                # área do aluno
@@ -125,15 +172,19 @@ src/
     api/recibos/[id]       # PDF do recibo
     api/materiais/[id]     # abre/vê/baixa o material no Drive (com checagem de permissão)
     api/materiais/lote     # ZIP ou PDF único com vários materiais
+    api/chamada/planilha   # exportação da chamada em Excel
     acoes/                 # Server Actions
   components/              # UI (botões, cards, formulários, menu)
   lib/
-    db/                    # schema Drizzle e conexão (migrações rodam sozinhas)
+    db/                    # schema Drizzle e conexão (D1 na Cloudflare, SQLite local fora dela)
     auth.ts  sessao.ts     # sessão em cookie JWT + checagem no banco
     consultas.ts           # consultas ao banco
     recibo-pdf.ts          # geração do PDF (pdf-lib)
     drive.ts               # leitura dos links do Google Drive e endereços de ver/baixar
     drive-lote.ts          # download em lote: busca no Drive e monta ZIP ou PDF único
+    planilha-chamada.ts    # monta a planilha .xlsx da chamada
     extenso.ts  formato.ts # valor por extenso, moeda, datas
-drizzle/                   # migrações SQL
+drizzle/                   # migrações SQL (usadas pelo SQLite local e pelo D1)
+wrangler.jsonc             # configuração da Cloudflare (worker, D1)
+open-next.config.ts        # configuração do adaptador OpenNext
 ```

@@ -10,10 +10,15 @@
     "demo": "tsx src/scripts/demo.ts",
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:migrar": "wrangler d1 migrations apply professor-db --remote",
+    "cf:migrar-local": "wrangler d1 migrations apply professor-db --local"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
+    "@opennextjs/cloudflare": "^1.20.13",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
@@ -26,6 +31,7 @@
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.7.0",
+    "write-excel-file": "^4.1.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -39,6 +45,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.154.0"
   }
 }

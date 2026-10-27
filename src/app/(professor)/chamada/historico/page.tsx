@@ -1,22 +1,22 @@
-import { CalendarSearch } from "lucide-react";
+import { CalendarSearch, FileSpreadsheet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { SeloPresenca } from "@/components/selos";
-import { Botao, Cabecalho, Campo, Card, EsqueletoPagina, Input, Select, Tabela, Vazio } from "@/components/ui";
+import { Botao, Cabecalho, Campo, Card, EsqueletoPagina, estiloBotao, Input, Select, Tabela, Vazio } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { STATUS_PRESENCA } from "@/lib/constantes";
 import { historicoPresencas, listarAlunos } from "@/lib/consultas";
 import type { StatusPresenca } from "@/lib/db/schema";
-import { dataBR, hojeISO, isoValido } from "@/lib/formato";
+import { dataBR, hojeISO, isoValido, somarDias } from "@/lib/formato";
 
 export const metadata: Metadata = { title: "Histórico de chamadas" };
 
 export default function PaginaHistorico(props: PageProps<"/chamada/historico">) {
   return (
     <>
-      <Cabecalho titulo="Histórico de chamadas" />
+      <Cabecalho titulo="Histórico de chamadas" descricao="Filtre o período e exporte para Excel: grade de chamada, resumo por aluno e todos os registros." />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo searchParams={props.searchParams} />
       </Suspense>
@@ -33,12 +33,40 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
   const alunoId = Number(params.aluno) || undefined;
 
   const [registros, alunos] = await Promise.all([historicoPresencas(inicio, fim, alunoId), listarAlunos({ situacao: "todos" })]);
+  const filtroAluno = alunoId ? `&aluno=${alunoId}` : "";
+  const exportar = `/api/chamada/planilha?inicio=${inicio}&fim=${fim}${filtroAluno}`;
+  const inicioMes = hoje.slice(0, 8) + "01";
+  const fimMesPassado = somarDias(inicioMes, -1);
+  const atalhos = [
+    { nome: "Este mês", inicio: inicioMes, fim: hoje },
+    { nome: "Mês passado", inicio: fimMesPassado.slice(0, 8) + "01", fim: fimMesPassado },
+    { nome: "Este ano", inicio: hoje.slice(0, 4) + "-01-01", fim: hoje },
+  ];
+
   const totais = Object.fromEntries(Object.keys(STATUS_PRESENCA).map((s) => [s, 0])) as Record<StatusPresenca, number>;
   for (const r of registros) totais[r.presenca.status]++;
 
   return (
     <>
-      <form className="mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_2fr_auto] sm:items-end">
+      <div className="mb-3 flex flex-wrap gap-2">
+        {atalhos.map((a) => {
+          const ativo = a.inicio === inicio && a.fim === fim;
+          return (
+            <Link
+              key={a.nome}
+              href={`/chamada/historico?inicio=${a.inicio}&fim=${a.fim}${filtroAluno}`}
+              className={
+                ativo
+                  ? "rounded-full bg-marca px-3 py-1 text-sm font-medium text-white"
+                  : "rounded-full border border-borda bg-superficie px-3 py-1 text-sm text-suave hover:text-texto"
+              }
+            >
+              {a.nome}
+            </Link>
+          );
+        })}
+      </div>
+      <form className="mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_2fr_auto_auto] sm:items-end">
         <Campo rotulo="De">
           <Input type="date" name="inicio" defaultValue={inicio} />
         </Campo>
@@ -56,6 +84,9 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
           </Select>
         </Campo>
         <Botao variante="secundario">Filtrar</Botao>
+        <a href={exportar} className={estiloBotao({ variante: "sucesso" })} download>
+          <FileSpreadsheet /> Exportar planilha
+        </a>
       </form>
 
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

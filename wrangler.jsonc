@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "professor",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      // referência ao próprio worker, usada pelo OpenNext (o nome precisa ser igual a "name")
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "professor"
+    }
+  ],
+  "d1_databases": [
+    {
+      // banco SQLite da Cloudflare. Crie com: npx wrangler d1 create professor-db
+      // e cole aqui o "database_id" que o comando mostrar.
+      "binding": "DB",
+      "database_name": "professor-db",
+      "database_id": "COLE-AQUI-O-ID-DO-BANCO",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

@@ -32,19 +32,18 @@ export async function salvarMaterial(id: number | null, _: EstadoForm, dados: Fo
     driveId: drive.id,
   };
 
-  await db.transaction(async (tx) => {
-    let materialId = id;
-    if (id) {
-      await tx.update(schema.materiais).set(valores).where(eq(schema.materiais.id, id));
-    } else {
-      const [novo] = await tx.insert(schema.materiais).values(valores).returning({ id: schema.materiais.id });
-      materialId = novo.id;
-    }
-    await tx.delete(schema.materiaisAlunos).where(eq(schema.materiaisAlunos.materialId, materialId!));
-    if (!paraTodos) {
-      await tx.insert(schema.materiaisAlunos).values(alunoIds.map((alunoId) => ({ materialId: materialId!, alunoId })));
-    }
-  });
+  let materialId = id;
+  if (!materialId) {
+    const [novo] = await db.insert(schema.materiais).values(valores).returning({ id: schema.materiais.id });
+    materialId = novo.id;
+  }
+  // atualiza o material e troca a lista de alunos de uma vez (o D1 não tem transações, mas executa o batch junto)
+  const vinculos = paraTodos ? [] : alunoIds.map((alunoId) => ({ materialId: materialId!, alunoId }));
+  await db.batch([
+    db.update(schema.materiais).set(valores).where(eq(schema.materiais.id, materialId)),
+    db.delete(schema.materiaisAlunos).where(eq(schema.materiaisAlunos.materialId, materialId)),
+    ...(vinculos.length ? [db.insert(schema.materiaisAlunos).values(vinculos)] : []),
+  ]);
 
   revalidatePath("/", "layout");
   redirect("/materiais");
