@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, exists, gte, like, lte, or, sql, sum } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gte, inArray, like, lte, or, sql, sum } from "drizzle-orm";
 
 import { getDb, schema } from "./db";
 
@@ -70,6 +70,12 @@ export async function materiaisDoAluno(alunoId: number) {
       ),
     )
     .orderBy(desc(materiais.criadoEm), desc(materiais.id));
+}
+
+export async function buscarMateriaisPorIds(ids: number[]) {
+  if (ids.length === 0) return [];
+  const db = await getDb();
+  return db.select().from(materiais).where(inArray(materiais.id, ids));
 }
 
 export async function alunoPodeBaixar(materialId: number, alunoId: number) {

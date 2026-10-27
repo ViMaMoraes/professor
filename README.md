@@ -28,14 +28,17 @@ Feito com **Next.js 16** (App Router, Server Actions, Cache Components), **React
 - **Central de downloads (Google Drive):**
   - os arquivos ficam no seu Google Drive; no site você só cola o link de compartilhamento;
   - o site reconhece arquivo, pasta ou documento do Google e avisa se o link não for do Drive;
-  - cada material fica liberado para **todos os alunos** ou só para **alunos escolhidos**.
+  - cada material fica liberado para **todos os alunos** ou só para **alunos escolhidos**;
+  - **Ver** abre o arquivo dentro do próprio site (visualização do Drive);
+  - **Baixar** baixa direto; documentos do Google vêm em PDF;
+  - **download em lote:** marque vários e baixe tudo num **ZIP** (arquivos separados) ou num **PDF único** (páginas em ordem alfabética). O site avisa quais arquivos não puderam entrar.
 - **Configurações:** dados que saem no recibo (CPF/CNPJ, telefone, endereço, cidade) e chave Pix.
 
 ### Portal do aluno
 
 O aluno entra com o e-mail e a senha cadastrados pelo professor e vê:
 
-- os materiais liberados para ele, que abrem no Drive ou são baixados direto;
+- os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;
 - os seus recibos em PDF;
 - a frequência nas aulas;
 - a chave Pix com botão de copiar.
@@ -120,7 +123,8 @@ src/
     portal/                # área do aluno
     login/  configurar/    # login e primeiro acesso
     api/recibos/[id]       # PDF do recibo
-    api/materiais/[id]     # abre/baixa o material no Drive (com checagem de permissão)
+    api/materiais/[id]     # abre/vê/baixa o material no Drive (com checagem de permissão)
+    api/materiais/lote     # ZIP ou PDF único com vários materiais
     acoes/                 # Server Actions
   components/              # UI (botões, cards, formulários, menu)
   lib/
@@ -128,7 +132,8 @@ src/
     auth.ts  sessao.ts     # sessão em cookie JWT + checagem no banco
     consultas.ts           # consultas ao banco
     recibo-pdf.ts          # geração do PDF (pdf-lib)
-    drive.ts               # leitura dos links do Google Drive
+    drive.ts               # leitura dos links do Google Drive e endereços de ver/baixar
+    drive-lote.ts          # download em lote: busca no Drive e monta ZIP ou PDF único
     extenso.ts  formato.ts # valor por extenso, moeda, datas
 drizzle/                   # migrações SQL
 ```

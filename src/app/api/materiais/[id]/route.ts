@@ -1,9 +1,10 @@
 import { usuarioAtual } from "@/lib/auth";
 import { alunoPodeBaixar, buscarMaterial } from "@/lib/consultas";
-import { urlAbrir, urlBaixar } from "@/lib/drive";
+import { urlAbrir, urlBaixar, urlVer } from "@/lib/drive";
 
 /**
- * Abre (ou baixa, com ?baixar=1) o material no Google Drive.
+ * Abre o material no Google Drive; ?baixar=1 baixa direto e ?ver=1 devolve a visualização
+ * usada dentro do site (iframe).
  * O link só é entregue depois de conferir a permissão: o professor acessa todos; o aluno só os liberados para ele.
  */
 export async function GET(request: Request, ctx: RouteContext<"/api/materiais/[id]">) {
@@ -15,7 +16,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/materiais/[i
   const permitido = material && (usuario.tipo === "professor" || (await alunoPodeBaixar(id, usuario.aluno.id)));
   if (!material || !permitido) return new Response("Material não encontrado", { status: 404 });
 
-  const baixar = new URL(request.url).searchParams.get("baixar") === "1";
-  const destino = (baixar && urlBaixar(material)) || urlAbrir(material);
+  const params = new URL(request.url).searchParams;
+  const destino =
+    (params.get("ver") === "1" && urlVer(material)) || (params.get("baixar") === "1" && urlBaixar(material)) || urlAbrir(material);
   return new Response(null, { status: 302, headers: { Location: destino, "Cache-Control": "private, no-store" } });
 }

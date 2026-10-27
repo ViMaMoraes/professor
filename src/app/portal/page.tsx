@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { IconeMaterial } from "@/components/icone-material";
+import { BotaoVer, CaixaSelecao, ProvedorSelecao } from "@/components/materiais-selecao";
 import { SeloPresenca } from "@/components/selos";
 import { Card, CardTitulo, EsqueletoPagina, Selo, Vazio } from "@/components/ui";
 import { exigirAluno } from "@/lib/auth";
 import { frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, professorPrincipal, recibosDoAluno } from "@/lib/consultas";
-import { NOME_TIPO_DRIVE } from "@/lib/drive";
+import { NOME_TIPO_DRIVE, podeBaixarEmLote, urlBaixar } from "@/lib/drive";
 import { dataBR, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
 
 import { CopiarPix } from "./copiar-pix";
@@ -49,38 +50,42 @@ async function Conteudo() {
               Quando o professor liberar partituras, áudios ou vídeos, eles aparecem aqui.
             </Vazio>
           ) : (
-            <ul className="divide-y divide-borda">
-              {materiais.map((m) => (
-                <li key={m.id} className="flex items-center gap-4 px-5 py-4">
-                  <div className="rounded-xl bg-marca-suave p-2.5 text-marca-texto">
-                    <IconeMaterial tipo={m.tipoDrive} categoria={m.categoria} className="size-5" />
-                  </div>
-                  <a href={`/api/materiais/${m.id}`} target="_blank" rel="noopener" className="group min-w-0 flex-1">
-                    <p className="font-medium group-hover:text-marca-texto">{m.titulo}</p>
-                    {m.descricao && <p className="text-sm text-suave">{m.descricao}</p>}
-                    <p className="mt-0.5 text-xs text-suave">
-                      {[m.categoria, NOME_TIPO_DRIVE[m.tipoDrive], dataBR(m.criadoEm)].filter(Boolean).join(" · ")}
-                    </p>
-                  </a>
-                  <div className="flex gap-1">
-                    {m.tipoDrive === "arquivo" && (
-                      <a href={`/api/materiais/${m.id}?baixar=1`} className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-marca-texto" title="Baixar">
-                        <Download className="size-5" />
+            <ProvedorSelecao itens={materiais.filter(podeBaixarEmLote).map(({ id, titulo }) => ({ id, titulo }))}>
+              <ul className="divide-y divide-borda">
+                {materiais.map((m) => (
+                  <li key={m.id} className="flex items-center gap-3 px-5 py-4">
+                    {podeBaixarEmLote(m) ? <CaixaSelecao id={m.id} titulo={m.titulo} /> : <span className="w-6 shrink-0" />}
+                    <div className="hidden rounded-xl bg-marca-suave p-2.5 text-marca-texto sm:block">
+                      <IconeMaterial tipo={m.tipoDrive} categoria={m.categoria} className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{m.titulo}</p>
+                      {m.descricao && <p className="text-sm text-suave">{m.descricao}</p>}
+                      <p className="mt-0.5 text-xs text-suave">
+                        {[m.categoria, NOME_TIPO_DRIVE[m.tipoDrive], dataBR(m.criadoEm)].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      <BotaoVer id={m.id} titulo={m.titulo} className="text-suave hover:text-marca-texto [&>span]:hidden sm:[&>span]:inline" />
+                      {urlBaixar(m) && (
+                        <a href={`/api/materiais/${m.id}?baixar=1`} className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-marca-texto" title="Baixar">
+                          <Download className="size-5" />
+                        </a>
+                      )}
+                      <a
+                        href={`/api/materiais/${m.id}`}
+                        target="_blank"
+                        rel="noopener"
+                        className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-marca-texto"
+                        title="Abrir no Drive"
+                      >
+                        <ExternalLink className="size-5" />
                       </a>
-                    )}
-                    <a
-                      href={`/api/materiais/${m.id}`}
-                      target="_blank"
-                      rel="noopener"
-                      className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-marca-texto"
-                      title="Abrir no Drive"
-                    >
-                      <ExternalLink className="size-5" />
-                    </a>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </ProvedorSelecao>
           )}
         </Card>
 
