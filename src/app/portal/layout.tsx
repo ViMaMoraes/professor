@@ -1,10 +1,14 @@
 import Link from "next/link";
 
+import { BancoDesatualizado } from "@/components/banco-desatualizado";
 import { CaixaUsuario } from "@/components/caixa-usuario";
 import { Logo } from "@/components/logo";
 import { exigirAlunoComProfessor } from "@/lib/auth";
+import { migracoesPendentes } from "@/lib/db";
 
 export default async function LayoutPortal({ children }: LayoutProps<"/portal">) {
+  const pendentes = await migracoesPendentes();
+  if (pendentes.length) return <BancoDesatualizado pendentes={pendentes} paraAluno />;
   // checa o login antes de qualquer coisa: visitante sem sessão recebe redirecionamento direto
   const { aluno, professor } = await exigirAlunoComProfessor();
   return (
