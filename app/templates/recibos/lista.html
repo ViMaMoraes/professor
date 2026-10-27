@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Recibos{% endblock %}
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Recibos</h1>
+  <a href="{{ url_for('recibos.novo') }}" class="btn btn-roxo"><i class="bi bi-plus-lg"></i> Novo recibo</a>
+</div>
+<form class="row g-2 mb-3">
+  <div class="col-md-6"><select name="aluno" class="form-select" onchange="this.form.submit()">
+    <option value="">Todos os alunos</option>
+    {% for a in alunos %}<option value="{{ a.id }}" {% if aluno_id == a.id %}selected{% endif %}>{{ a.nome }}</option>{% endfor %}
+  </select></div>
+</form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>Nº</th><th>Data</th><th>Aluno</th><th>Referente a</th><th class="text-end">Valor</th><th></th></tr></thead>
+  <tbody>
+  {% for r in recibos %}
+    <tr>
+      <td><a href="{{ url_for('recibos.detalhe', recibo_id=r.id) }}">#{{ r.numero_formatado }}</a></td>
+      <td>{{ r.data_pagamento|data }}</td>
+      <td>{{ r.aluno.nome }}</td>
+      <td class="small">{{ r.referente }}</td>
+      <td class="text-end">{{ r.valor|moeda }}</td>
+      <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('recibos.pdf', recibo_id=r.id, baixar=1) }}" title="Baixar PDF"><i class="bi bi-file-earmark-pdf"></i></a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum recibo emitido.</td></tr>
+  {% endfor %}
+  </tbody>
+  {% if recibos %}<tfoot><tr><th colspan="4" class="text-end">Total</th><th class="text-end">{{ total|moeda }}</th><th></th></tr></tfoot>{% endif %}
+</table>
+</div></div>
+{% endblock %}

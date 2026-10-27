@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Alunos{% endblock %}
+{% block conteudo %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Alunos</h1>
+  <a href="{{ url_for('alunos.novo') }}" class="btn btn-roxo"><i class="bi bi-person-plus"></i> Novo aluno</a>
+</div>
+<form class="row g-2 mb-3">
+  <div class="col-md-6"><input name="q" class="form-control" placeholder="Buscar por nome, instrumento ou e-mail" value="{{ busca }}"></div>
+  <div class="col-md-3">
+    <select name="situacao" class="form-select" onchange="this.form.submit()">
+      {% for v, t in [('ativos','Ativos'),('inativos','Inativos'),('todos','Todos')] %}
+      <option value="{{ v }}" {% if situacao == v %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3"><button class="btn btn-outline-secondary w-100"><i class="bi bi-search"></i> Buscar</button></div>
+</form>
+<div class="card"><div class="table-responsive">
+<table class="table table-hover mb-0">
+  <thead><tr><th>Nome</th><th>Instrumento</th><th>Aula</th><th>Mensalidade</th><th>Portal</th><th></th></tr></thead>
+  <tbody>
+  {% for a in alunos %}
+    <tr>
+      <td><a href="{{ url_for('alunos.detalhe', aluno_id=a.id) }}" class="fw-semibold text-decoration-none">{{ a.nome }}</a>
+        {% if not a.ativo %}<span class="badge text-bg-secondary">inativo</span>{% endif %}
+        <div class="small text-muted">{{ a.telefone or '' }}</div></td>
+      <td>{{ a.instrumento or '-' }}{% if a.nivel %} <span class="small text-muted">({{ a.nivel }})</span>{% endif %}</td>
+      <td>{{ a.dia_aula or '-' }} {{ a.horario or '' }}</td>
+      <td>{{ a.valor_mensalidade|moeda }}</td>
+      <td>{% if a.tem_acesso_portal %}<i class="bi bi-unlock text-success" title="Acesso liberado"></i>{% else %}<i class="bi bi-lock text-muted" title="Sem acesso"></i>{% endif %}</td>
+      <td class="text-end"><a href="{{ url_for('alunos.editar', aluno_id=a.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum aluno encontrado.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import botao_post %}
+{% block titulo %}Recibo {{ recibo.numero_formatado }}{% endblock %}
+{% block conteudo %}
+<div class="d-flex flex-wrap gap-2 mb-3 no-print">
+  <a href="{{ url_for('recibos.pdf', recibo_id=recibo.id, baixar=1) }}" class="btn btn-roxo"><i class="bi bi-file-earmark-pdf"></i> Baixar PDF</a>
+  <a href="{{ url_for('recibos.pdf', recibo_id=recibo.id) }}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-eye"></i> Abrir PDF</a>
+  <a href="{{ link_whatsapp }}" target="_blank" rel="noopener" class="btn btn-success"><i class="bi bi-whatsapp"></i> Enviar por WhatsApp</a>
+  <a href="{{ link_email }}" class="btn btn-outline-primary"><i class="bi bi-envelope"></i> Enviar por e-mail</a>
+  <button onclick="window.print()" class="btn btn-outline-secondary"><i class="bi bi-printer"></i> Imprimir</button>
+  <span class="ms-auto">{{ botao_post(url_for('recibos.excluir', recibo_id=recibo.id), 'Excluir', confirmar='Excluir o recibo nº ' ~ recibo.numero_formatado ~ '?') }}</span>
+</div>
+<p class="small text-muted no-print"><i class="bi bi-info-circle"></i> No WhatsApp e no e-mail vai uma mensagem pronta; anexe o PDF baixado se quiser mandar o documento. O aluno com acesso ao portal também consegue baixar o recibo por lá.</p>
+{% if not professor.documento or not professor.cidade %}
+<div class="alert alert-warning no-print">Complete seu CPF/CNPJ e cidade em <a href="{{ url_for('configuracoes.editar') }}">Configurações</a> para que apareçam no recibo.</div>
+{% endif %}
+
+<div class="recibo-preview">
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div><h2 class="mb-0 fw-bold">RECIBO</h2><div>Nº {{ recibo.numero_formatado }}</div></div>
+    <div class="fs-3 fw-bold">{{ recibo.valor|moeda }}</div>
+  </div>
+  <p class="fs-5" style="line-height: 1.8">
+    Recebi de <strong>{{ recibo.aluno.responsavel ~ ' (responsável por ' ~ recibo.aluno.nome ~ ')' if recibo.aluno.responsavel else recibo.aluno.nome }}</strong>
+    a importância de <strong>{{ recibo.valor|moeda }}</strong> ({{ extenso }}), referente a {{ recibo.referente }}{% if recibo.forma_pagamento %}, pago via {{ recibo.forma_pagamento }}{% endif %}.
+    {{ recibo.observacoes or '' }}
+  </p>
+  <p class="text-end mt-4">{{ (professor.cidade ~ ', ') if professor.cidade else '' }}{{ recibo.data_pagamento|data }}.</p>
+  <div class="text-center mt-5">
+    <div class="mx-auto border-top border-dark" style="width: 60%"></div>
+    <div class="fw-semibold mt-1">{{ professor.nome }}</div>
+    <div class="small text-muted">
+      {% if professor.documento %}CPF/CNPJ: {{ professor.documento }}{% endif %}
+      {% if professor.telefone %} · Tel: {{ professor.telefone }}{% endif %}
+    </div>
+    {% if professor.endereco %}<div class="small text-muted">{{ professor.endereco }}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

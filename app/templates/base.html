@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Professor{% endblock %} · Aula de Música</title>
+  <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-roxo mb-4">
+  <div class="container">
+    <a class="navbar-brand fw-semibold" href="{{ url_for('index') }}"><i class="bi bi-music-note-beamed"></i> Aula de Música</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="menu">
+      <ul class="navbar-nav me-auto">
+        {% if current_user.eh_professor %}
+          {% set rotas = [
+            ('dashboard.inicio', 'speedometer2', 'Painel'),
+            ('alunos.lista', 'people', 'Alunos'),
+            ('chamada.registrar', 'check2-square', 'Chamada'),
+            ('recibos.lista', 'receipt', 'Recibos'),
+            ('materiais.lista', 'cloud-arrow-down', 'Downloads'),
+          ] %}
+          {% for rota, icone, nome in rotas %}
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint and request.endpoint.split('.')[0] == rota.split('.')[0] %}active{% endif %}" href="{{ url_for(rota) }}"><i class="bi bi-{{ icone }}"></i> {{ nome }}</a>
+          </li>
+          {% endfor %}
+        {% else %}
+          <li class="nav-item"><a class="nav-link active" href="{{ url_for('portal.inicio') }}"><i class="bi bi-house"></i> Minha área</a></li>
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> {{ current_user.nome.split(' ')[0] }}</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            {% if current_user.eh_professor %}
+            <li><a class="dropdown-item" href="{{ url_for('configuracoes.editar') }}"><i class="bi bi-gear"></i> Configurações</a></li>
+            {% else %}
+            <li><a class="dropdown-item" href="{{ url_for('portal.trocar_senha') }}"><i class="bi bi-key"></i> Trocar senha</a></li>
+            {% endif %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Sair</button>
+              </form>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+{% endif %}
+<main class="container pb-5">
+  {% with mensagens = get_flashed_messages(with_categories=true) %}
+    {% for categoria, mensagem in mensagens %}
+      <div class="alert alert-{{ categoria if categoria != 'message' else 'info' }} alert-dismissible fade show">
+        {{ mensagem }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+  {% block conteudo %}{% endblock %}
+</main>
+<script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

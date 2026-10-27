@@ -1,0 +1,23 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro botao_post(url, texto, classe='btn-outline-danger', icone='trash', confirmar=None) %}
+<form method="post" action="{{ url }}" class="d-inline" {% if confirmar %}onsubmit="return confirm({{ confirmar|tojson|forceescape }})"{% endif %}>
+  {{ csrf() }}
+  <button class="btn btn-sm {{ classe }}"><i class="bi bi-{{ icone }}"></i> {{ texto }}</button>
+</form>
+{% endmacro %}
+
+{% macro icone_arquivo(nome) -%}
+{%- set ext = nome.rsplit('.', 1)[-1].lower() -%}
+{%- if ext == 'pdf' -%}file-earmark-pdf
+{%- elif ext in ['mp3','wav','ogg','m4a','flac'] -%}file-earmark-music
+{%- elif ext in ['mp4','mov','webm'] -%}file-earmark-play
+{%- elif ext in ['png','jpg','jpeg','gif','webp'] -%}file-earmark-image
+{%- elif ext == 'zip' -%}file-earmark-zip
+{%- else -%}file-earmark-text{%- endif -%}
+{%- endmacro %}
+
+{% macro badge_status(status) -%}
+{%- set cores = {'presente': 'success', 'falta': 'danger', 'justificada': 'warning', 'reposicao': 'info'} -%}
+<span class="badge text-bg-{{ cores.get(status, 'secondary') }}">{{ {'presente': 'Presente', 'falta': 'Falta', 'justificada': 'Falta justificada', 'reposicao': 'Reposição'}.get(status, status) }}</span>
+{%- endmacro %}
