@@ -139,7 +139,7 @@ No fim aparece o endereço `https://professor.<sua-conta>.workers.dev`. Abra e c
 Antes do primeiro deploy pelo GitHub:
 
 - o `database_id` real do D1 precisa estar no `wrangler.jsonc` commitado (o deploy usa o arquivo do repositório);
-- as tabelas precisam existir: rode `npm run cf:migrar` uma vez no seu computador e de novo sempre que houver migração nova em `drizzle/`;
+- as tabelas precisam existir. Rode `npm run cf:migrar` uma vez no seu computador (e de novo sempre que houver migração nova em `drizzle/`), ou cole o conteúdo de [`docs/d1-criar-tabelas.sql`](docs/d1-criar-tabelas.sql) no console do D1 no painel;
 - o `SESSION_SECRET` precisa estar cadastrado (pelo `wrangler secret put` ou no painel, em *Settings → Variables and Secrets*, como tipo **Secret**).
 
 **Quando o banco mudar** (nova migração em `drizzle/`), rode `npm run cf:migrar` antes do `npm run deploy`.
