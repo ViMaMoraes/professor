@@ -21,9 +21,27 @@ CREATE TABLE IF NOT EXISTS `professores` (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `professores_email_unique` ON `professores` (`email`);
 
+CREATE TABLE IF NOT EXISTS `instituicoes` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `nome` text NOT NULL,
+  `documento` text,
+  `contato` text,
+  `email` text,
+  `telefone` text,
+  `endereco` text,
+  `valor_mensal_centavos` integer,
+  `observacoes` text,
+  `ativo` integer DEFAULT true NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS `instituicoes_professor` ON `instituicoes` (`professor_id`);
+
 CREATE TABLE IF NOT EXISTS `alunos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `professor_id` integer REFERENCES professores(id) ON DELETE cascade,
+  `instituicao_id` integer REFERENCES instituicoes(id) ON DELETE set null,
   `nome` text NOT NULL,
   `email` text,
   `senha_hash` text,
@@ -55,16 +73,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS `presenca_aluno_data` ON `presencas` (`aluno_i
 
 CREATE TABLE IF NOT EXISTS `recibos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  `professor_id` integer REFERENCES professores(id) ON DELETE cascade,
+  `professor_id` integer NOT NULL,
   `numero` integer NOT NULL,
-  `aluno_id` integer NOT NULL,
+  `aluno_id` integer,
+  `instituicao_id` integer,
   `valor_centavos` integer NOT NULL,
   `referente` text NOT NULL,
   `forma_pagamento` text,
   `data_pagamento` text NOT NULL,
   `observacoes` text,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
-  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`instituicao_id`) REFERENCES `instituicoes`(`id`) ON UPDATE no action ON DELETE cascade
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `recibos_professor_numero` ON `recibos` (`professor_id`, `numero`);
 
@@ -101,4 +122,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0000_inicial.sql'),
   ('0001_materiais_drive.sql'),
   ('0002_remove_upload.sql'),
-  ('0003_multi_professor.sql');
+  ('0003_multi_professor.sql'),
+  ('0004_instituicoes.sql');

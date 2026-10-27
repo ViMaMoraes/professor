@@ -7,7 +7,7 @@ import { SeloPresenca } from "@/components/selos";
 import { Botao, Cabecalho, Campo, Card, EsqueletoPagina, estiloBotao, Input, Select, Tabela, Vazio } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { STATUS_PRESENCA } from "@/lib/constantes";
-import { historicoPresencas, listarAlunos } from "@/lib/consultas";
+import { historicoPresencas, listarAlunos, listarInstituicoes } from "@/lib/consultas";
 import type { StatusPresenca } from "@/lib/db/schema";
 import { dataBR, hojeISO, isoValido, somarDias } from "@/lib/formato";
 
@@ -32,8 +32,14 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
   const fim = typeof params.fim === "string" && isoValido(params.fim) ? params.fim : hoje;
   const alunoId = Number(params.aluno) || undefined;
 
-  const [registros, alunos] = await Promise.all([historicoPresencas(professor.id, inicio, fim, alunoId), listarAlunos(professor.id, { situacao: "todos" })]);
-  const filtroAluno = alunoId ? `&aluno=${alunoId}` : "";
+  const instituicaoId = Number(params.instituicao) || undefined;
+
+  const [registros, alunos, instituicoes] = await Promise.all([
+    historicoPresencas(professor.id, inicio, fim, alunoId, instituicaoId),
+    listarAlunos(professor.id, { situacao: "todos" }),
+    listarInstituicoes(professor.id, { situacao: "todas" }),
+  ]);
+  const filtroAluno = `${alunoId ? `&aluno=${alunoId}` : ""}${instituicaoId ? `&instituicao=${instituicaoId}` : ""}`;
   const exportar = `/api/chamada/planilha?inicio=${inicio}&fim=${fim}${filtroAluno}`;
   const inicioMes = hoje.slice(0, 8) + "01";
   const fimMesPassado = somarDias(inicioMes, -1);
@@ -66,7 +72,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
           );
         })}
       </div>
-      <form className="mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_2fr_auto_auto] sm:items-end">
+      <form className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.5fr_1.5fr_auto_auto] lg:items-end">
         <Campo rotulo="De">
           <Input type="date" name="inicio" defaultValue={inicio} />
         </Campo>
@@ -79,6 +85,16 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
             {alunos.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.nome}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+        <Campo rotulo="Instituição">
+          <Select name="instituicao" defaultValue={instituicaoId ?? ""}>
+            <option value="">Todas</option>
+            {instituicoes.map(({ instituicao: i }) => (
+              <option key={i.id} value={i.id}>
+                {i.nome}
               </option>
             ))}
           </Select>

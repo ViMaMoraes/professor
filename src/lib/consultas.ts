@@ -4,7 +4,7 @@ import { and, asc, desc, eq, exists, gte, inArray, like, lte, or, sql, sum } fro
 
 import { getDb, schema } from "./db";
 
-const { professores, alunos, presencas, recibos, materiais, materiaisAlunos } = schema;
+const { professores, alunos, instituicoes, presencas, recibos, materiais, materiaisAlunos } = schema;
 
 // Estas consultas não checam a sessão: quem chama (página, action ou rota) precisa ter chamado
 // exigirProfessor()/exigirAluno() antes. Todas recebem o professor (ou o aluno) dono dos dados,
@@ -12,9 +12,13 @@ const { professores, alunos, presencas, recibos, materiais, materiaisAlunos } = 
 
 type AlunoDono = { id: number; professorId: number };
 
-export async function listarAlunos(professorId: number, filtro: { busca?: string; situacao?: string } = {}) {
+export async function listarAlunos(
+  professorId: number,
+  filtro: { busca?: string; situacao?: string; instituicaoId?: number } = {},
+) {
   const db = await getDb();
   const condicoes = [eq(alunos.professorId, professorId)];
+  if (filtro.instituicaoId) condicoes.push(eq(alunos.instituicaoId, filtro.instituicaoId));
   if (filtro.situacao === "inativos") condicoes.push(eq(alunos.ativo, false));
   else if (filtro.situacao !== "todos") condicoes.push(eq(alunos.ativo, true));
   if (filtro.busca) {
@@ -123,26 +127,61 @@ export async function buscarMaterial(professorId: number | null, id: number) {
   return { ...material, alunoIds: vinculos.map((v) => v.alunoId) };
 }
 
-export async function listarRecibos(professorId: number, alunoId?: number) {
+export async function listarRecibos(professorId: number, filtro: { alunoId?: number; instituicaoId?: number } = {}) {
   const db = await getDb();
   return db
-    .select({ recibo: recibos, aluno: { id: alunos.id, nome: alunos.nome } })
+    .select({
+      recibo: recibos,
+      aluno: { id: alunos.id, nome: alunos.nome },
+      instituicao: { id: instituicoes.id, nome: instituicoes.nome },
+    })
     .from(recibos)
-    .innerJoin(alunos, eq(alunos.id, recibos.alunoId))
-    .where(and(eq(recibos.professorId, professorId), alunoId ? eq(recibos.alunoId, alunoId) : undefined))
+    .leftJoin(alunos, eq(alunos.id, recibos.alunoId))
+    .leftJoin(instituicoes, eq(instituicoes.id, recibos.instituicaoId))
+    .where(
+      and(
+        eq(recibos.professorId, professorId),
+        filtro.alunoId ? eq(recibos.alunoId, filtro.alunoId) : undefined,
+        filtro.instituicaoId ? eq(recibos.instituicaoId, filtro.instituicaoId) : undefined,
+      ),
+    )
     .orderBy(desc(recibos.numero));
 }
 
-/** Recibo de um professor (dono) ou de um aluno (o próprio). */
+/** Recibo de um professor (dono) ou de um aluno (o próprio), com quem pagou: aluno ou instituição. */
 export async function buscarRecibo(id: number, dono: { professorId: number } | { alunoId: number }) {
   const db = await getDb();
   const filtro = "professorId" in dono ? eq(recibos.professorId, dono.professorId) : eq(recibos.alunoId, dono.alunoId);
   const [linha] = await db
-    .select({ recibo: recibos, aluno: alunos })
+    .select({ recibo: recibos, aluno: alunos, instituicao: instituicoes })
     .from(recibos)
-    .innerJoin(alunos, eq(alunos.id, recibos.alunoId))
+    .leftJoin(alunos, eq(alunos.id, recibos.alunoId))
+    .leftJoin(instituicoes, eq(instituicoes.id, recibos.instituicaoId))
     .where(and(eq(recibos.id, id), filtro));
   return linha;
+}
+
+export async function listarInstituicoes(professorId: number, filtro: { situacao?: string } = {}) {
+  const db = await getDb();
+  return db
+    .select({
+      instituicao: instituicoes,
+      // nomes qualificados à mão: dentro da subconsulta o Drizzle não prefixa a tabela
+      alunosAtivos: sql<number>`(select count(*) from "alunos" a where a."instituicao_id" = "instituicoes"."id" and a."ativo" = 1)`,
+    })
+    .from(instituicoes)
+    .where(
+      and(
+        eq(instituicoes.professorId, professorId),
+        filtro.situacao === "todas" ? undefined : eq(instituicoes.ativo, filtro.situacao !== "inativas"),
+      ),
+    )
+    .orderBy(asc(instituicoes.nome));
+}
+
+export async function buscarInstituicao(professorId: number, id: number) {
+  const db = await getDb();
+  return db.query.instituicoes.findFirst({ where: and(eq(instituicoes.id, id), eq(instituicoes.professorId, professorId)) });
 }
 
 export async function presencasNaData(professorId: number, data: string) {
@@ -155,7 +194,13 @@ export async function presencasNaData(professorId: number, data: string) {
     .then((linhas) => linhas.map((l) => l.presenca));
 }
 
-export async function historicoPresencas(professorId: number, inicio: string, fim: string, alunoId?: number) {
+export async function historicoPresencas(
+  professorId: number,
+  inicio: string,
+  fim: string,
+  alunoId?: number,
+  instituicaoId?: number,
+) {
   const db = await getDb();
   return db
     .select({ presenca: presencas, aluno: { id: alunos.id, nome: alunos.nome, instrumento: alunos.instrumento } })
@@ -167,6 +212,7 @@ export async function historicoPresencas(professorId: number, inicio: string, fi
         gte(presencas.data, inicio),
         lte(presencas.data, fim),
         alunoId ? eq(presencas.alunoId, alunoId) : undefined,
+        instituicaoId ? eq(alunos.instituicaoId, instituicaoId) : undefined,
       ),
     )
     .orderBy(desc(presencas.data), asc(alunos.nome));

@@ -112,6 +112,53 @@ describe("isolamento entre professores", () => {
   });
 });
 
+describe("instituições", () => {
+  it("recibo no nome da instituição e chamada separada por aluno", async () => {
+    const db = await getDb();
+    const [escola] = await db.insert(schema.instituicoes).values({ professorId: prof, nome: "Escola X" }).returning();
+    const [fe, ga] = await db
+      .insert(schema.alunos)
+      .values([
+        { professorId: prof, nome: "Fernanda", instituicaoId: escola.id },
+        { professorId: prof, nome: "Gabriel", instituicaoId: escola.id },
+      ])
+      .returning();
+    await db.insert(schema.presencas).values([
+      { alunoId: fe.id, data: "2026-10-21", status: "presente" },
+      { alunoId: ga.id, data: "2026-10-21", status: "falta" },
+      { alunoId: ana.id, data: "2026-10-21", status: "presente" },
+    ]);
+    const [recibo] = await db
+      .insert(schema.recibos)
+      .values({ professorId: prof, numero: 50, instituicaoId: escola.id, valorCentavos: 60000, referente: "x", dataPagamento: "2026-10-21" })
+      .returning();
+
+    expect((await consultas.listarAlunos(prof, { instituicaoId: escola.id })).map((a) => a.nome)).toEqual(["Fernanda", "Gabriel"]);
+    const chamada = await consultas.historicoPresencas(prof, "2026-10-21", "2026-10-21", undefined, escola.id);
+    expect(chamada.map((c) => [c.aluno.nome, c.presenca.status])).toEqual([
+      ["Fernanda", "presente"],
+      ["Gabriel", "falta"],
+    ]);
+    const lista = await consultas.listarRecibos(prof, { instituicaoId: escola.id });
+    expect(lista.map((l) => [l.recibo.numero, l.instituicao?.nome, l.aluno])).toEqual([[50, "Escola X", null]]);
+    const completo = await consultas.buscarRecibo(recibo.id, { professorId: prof });
+    expect(completo?.instituicao?.nome).toBe("Escola X");
+    expect(completo?.aluno).toBeNull();
+    // o aluno não acessa o recibo da instituição pelo portal
+    expect(await consultas.buscarRecibo(recibo.id, { alunoId: fe.id })).toBeUndefined();
+    // outro professor não vê a instituição
+    expect(await consultas.buscarInstituicao(outro, escola.id)).toBeUndefined();
+    expect((await consultas.listarInstituicoes(prof)).map((l) => [l.instituicao.nome, l.alunosAtivos])).toEqual([["Escola X", 2]]);
+
+    // excluir a instituição apaga os recibos dela, mas os alunos continuam (sem vínculo)
+    await db.delete(schema.instituicoes).where(eq(schema.instituicoes.id, escola.id));
+    expect(await consultas.listarRecibos(prof, { instituicaoId: escola.id })).toEqual([]);
+    expect((await consultas.buscarAluno(prof, fe.id))?.instituicaoId).toBeNull();
+    await db.delete(schema.alunos).where(eq(schema.alunos.id, fe.id));
+    await db.delete(schema.alunos).where(eq(schema.alunos.id, ga.id));
+  });
+});
+
 describe("contas e validade", () => {
   it("bloqueio e vencimento (o master nunca é bloqueado)", () => {
     const hoje = "2026-10-27";

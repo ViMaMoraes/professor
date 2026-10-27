@@ -5,13 +5,13 @@ type DadosMensagem = {
   valorCentavos: number;
   referente: string;
   dataPagamento: string;
-  aluno: string;
+  pagador: string;
   professor?: string;
 };
 
 export function mensagemRecibo(d: DadosMensagem) {
   return (
-    `Olá, ${d.aluno}! Segue o recibo nº ${numeroRecibo(d.numero)} no valor de ${moeda(d.valorCentavos)}, ` +
+    `Olá, ${d.pagador}! Segue o recibo nº ${numeroRecibo(d.numero)} no valor de ${moeda(d.valorCentavos)}, ` +
     `referente a ${d.referente}. Pagamento em ${dataBR(d.dataPagamento)}. Obrigado!` +
     (d.professor ? `\n${d.professor}` : "")
   );

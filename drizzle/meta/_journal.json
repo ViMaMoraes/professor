@@ -29,6 +29,13 @@
       "when": 1793132427951,
       "tag": "0003_multi_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793134079457,
+      "tag": "0004_instituicoes",
+      "breakpoints": true
     }
   ]
 }

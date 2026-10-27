@@ -1,18 +1,18 @@
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
 
-import type { Aluno, Professor, Recibo } from "./db/schema";
+import type { Professor, Recibo } from "./db/schema";
 import { valorPorExtenso } from "./extenso";
 import { dataPorExtenso, moeda, numeroRecibo } from "./formato";
+import type { Pagador } from "./pagador";
 
 const ROXO = rgb(0.36, 0.2, 0.7);
 const CINZA = rgb(0.4, 0.4, 0.45);
 const PRETO = rgb(0.1, 0.1, 0.12);
 
 /** Texto completo do recibo; usado no PDF e na pré-visualização da página. */
-export function textoRecibo(recibo: Recibo, aluno: Aluno) {
-  const pagador = aluno.responsavel ? `${aluno.responsavel} (responsável por ${aluno.nome})` : aluno.nome;
+export function textoRecibo(recibo: Recibo, pagador: Pick<Pagador, "recebiDe">) {
   let texto =
-    `Recebi de ${pagador} a importância de ${moeda(recibo.valorCentavos)} ` +
+    `Recebi de ${pagador.recebiDe} a importância de ${moeda(recibo.valorCentavos)} ` +
     `(${valorPorExtenso(recibo.valorCentavos)}), referente a ${recibo.referente}` +
     (recibo.formaPagamento ? `, pago via ${recibo.formaPagamento}` : "") +
     ".";
@@ -42,7 +42,7 @@ function centralizado(pagina: PDFPage, texto: string, y: number, fonte: PDFFont,
 }
 
 /** Gera o recibo na metade de cima de uma folha A4. */
-export async function gerarReciboPdf(recibo: Recibo, aluno: Aluno, professor: Professor | undefined) {
+export async function gerarReciboPdf(recibo: Recibo, pagador: Pagador, professor: Professor | undefined) {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Recibo ${numeroRecibo(recibo.numero)}`);
   pdf.setAuthor(professor?.nome ?? "");
@@ -80,7 +80,7 @@ export async function gerarReciboPdf(recibo: Recibo, aluno: Aluno, professor: Pr
 
   // corpo
   let y = topo - 104;
-  for (const linha of quebrarLinhas(textoRecibo(recibo, aluno), normal, 12, util - 2 * pad)) {
+  for (const linha of quebrarLinhas(textoRecibo(recibo, pagador), normal, 12, util - 2 * pad)) {
     pagina.drawText(linha, { x: margem + pad, y, size: 12, font: normal, color: PRETO });
     y -= 19;
   }

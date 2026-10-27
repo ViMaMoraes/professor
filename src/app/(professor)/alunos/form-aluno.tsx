@@ -9,7 +9,13 @@ import { DIAS_SEMANA, INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
 import type { Aluno } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
 
-export function FormAluno({ aluno }: { aluno?: Omit<Aluno, "senhaHash"> & { temAcesso: boolean } }) {
+export function FormAluno({
+  aluno,
+  instituicoes,
+}: {
+  aluno?: Omit<Aluno, "senhaHash"> & { temAcesso: boolean };
+  instituicoes: { id: number; nome: string }[];
+}) {
   const acao = salvarAluno.bind(null, aluno?.id ?? null);
   return (
     <Formulario acao={acao}>
@@ -26,6 +32,16 @@ export function FormAluno({ aluno }: { aluno?: Omit<Aluno, "senhaHash"> & { temA
           </Campo>
           <Campo rotulo="Responsável" dica="Para alunos menores. Aparece no recibo." className="sm:col-span-2">
             <Input name="responsavel" defaultValue={aluno?.responsavel ?? ""} />
+          </Campo>
+          <Campo rotulo="Instituição" dica="Se uma escola, igreja ou projeto paga pelas aulas deste aluno.">
+            <Select name="instituicaoId" defaultValue={aluno?.instituicaoId ?? ""}>
+              <option value="">Nenhuma (particular)</option>
+              {instituicoes.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.nome}
+                </option>
+              ))}
+            </Select>
           </Campo>
         </Secao>
 

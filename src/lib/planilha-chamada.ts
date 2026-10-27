@@ -56,8 +56,13 @@ export function contarPorAluno(registros: RegistroChamada[]) {
 }
 
 /** Monta as três abas da planilha de chamada do período. */
-export function abasPlanilhaChamada(registros: RegistroChamada[], periodo: { inicio: string; fim: string }): Sheet<Blob>[] {
-  const textoPeriodo = `${dataBR(periodo.inicio)} a ${dataBR(periodo.fim)}`;
+export function abasPlanilhaChamada(
+  registros: RegistroChamada[],
+  periodo: { inicio: string; fim: string },
+  instituicao?: string,
+): Sheet<Blob>[] {
+  // aparece no título de cada aba, ex.: "Escola Villa-Lobos · 01/10/2026 a 31/10/2026"
+  const textoPeriodo = `${instituicao ? instituicao + " · " : ""}${dataBR(periodo.inicio)} a ${dataBR(periodo.fim)}`;
   const resumo = contarPorAluno(registros);
   const datas = [...new Set(registros.map((r) => r.data))].sort();
   const marcacao = new Map(registros.map((r) => [`${r.aluno.id}|${r.data}`, r.status]));
@@ -165,8 +170,12 @@ export function abasPlanilhaChamada(registros: RegistroChamada[], periodo: { ini
   ];
 }
 
-export async function gerarPlanilhaChamada(registros: RegistroChamada[], periodo: { inicio: string; fim: string }) {
+export async function gerarPlanilhaChamada(
+  registros: RegistroChamada[],
+  periodo: { inicio: string; fim: string },
+  instituicao?: string,
+) {
   const { default: escreverPlanilha } = await import("write-excel-file/universal");
-  const blob = await escreverPlanilha(abasPlanilhaChamada(registros, periodo), { fontFamily: "Calibri", fontSize: 11 }).toBlob();
+  const blob = await escreverPlanilha(abasPlanilhaChamada(registros, periodo, instituicao), { fontFamily: "Calibri", fontSize: 11 }).toBlob();
   return new Uint8Array(await blob.arrayBuffer());
 }

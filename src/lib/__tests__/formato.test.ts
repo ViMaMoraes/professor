@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { valorPorExtenso, numeroPorExtenso } from "../extenso";
 import { centavosParaCampo, dataBR, dataPorExtenso, isoValido, lerValorEmCentavos, moeda, somarDias } from "../formato";
 import { linkWhatsapp } from "../mensagens";
+import { pagadorDoRecibo } from "../pagador";
 
 describe("valores", () => {
   it("lê valores digitados em reais", () => {
@@ -66,5 +67,21 @@ describe("outros", () => {
   it("link do WhatsApp com DDI do Brasil", () => {
     expect(linkWhatsapp("(11) 98888-0001", "oi")).toBe("https://wa.me/5511988880001?text=oi");
     expect(linkWhatsapp(null, "oi")).toBe("https://wa.me/?text=oi");
+  });
+});
+
+describe("pagador do recibo", () => {
+  const aluno = { nome: "Carla", responsavel: null, telefone: "1", email: null };
+  it("aluno, responsável ou instituição", () => {
+    expect(pagadorDoRecibo(aluno, null).recebiDe).toBe("Carla");
+    expect(pagadorDoRecibo({ ...aluno, responsavel: "Marina" }, null).recebiDe).toBe("Marina (responsável por Carla)");
+    const escola = { nome: "Escola X", documento: "12.345.678/0001-90", telefone: "2", email: "e@x.com" };
+    expect(pagadorDoRecibo(null, escola)).toEqual({
+      tipo: "instituicao",
+      nome: "Escola X",
+      recebiDe: "Escola X (CNPJ/CPF 12.345.678/0001-90)",
+      telefone: "2",
+      email: "e@x.com",
+    });
   });
 });

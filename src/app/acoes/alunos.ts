@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, emailEmUso } from "@/lib/consultas";
+import { buscarAluno, buscarInstituicao, emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
@@ -31,6 +31,9 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     return { erro: "Esse e-mail já está em uso por outra pessoa no site. Use outro." };
   }
 
+  const instituicaoId = Number(dados.get("instituicaoId")) || null;
+  if (instituicaoId && !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Instituição inválida." };
+
   const data = (campo: string) => {
     const valor = texto(dados, campo);
     return isoValido(valor) ? valor : null;
@@ -48,6 +51,7 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     mensalidadeCentavos: mensalidade,
     dataInicio: data("dataInicio"),
     observacoes: texto(dados, "observacoes"),
+    instituicaoId,
     ...(senha ? { senhaHash: await bcrypt.hash(senha, 10) } : {}),
     ...(dados.get("removerAcesso") ? { senhaHash: null } : {}),
   };

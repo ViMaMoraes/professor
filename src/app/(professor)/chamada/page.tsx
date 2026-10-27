@@ -6,11 +6,11 @@ import { Suspense } from "react";
 import { BotaoLink, Cabecalho, EsqueletoPagina, estiloBotao } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { DIAS_SEMANA } from "@/lib/constantes";
-import { listarAlunos, presencasNaData } from "@/lib/consultas";
+import { listarAlunos, listarInstituicoes, presencasNaData } from "@/lib/consultas";
 import { dataPorExtenso, hojeISO, isoValido, somarDias } from "@/lib/formato";
 
 import { FormChamada } from "./form-chamada";
-import { SeletorData } from "./seletor-data";
+import { SeletorData, SeletorInstituicao } from "./seletor-data";
 
 export const metadata: Metadata = { title: "Chamada" };
 
@@ -36,16 +36,23 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
   const professor = await exigirProfessor();
   const params = await searchParams;
   const dia = typeof params.data === "string" && isoValido(params.data) ? params.data : hojeISO();
-  const todos = params.todos === "1";
+  const instituicaoId = Number(params.instituicao) || undefined;
+  // ao filtrar por instituição, mostra todos os alunos dela (não só os do dia da semana)
+  const todos = params.todos === "1" || Boolean(instituicaoId);
   const diaSemana = DIAS_SEMANA[new Date(`${dia}T12:00:00Z`).getUTCDay()];
 
-  const [ativos, registros] = await Promise.all([listarAlunos(professor.id), presencasNaData(professor.id, dia)]);
+  const [ativos, registros, instituicoes] = await Promise.all([
+    listarAlunos(professor.id, { instituicaoId }),
+    presencasNaData(professor.id, dia),
+    listarInstituicoes(professor.id),
+  ]);
   const porAluno = new Map(registros.map((r) => [r.alunoId, r]));
   // por padrão mostra quem tem aula nesse dia da semana ou já tem marcação na data
   const alunos = (todos ? ativos : ativos.filter((a) => a.diaAula === diaSemana || porAluno.has(a.id))).sort((a, b) =>
     (a.horario ?? "99").localeCompare(b.horario ?? "99"),
   );
-  const link = (data: string, mostrarTodos = todos) => `/chamada?data=${data}${mostrarTodos ? "&todos=1" : ""}`;
+  const extra = (mostrarTodos: boolean) => `${mostrarTodos ? "&todos=1" : ""}${instituicaoId ? `&instituicao=${instituicaoId}` : ""}`;
+  const link = (data: string, mostrarTodos = todos) => `/chamada?data=${data}${extra(mostrarTodos)}`;
 
   return (
     <>
@@ -53,7 +60,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
         <BotaoLink href={link(somarDias(dia, -1))} variante="secundario" tamanho="icone" aria-label="Dia anterior">
           <ChevronLeft />
         </BotaoLink>
-        <SeletorData valor={dia} todos={todos} />
+        <SeletorData valor={dia} extra={extra(todos)} />
         <BotaoLink href={link(somarDias(dia, 1))} variante="secundario" tamanho="icone" aria-label="Próximo dia">
           <ChevronRight />
         </BotaoLink>
@@ -61,16 +68,20 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
           <span className="font-semibold">{diaSemana}</span>
           <span className="text-suave"> · {dataPorExtenso(dia)}</span>
         </span>
-        <Link
-          href={link(dia, !todos)}
-          className="ml-auto rounded-lg px-3 py-1.5 text-sm text-marca-texto hover:bg-marca-suave"
-        >
-          {todos ? "Só quem tem aula hoje" : "Mostrar todos os alunos"}
-        </Link>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {instituicoes.length > 0 && (
+            <SeletorInstituicao data={dia} valor={instituicaoId} instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} />
+          )}
+          {!instituicaoId && (
+            <Link href={link(dia, !todos)} className="rounded-lg px-3 py-1.5 text-sm text-marca-texto hover:bg-marca-suave">
+              {todos ? "Só quem tem aula hoje" : "Mostrar todos os alunos"}
+            </Link>
+          )}
+        </div>
       </div>
 
       <FormChamada
-        key={`${dia}-${todos}`}
+        key={`${dia}-${todos}-${instituicaoId ?? ""}`}
         data={dia}
         diaSemana={diaSemana}
         alunos={alunos.map((a) => ({

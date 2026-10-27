@@ -1,11 +1,11 @@
-import { KeyRound, Search, UserPlus, Users } from "lucide-react";
+import { Building2, KeyRound, Search, UserPlus, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { BotaoLink, Botao, Cabecalho, Card, EsqueletoPagina, Input, Select, Selo, Tabela, Vazio } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { listarAlunos } from "@/lib/consultas";
+import { listarAlunos, listarInstituicoes } from "@/lib/consultas";
 import { moeda } from "@/lib/formato";
 
 export const metadata: Metadata = { title: "Alunos" };
@@ -30,7 +30,12 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
   const params = await searchParams;
   const busca = typeof params.q === "string" ? params.q.trim() : "";
   const situacao = typeof params.situacao === "string" ? params.situacao : "ativos";
-  const alunos = await listarAlunos(professor.id, { busca, situacao });
+  const instituicaoId = Number(params.instituicao) || undefined;
+  const [alunos, instituicoes] = await Promise.all([
+    listarAlunos(professor.id, { busca, situacao, instituicaoId }),
+    listarInstituicoes(professor.id, { situacao: "todas" }),
+  ]);
+  const nomeInstituicao = new Map(instituicoes.map(({ instituicao: i }) => [i.id, i.nome]));
 
   return (
     <>
@@ -39,6 +44,16 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-suave" />
           <Input name="q" defaultValue={busca} placeholder="Buscar por nome, instrumento ou e-mail" className="pl-9" />
         </div>
+        {instituicoes.length > 0 && (
+          <Select name="instituicao" defaultValue={instituicaoId ?? ""} className="sm:w-52">
+            <option value="">Todas as instituições</option>
+            {instituicoes.map(({ instituicao: i }) => (
+              <option key={i.id} value={i.id}>
+                {i.nome}
+              </option>
+            ))}
+          </Select>
+        )}
         <Select name="situacao" defaultValue={situacao} className="sm:w-40">
           <option value="ativos">Ativos</option>
           <option value="inativos">Inativos</option>
@@ -71,7 +86,15 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
                       {a.nome}
                     </Link>
                     {!a.ativo && <Selo className="ml-2">inativo</Selo>}
-                    <div className="text-xs text-suave">{a.telefone}</div>
+                    <div className="text-xs text-suave">
+                      {a.instituicaoId ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Building2 className="size-3" /> {nomeInstituicao.get(a.instituicaoId)}
+                        </span>
+                      ) : (
+                        a.telefone
+                      )}
+                    </div>
                   </td>
                   <td>
                     {a.instrumento ?? "—"}

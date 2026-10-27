@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno } from "@/lib/consultas";
+import { buscarAluno, buscarInstituicao } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
@@ -14,13 +14,19 @@ export async function criarRecibo(_: EstadoForm, dados: FormData): Promise<Estad
   const professor = await exigirProfessor();
   const db = await getDb();
 
-  const alunoId = Number(dados.get("alunoId"));
+  const paraInstituicao = dados.get("tipo") === "instituicao";
+  const alunoId = paraInstituicao ? 0 : Number(dados.get("alunoId"));
+  const instituicaoId = paraInstituicao ? Number(dados.get("instituicaoId")) : 0;
   const valor = lerValorEmCentavos(dados.get("valor"));
   const dataPagamento = texto(dados, "dataPagamento");
   const referente = texto(dados, "referente");
 
-  const aluno = alunoId ? await buscarAluno(professor.id, alunoId) : undefined;
-  if (!aluno) return { erro: "Escolha o aluno." };
+  // o recibo é de um aluno OU de uma instituição, sempre deste professor
+  if (paraInstituicao) {
+    if (!instituicaoId || !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Escolha a instituição." };
+  } else if (!alunoId || !(await buscarAluno(professor.id, alunoId))) {
+    return { erro: "Escolha o aluno." };
+  }
   if (!valor) return { erro: "Informe um valor válido." };
   if (!isoValido(dataPagamento)) return { erro: "Informe a data do pagamento." };
   if (!referente) return { erro: "Informe a que se refere o pagamento." };
@@ -32,7 +38,8 @@ export async function criarRecibo(_: EstadoForm, dados: FormData): Promise<Estad
     .values({
       professorId: professor.id,
       numero: sql`(select coalesce(max(${schema.recibos.numero}), 0) + 1 from ${schema.recibos} where ${schema.recibos.professorId} = ${professor.id})`,
-      alunoId,
+      alunoId: alunoId || null,
+      instituicaoId: instituicaoId || null,
       valorCentavos: valor,
       referente,
       dataPagamento,

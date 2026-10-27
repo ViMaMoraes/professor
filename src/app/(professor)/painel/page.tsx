@@ -122,11 +122,11 @@ async function Painel() {
             <p className="p-5 text-sm text-suave">Nenhum recibo ainda.</p>
           ) : (
             <ul className="divide-y divide-borda">
-              {recibos.slice(0, 5).map(({ recibo, aluno }) => (
+              {recibos.slice(0, 5).map(({ recibo, aluno, instituicao }) => (
                 <li key={recibo.id}>
                   <Link href={`/recibos/${recibo.id}`} className="flex items-center gap-4 px-5 py-3 text-sm hover:bg-fundo/60">
                     <span className="font-mono text-xs text-suave">#{numeroRecibo(recibo.numero)}</span>
-                    <span className="flex-1 truncate font-medium">{aluno.nome}</span>
+                    <span className="flex-1 truncate font-medium">{instituicao?.nome ?? aluno?.nome}</span>
                     <span className="hidden text-suave sm:inline">{dataBR(recibo.dataPagamento)}</span>
                     <span className="font-semibold tabular-nums">{moeda(recibo.valorCentavos)}</span>
                   </Link>

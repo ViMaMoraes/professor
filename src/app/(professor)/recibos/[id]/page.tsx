@@ -8,6 +8,7 @@ import { exigirProfessor } from "@/lib/auth";
 import { buscarRecibo } from "@/lib/consultas";
 import { dataBR, moeda, numeroRecibo } from "@/lib/formato";
 import { linkEmail, linkWhatsapp, mensagemRecibo } from "@/lib/mensagens";
+import { pagadorDoRecibo } from "@/lib/pagador";
 import { textoRecibo } from "@/lib/recibo-pdf";
 
 import { AcoesRecibo } from "./acoes-recibo";
@@ -24,14 +25,15 @@ async function Conteudo({ params }: { params: PageProps<"/recibos/[id]">["params
   const professor = await exigirProfessor();
   const linha = await buscarRecibo(Number((await params).id), { professorId: professor.id });
   if (!linha) notFound();
-  const { recibo, aluno } = linha;
+  const { recibo } = linha;
+  const pagador = pagadorDoRecibo(linha.aluno, linha.instituicao);
   const numero = numeroRecibo(recibo.numero);
   const mensagem = mensagemRecibo({
     numero: recibo.numero,
     valorCentavos: recibo.valorCentavos,
     referente: recibo.referente,
     dataPagamento: recibo.dataPagamento,
-    aluno: aluno.nome,
+    pagador: pagador.nome,
     professor: professor.nome,
   });
 
@@ -42,14 +44,23 @@ async function Conteudo({ params }: { params: PageProps<"/recibos/[id]">["params
           ← Recibos
         </Link>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">Recibo nº {numero}</h1>
+        <p className="text-sm text-suave">
+          {pagador.tipo === "instituicao" ? "Instituição: " : "Aluno: "}
+          <Link
+            href={recibo.instituicaoId ? `/instituicoes/${recibo.instituicaoId}` : `/alunos/${recibo.alunoId}`}
+            className="text-marca-texto hover:underline"
+          >
+            {pagador.nome}
+          </Link>
+        </p>
       </div>
 
       <AcoesRecibo
         id={recibo.id}
         numero={numero}
         mensagem={mensagem}
-        whatsapp={linkWhatsapp(aluno.telefone, mensagem)}
-        email={linkEmail(aluno.email, `Recibo nº ${numero}`, mensagem)}
+        whatsapp={linkWhatsapp(pagador.telefone, mensagem)}
+        email={linkEmail(pagador.email, `Recibo nº ${numero}`, mensagem)}
       />
 
       {(!professor.documento || !professor.cidade) && (
@@ -75,7 +86,7 @@ async function Conteudo({ params }: { params: PageProps<"/recibos/[id]">["params
             </div>
             <p className="text-2xl font-bold tabular-nums sm:text-3xl">{moeda(recibo.valorCentavos)}</p>
           </div>
-          <p className="mt-8 text-lg leading-relaxed">{textoRecibo(recibo, aluno)}</p>
+          <p className="mt-8 text-lg leading-relaxed">{textoRecibo(recibo, pagador)}</p>
           <p className="mt-6 text-right">
             {professor.cidade ? `${professor.cidade}, ` : ""}
             {dataBR(recibo.dataPagamento)}.

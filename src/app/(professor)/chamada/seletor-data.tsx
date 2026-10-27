@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 
-import { Input } from "@/components/ui";
+import { Input, Select } from "@/components/ui";
 
-export function SeletorData({ valor, todos }: { valor: string; todos: boolean }) {
+/** Muda a data da chamada mantendo os outros filtros (`extra` = "&todos=1&instituicao=3"...). */
+export function SeletorData({ valor, extra }: { valor: string; extra: string }) {
   const router = useRouter();
   return (
     <Input
@@ -12,8 +13,36 @@ export function SeletorData({ valor, todos }: { valor: string; todos: boolean })
       defaultValue={valor}
       className="w-auto"
       onChange={(e) => {
-        if (e.target.value) router.push(`/chamada?data=${e.target.value}${todos ? "&todos=1" : ""}`);
+        if (e.target.value) router.push(`/chamada?data=${e.target.value}${extra}`);
       }}
     />
+  );
+}
+
+/** Mostra só os alunos de uma instituição (ou todos). */
+export function SeletorInstituicao({
+  data,
+  valor,
+  instituicoes,
+}: {
+  data: string;
+  valor?: number;
+  instituicoes: { id: number; nome: string }[];
+}) {
+  const router = useRouter();
+  return (
+    <Select
+      value={valor ?? ""}
+      className="w-auto"
+      aria-label="Filtrar por instituição"
+      onChange={(e) => router.push(`/chamada?data=${data}${e.target.value ? `&todos=1&instituicao=${e.target.value}` : ""}`)}
+    >
+      <option value="">Todos os alunos</option>
+      {instituicoes.map((i) => (
+        <option key={i.id} value={i.id}>
+          {i.nome}
+        </option>
+      ))}
+    </Select>
   );
 }

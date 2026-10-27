@@ -84,6 +84,48 @@ async function main() {
     }
   }
 
+  // uma instituição que paga por dois alunos: recibo no nome dela, chamada de cada aluno
+  const [escola] = await db
+    .insert(schema.instituicoes)
+    .values({
+      professorId: professor.id,
+      nome: "Escola Villa-Lobos",
+      documento: "12.345.678/0001-90",
+      contato: "Coordenadora Sílvia",
+      telefone: "(11) 3333-4444",
+      valorMensalCentavos: 60000,
+    })
+    .returning();
+  const daEscola = await db
+    .insert(schema.alunos)
+    .values(
+      ["Fernanda Reis", "Gabriel Souza"].map((nome) => ({
+        professorId: professor.id,
+        instituicaoId: escola.id,
+        nome,
+        instrumento: "Flauta",
+        diaAula: "Terça",
+        horario: "14:00",
+      })),
+    )
+    .returning();
+  for (let s = 1; s <= 3; s++) {
+    const terca = somarDias(segunda, 1 - 7 * s);
+    await db.insert(schema.presencas).values([
+      { alunoId: daEscola[0].id, data: terca, status: "presente" },
+      { alunoId: daEscola[1].id, data: terca, status: s === 1 ? "falta" : "presente" },
+    ]);
+  }
+  await db.insert(schema.recibos).values({
+    professorId: professor.id,
+    numero: numero++,
+    instituicaoId: escola.id,
+    valorCentavos: 60000,
+    referente: "aulas de música - alunos: Fernanda Reis, Gabriel Souza",
+    formaPagamento: "Transferência",
+    dataPagamento: hoje,
+  });
+
   // links de exemplo (IDs fictícios): troque pelos links reais do seu Drive
   const exemplos = [
     {

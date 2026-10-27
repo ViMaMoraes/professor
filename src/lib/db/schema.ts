@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 const criadoEm = () =>
   text("criado_em")
@@ -30,9 +30,34 @@ const professorId = () =>
     .notNull()
     .references(() => professores.id, { onDelete: "cascade" });
 
+/**
+ * Quem paga por vários alunos de uma vez (escola, igreja, projeto social, família...).
+ * O recibo pode sair no nome dela; a chamada continua sendo de cada aluno.
+ */
+export const instituicoes = sqliteTable(
+  "instituicoes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    nome: text("nome").notNull(),
+    documento: text("documento"), // CNPJ ou CPF
+    contato: text("contato"), // pessoa responsável
+    email: text("email"),
+    telefone: text("telefone"),
+    endereco: text("endereco"),
+    valorMensalCentavos: integer("valor_mensal_centavos"),
+    observacoes: text("observacoes"),
+    ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("instituicoes_professor").on(t.professorId)],
+);
+
 export const alunos = sqliteTable("alunos", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   professorId: professorId(),
+  // instituição que paga por este aluno (opcional)
+  instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "set null" }),
   nome: text("nome").notNull(),
   email: text("email").unique(),
   senhaHash: text("senha_hash"),
@@ -70,9 +95,9 @@ export const recibos = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     professorId: professorId(),
     numero: integer("numero").notNull(), // sequencial por professor
-    alunoId: integer("aluno_id")
-      .notNull()
-      .references(() => alunos.id, { onDelete: "cascade" }),
+    // o recibo é de um aluno OU de uma instituição (exatamente um dos dois)
+    alunoId: integer("aluno_id").references(() => alunos.id, { onDelete: "cascade" }),
+    instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "cascade" }),
     valorCentavos: integer("valor_centavos").notNull(),
     referente: text("referente").notNull(),
     formaPagamento: text("forma_pagamento"),
@@ -114,5 +139,6 @@ export type Aluno = typeof alunos.$inferSelect;
 export type Presenca = typeof presencas.$inferSelect;
 export type Recibo = typeof recibos.$inferSelect;
 export type Material = typeof materiais.$inferSelect;
+export type Instituicao = typeof instituicoes.$inferSelect;
 export type StatusPresenca = Presenca["status"];
 export type TipoDrive = Material["tipoDrive"];

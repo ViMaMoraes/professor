@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 
 import { Cabecalho } from "@/components/ui";
+import { exigirProfessor } from "@/lib/auth";
+import { listarInstituicoes } from "@/lib/consultas";
 
 import { FormAluno } from "../form-aluno";
 
 export const metadata: Metadata = { title: "Novo aluno" };
 
-export default function PaginaNovoAluno() {
+export default async function PaginaNovoAluno() {
+  const professor = await exigirProfessor();
+  const instituicoes = await listarInstituicoes(professor.id);
   return (
     <>
       <Cabecalho titulo="Novo aluno" />
-      <FormAluno />
+      <FormAluno instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} />
     </>
   );
 }

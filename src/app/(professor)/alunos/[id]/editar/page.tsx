@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { Cabecalho, EsqueletoPagina } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno } from "@/lib/consultas";
+import { buscarAluno, listarInstituicoes } from "@/lib/consultas";
 
 import { FormAluno } from "../../form-aluno";
 
@@ -23,7 +23,10 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["
   return (
     <>
       <Cabecalho titulo={`Editar ${aluno.nome}`} />
-      <FormAluno aluno={{ ...dados, temAcesso: Boolean(aluno.email && senhaHash) }} />
+      <FormAluno
+        aluno={{ ...dados, temAcesso: Boolean(aluno.email && senhaHash) }}
+        instituicoes={(await listarInstituicoes(professor.id, { situacao: "todas" })).map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
+      />
     </>
   );
 }

@@ -8,7 +8,7 @@ import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, recibosDoAluno } from "@/lib/consultas";
+import { buscarAluno, buscarInstituicao, frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, recibosDoAluno } from "@/lib/consultas";
 import { dataBR, moeda, numeroRecibo } from "@/lib/formato";
 
 export default function PaginaAluno(props: PageProps<"/alunos/[id]">) {
@@ -24,11 +24,12 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
   const id = Number((await params).id);
   const aluno = await buscarAluno(professor.id, id);
   if (!aluno) notFound();
-  const [presencas, frequencia, recibos, materiais] = await Promise.all([
+  const [presencas, frequencia, recibos, materiais, instituicao] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
     recibosDoAluno(id),
     materiaisDoAluno(aluno),
+    aluno.instituicaoId ? buscarInstituicao(professor.id, aluno.instituicaoId) : undefined,
   ]);
 
   return (
@@ -78,6 +79,13 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               <Item rotulo="Telefone">{aluno.telefone}</Item>
               <Item rotulo="E-mail">{aluno.email}</Item>
               <Item rotulo="Responsável">{aluno.responsavel}</Item>
+              <Item rotulo="Instituição">
+                {instituicao && (
+                  <Link href={`/instituicoes/${instituicao.id}`} className="text-marca-texto hover:underline">
+                    {instituicao.nome}
+                  </Link>
+                )}
+              </Item>
               <Item rotulo="Nascimento">{aluno.dataNascimento && dataBR(aluno.dataNascimento)}</Item>
               <Item rotulo="Início">{aluno.dataInicio && dataBR(aluno.dataInicio)}</Item>
               <Item rotulo="Mensalidade">{aluno.mensalidadeCentavos != null && moeda(aluno.mensalidadeCentavos)}</Item>

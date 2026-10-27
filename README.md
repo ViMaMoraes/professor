@@ -22,6 +22,10 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
     - **Chamada:** grade de alunos × datas com P/F/J/R coloridos, totais e frequência;
     - **Resumo:** totais e frequência por aluno;
     - **Registros:** todas as marcações, com as observações das aulas.
+- **Instituições:**
+  - cadastro de escolas, igrejas, projetos ou famílias que pagam por vários alunos (CNPJ/CPF, contato, valor mensal);
+  - o recibo pode sair no nome da instituição, já listando os alunos atendidos;
+  - a chamada continua por aluno: filtro por instituição na chamada e no histórico, frequência de cada aluno na página da instituição e planilha só dos alunos dela.
 - **Recibos:**
   - numeração automática;
   - valor por extenso;
