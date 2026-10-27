@@ -3,10 +3,11 @@
 import bcrypt from "bcryptjs";
 import { count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { contaLiberada } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
+import { explicarErroDeConfiguracao } from "@/lib/erros";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { COOKIE_SESSAO, criarToken, opcoesCookie, type Sessao } from "@/lib/sessao";
 
@@ -14,7 +15,16 @@ async function iniciarSessao(sessao: Sessao) {
   (await cookies()).set(COOKIE_SESSAO, await criarToken(sessao), opcoesCookie);
 }
 
-export async function entrar(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
+export async function entrar(estado: EstadoForm, dados: FormData): Promise<EstadoForm> {
+  try {
+    return await fazerLogin(estado, dados);
+  } catch (erro) {
+    unstable_rethrow(erro); // deixa o redirect do login funcionar
+    return explicarErroDeConfiguracao(erro);
+  }
+}
+
+async function fazerLogin(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const email = texto(dados, "email")?.toLowerCase();
   const senha = String(dados.get("senha") ?? "");
   if (!email || !senha) return { erro: "Informe e-mail e senha." };
@@ -53,7 +63,16 @@ export async function existeProfessor() {
  * Primeiro acesso: cria a conta do professor master (o administrador da plataforma).
  * Só funciona enquanto não existe nenhuma conta; depois, novos professores são criados pelo master.
  */
-export async function criarConta(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
+export async function criarConta(estado: EstadoForm, dados: FormData): Promise<EstadoForm> {
+  try {
+    return await fazerCriarConta(estado, dados);
+  } catch (erro) {
+    unstable_rethrow(erro);
+    return explicarErroDeConfiguracao(erro);
+  }
+}
+
+async function fazerCriarConta(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
   if (await existeProfessor()) redirect("/login");
 
   const nome = texto(dados, "nome");
