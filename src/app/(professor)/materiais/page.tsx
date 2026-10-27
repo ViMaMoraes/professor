@@ -1,0 +1,97 @@
+import { CloudDownload, CloudUpload, Download, Pencil, Trash2 } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
+
+import { excluirMaterial } from "@/app/acoes/materiais";
+import { BotaoAcao } from "@/components/botao-acao";
+import { IconeArquivo } from "@/components/icone-arquivo";
+import { BotaoLink, Cabecalho, Card, EsqueletoPagina, Selo, Vazio } from "@/components/ui";
+import { exigirProfessor } from "@/lib/auth";
+import { listarMateriais } from "@/lib/consultas";
+import { dataBR, tamanhoArquivo } from "@/lib/formato";
+
+export const metadata: Metadata = { title: "Central de downloads" };
+
+export default function PaginaMateriais() {
+  return (
+    <>
+      <Cabecalho
+        titulo="Central de downloads"
+        descricao="Partituras, playbacks, vídeos e exercícios. Escolha quem pode baixar cada material."
+      >
+        <BotaoLink href="/materiais/novo">
+          <CloudUpload /> Enviar material
+        </BotaoLink>
+      </Cabecalho>
+      <Suspense fallback={<EsqueletoPagina />}>
+        <Lista />
+      </Suspense>
+    </>
+  );
+}
+
+async function Lista() {
+  await exigirProfessor();
+  const materiais = await listarMateriais();
+
+  if (materiais.length === 0) {
+    return (
+      <Card>
+        <Vazio icone={<CloudDownload />} titulo="Nenhum material ainda">
+          Envie o primeiro arquivo e libere para seus alunos.
+        </Vazio>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {materiais.map((m) => (
+        <Card key={m.id} className="flex flex-col p-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-marca-suave p-2.5 text-marca-texto">
+              <IconeArquivo nome={m.nomeOriginal} className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{m.titulo}</p>
+              <p className="truncate text-xs text-suave">
+                {m.nomeOriginal} · {tamanhoArquivo(m.tamanho)} · {dataBR(m.criadoEm)}
+              </p>
+            </div>
+            {m.categoria && <Selo cor="marca">{m.categoria}</Selo>}
+          </div>
+          {m.descricao && <p className="mt-3 text-sm text-suave">{m.descricao}</p>}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {m.paraTodos ? (
+              <Selo cor="azul">Todos os alunos</Selo>
+            ) : (
+              m.alunos.map((a) => (
+                <Link key={a.alunoId} href={`/alunos/${a.alunoId}`}>
+                  <Selo>{a.nome}</Selo>
+                </Link>
+              ))
+            )}
+          </div>
+          <div className="mt-4 flex gap-2 border-t border-borda pt-4">
+            <a href={`/api/materiais/${m.id}`} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-fundo">
+              <Download className="size-4" /> Baixar
+            </a>
+            <Link href={`/materiais/${m.id}/editar`} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-fundo">
+              <Pencil className="size-4" /> Editar
+            </Link>
+            <BotaoAcao
+              acao={excluirMaterial.bind(null, m.id)}
+              confirmar={`Excluir “${m.titulo}”?`}
+              variante="fantasma"
+              tamanho="sm"
+              className="ml-auto text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950"
+            >
+              <Trash2 /> Excluir
+            </BotaoAcao>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
