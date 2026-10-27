@@ -1,10 +1,11 @@
 "use client";
 
-import { Building2, CircleCheckBig, CloudDownload, Crown, LayoutDashboard, Menu, Music, ReceiptText, Settings, Users, X } from "lucide-react";
+import { Bell, Building2, CircleCheckBig, CloudDownload, Crown, LayoutDashboard, Menu, ReceiptText, Settings, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
 
+import { Logo } from "./logo";
 import { cn } from "./ui";
 
 const ITENS = [
@@ -14,6 +15,7 @@ const ITENS = [
   { href: "/chamada", nome: "Chamada", icone: CircleCheckBig },
   { href: "/recibos", nome: "Recibos", icone: ReceiptText },
   { href: "/materiais", nome: "Downloads", icone: CloudDownload },
+  { href: "/avisos", nome: "Avisos", icone: Bell },
   { href: "/configuracoes", nome: "Configurações", icone: Settings },
 ];
 const ITEM_ADMIN = { href: "/admin", nome: "Administração", icone: Crown };
@@ -31,10 +33,8 @@ export function MenuLateral({ rodape, master = false }: { rodape: ReactNode; mas
 
   const marca = (
     <Link href="/painel" className="flex items-center gap-2.5 font-semibold">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-marca text-white">
-        <Music className="size-4" />
-      </span>
-      Aula de Música
+      <Logo />
+      Acesso professor
     </Link>
   );
 

@@ -1,2 +1,5 @@
 # Copie para .dev.vars para testar com `npm run preview` (Cloudflare local)
 SESSION_SECRET=troque-por-um-texto-longo-e-aleatorio
+
+# Opcional: notificações (gere com npm run vapid). Use aspas simples em volta do JSON.
+# VAPID_PRIVATE_KEY='{"kty":"EC",...}'

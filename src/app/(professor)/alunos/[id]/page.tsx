@@ -44,7 +44,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               {aluno.nome} {!aluno.ativo && <Selo>inativo</Selo>}
             </h1>
             <p className="text-sm text-suave">
-              {[aluno.instrumento ?? "Instrumento não informado", aluno.nivel, aluno.diaAula && `${aluno.diaAula} ${aluno.horario ?? ""}`]
+              {[aluno.instrumento ?? "Curso não informado", aluno.nivel, aluno.diaAula && `${aluno.diaAula} ${aluno.horario ?? ""}`]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -90,8 +90,8 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               <Item rotulo="Início">{aluno.dataInicio && dataBR(aluno.dataInicio)}</Item>
               <Item rotulo="Mensalidade">{aluno.mensalidadeCentavos != null && moeda(aluno.mensalidadeCentavos)}</Item>
               <Item rotulo="Frequência">{frequencia != null && `${frequencia}%`}</Item>
-              <Item rotulo="Portal">
-                {aluno.email && aluno.senhaHash ? <Selo cor="verde">liberado</Selo> : <Selo>sem acesso</Selo>}
+              <Item rotulo="Usuário">
+                {aluno.usuario ? <span className="font-mono text-xs">{aluno.usuario}</span> : <Selo>sem acesso</Selo>}
               </Item>
             </dl>
             {aluno.observacoes && (

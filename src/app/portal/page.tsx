@@ -1,19 +1,19 @@
-import { CalendarCheck, CloudDownload, Download, ExternalLink, FileDown, QrCode, ReceiptText } from "lucide-react";
+import { Bell, CloudDownload, Download, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { IconeMaterial } from "@/components/icone-material";
 import { BotaoVer, CaixaSelecao, ProvedorSelecao } from "@/components/materiais-selecao";
-import { SeloPresenca } from "@/components/selos";
-import { Card, CardTitulo, EsqueletoPagina, Selo, Vazio } from "@/components/ui";
+import { Card, CardTitulo, EsqueletoPagina, Vazio } from "@/components/ui";
 import { exigirAlunoComProfessor } from "@/lib/auth";
-import { frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, recibosDoAluno } from "@/lib/consultas";
+import { avisosDoAluno, materiaisDoAluno } from "@/lib/consultas";
 import { NOME_TIPO_DRIVE, podeBaixarEmLote, urlBaixar } from "@/lib/drive";
-import { dataBR, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
+import { dataBR, primeiroNome } from "@/lib/formato";
+import { chavePublicaVapid } from "@/lib/push";
 
-import { CopiarPix } from "./copiar-pix";
+import { AtivarNotificacoes } from "./ativar-notificacoes";
 
-export const metadata: Metadata = { title: "Minha área" };
+export const metadata: Metadata = { title: "Downloads" };
 
 export default function PaginaPortal() {
   return (
@@ -24,29 +24,29 @@ export default function PaginaPortal() {
 }
 
 async function Conteudo() {
-  const { aluno, professor } = await exigirAlunoComProfessor();
-  const [materiais, recibos, presencas, frequencia] = await Promise.all([
-    materiaisDoAluno(aluno),
-    recibosDoAluno(aluno.id),
-    presencasDoAluno(aluno.id, 12),
-    frequenciaDoAluno(aluno.id),
-  ]);
+  const { aluno } = await exigirAlunoComProfessor();
+  const [materiais, avisos] = await Promise.all([materiaisDoAluno(aluno), avisosDoAluno(aluno, 5)]);
+  const chavePublica = chavePublicaVapid();
 
   return (
     <>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Olá, {primeiroNome(aluno.nome)}! 🎶</h1>
-        <p className="mt-1 text-sm text-suave">
-          {[aluno.instrumento, aluno.diaAula && `Aula ${aluno.diaAula.toLowerCase()} ${aluno.horario ?? ""}`].filter(Boolean).join(" · ")}
-        </p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Olá, {primeiroNome(aluno.nome)}!</h1>
+        <p className="mt-1 text-sm text-suave">Aqui ficam os materiais liberados para você.</p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardTitulo icone={<CloudDownload />}>Meus materiais</CardTitulo>
+      {chavePublica && (
+        <div className="mb-6">
+          <AtivarNotificacoes chavePublica={chavePublica} />
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className={avisos.length ? "lg:col-span-2" : "lg:col-span-3"}>
+          <CardTitulo icone={<CloudDownload />}>Downloads</CardTitulo>
           {materiais.length === 0 ? (
             <Vazio icone={<CloudDownload />} titulo="Nenhum material ainda">
-              Quando o professor liberar partituras, áudios ou vídeos, eles aparecem aqui.
+              Quando o professor liberar arquivos, eles aparecem aqui.
             </Vazio>
           ) : (
             <ProvedorSelecao itens={materiais.filter(podeBaixarEmLote).map(({ id, titulo }) => ({ id, titulo }))}>
@@ -88,60 +88,20 @@ async function Conteudo() {
           )}
         </Card>
 
-        <div className="space-y-6 lg:col-span-2">
-          {professor?.chavePix && (
-            <Card>
-              <CardTitulo icone={<QrCode />}>Pagamento via Pix</CardTitulo>
-              <div className="p-5">
-                <CopiarPix chave={professor.chavePix} />
-                {aluno.mensalidadeCentavos != null && (
-                  <p className="mt-2 text-sm text-suave">Mensalidade: {moeda(aluno.mensalidadeCentavos)}</p>
-                )}
-              </div>
-            </Card>
-          )}
-
-          <Card>
-            <CardTitulo icone={<ReceiptText />}>Meus recibos</CardTitulo>
-            {recibos.length === 0 ? (
-              <p className="p-5 text-sm text-suave">Nenhum recibo.</p>
-            ) : (
-              <ul className="divide-y divide-borda">
-                {recibos.map((r) => (
-                  <li key={r.id}>
-                    <a href={`/api/recibos/${r.id}?baixar=1`} className="flex items-center gap-3 px-5 py-3 hover:bg-fundo/60">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{r.referente}</p>
-                        <p className="text-xs text-suave">
-                          #{numeroRecibo(r.numero)} · {dataBR(r.dataPagamento)} · {moeda(r.valorCentavos)}
-                        </p>
-                      </div>
-                      <FileDown className="size-4 text-suave" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
+        {avisos.length > 0 && (
+          <Card className="self-start">
+            <CardTitulo icone={<Bell />}>Avisos</CardTitulo>
+            <ul className="divide-y divide-borda">
+              {avisos.map((a) => (
+                <li key={a.id} className="px-5 py-3.5">
+                  <p className="text-sm font-medium">{a.titulo}</p>
+                  {a.mensagem && <p className="mt-0.5 text-sm whitespace-pre-line text-suave">{a.mensagem}</p>}
+                  <p className="mt-1 text-xs text-suave">{dataBR(a.criadoEm)}</p>
+                </li>
+              ))}
+            </ul>
           </Card>
-
-          <Card>
-            <CardTitulo icone={<CalendarCheck />} acao={frequencia != null && <Selo cor="marca">{frequencia}% de presença</Selo>}>
-              Frequência
-            </CardTitulo>
-            {presencas.length === 0 ? (
-              <p className="p-5 text-sm text-suave">Nenhuma aula registrada.</p>
-            ) : (
-              <ul className="divide-y divide-borda">
-                {presencas.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
-                    <span className="tabular-nums">{dataBR(p.data)}</span>
-                    <SeloPresenca status={p.status} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
+        )}
       </div>
     </>
   );

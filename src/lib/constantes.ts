@@ -19,5 +19,5 @@ export const STATUS_PRESENCA: Record<StatusPresenca, { nome: string; sigla: stri
 export const FORMAS_PAGAMENTO = ["Pix", "Dinheiro", "Transferência", "Cartão", "Boleto"];
 
 export const CATEGORIAS_MATERIAL = [
-  "Partitura", "Tablatura", "Áudio / Playback", "Vídeo", "Teoria", "Exercícios", "Outros",
+  "Apostila", "Exercícios", "Partitura", "Tablatura", "Áudio / Playback", "Vídeo", "Teoria", "Outros",
 ];

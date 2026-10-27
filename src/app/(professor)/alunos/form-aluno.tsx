@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useState } from "react";
 
 import { salvarAluno } from "@/app/acoes/alunos";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
@@ -8,24 +9,36 @@ import { BotaoLink, Campo, Card, Input, Select, Textarea } from "@/components/ui
 import { DIAS_SEMANA, INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
 import type { Aluno } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
+import { sugerirUsuario } from "@/lib/usuario";
 
 export function FormAluno({
   aluno,
   instituicoes,
 }: {
-  aluno?: Omit<Aluno, "senhaHash"> & { temAcesso: boolean };
+  aluno?: Omit<Aluno, "senhaHash">;
   instituicoes: { id: number; nome: string }[];
 }) {
+  const [usuario, setUsuario] = useState(aluno?.usuario ?? "");
+  // num aluno novo, o usuário vai sendo sugerido enquanto o nome é digitado (até ser editado à mão)
+  const [mexeuNoUsuario, setMexeuNoUsuario] = useState(Boolean(aluno));
   const acao = salvarAluno.bind(null, aluno?.id ?? null);
   return (
     <Formulario acao={acao}>
       <Card className="divide-y divide-borda">
         <Secao titulo="Dados pessoais">
           <Campo rotulo="Nome *" className="sm:col-span-2">
-            <Input name="nome" required defaultValue={aluno?.nome} />
+            <Input
+              name="nome"
+              required
+              defaultValue={aluno?.nome}
+              onChange={(e) => !mexeuNoUsuario && setUsuario(sugerirUsuario(e.target.value))}
+            />
           </Campo>
           <Campo rotulo="Telefone / WhatsApp">
             <Input name="telefone" placeholder="(11) 99999-9999" defaultValue={aluno?.telefone ?? ""} />
+          </Campo>
+          <Campo rotulo="E-mail" dica="Para enviar o recibo.">
+            <Input type="email" name="email" defaultValue={aluno?.email ?? ""} />
           </Campo>
           <Campo rotulo="Nascimento">
             <Input type="date" name="dataNascimento" defaultValue={aluno?.dataNascimento ?? ""} />
@@ -46,7 +59,7 @@ export function FormAluno({
         </Secao>
 
         <Secao titulo="Aulas">
-          <Campo rotulo="Instrumento">
+          <Campo rotulo="Curso / matéria" dica="Ex.: Violino, Inglês, Matemática.">
             <Input name="instrumento" list="instrumentos" defaultValue={aluno?.instrumento ?? ""} />
             <datalist id="instrumentos">
               {INSTRUMENTOS.map((i) => (
@@ -79,31 +92,31 @@ export function FormAluno({
           <Campo rotulo="Início das aulas">
             <Input type="date" name="dataInicio" defaultValue={aluno?.dataInicio ?? ""} />
           </Campo>
+          <Campo rotulo="Descrição do pagamento (recibo)" dica="Ex.: “às aulas de piano”. Vem preenchida ao gerar o recibo." className="sm:col-span-2 lg:col-span-3">
+            <Input name="descricaoRecibo" placeholder="às aulas de piano" defaultValue={aluno?.descricaoRecibo ?? ""} />
+          </Campo>
           <Campo rotulo="Observações" className="sm:col-span-2 lg:col-span-3">
-            <Textarea name="observacoes" rows={3} placeholder="Repertório, objetivos, músicas favoritas..." defaultValue={aluno?.observacoes ?? ""} />
+            <Textarea name="observacoes" rows={3} placeholder="Objetivos, conteúdo, preferências..." defaultValue={aluno?.observacoes ?? ""} />
           </Campo>
         </Secao>
 
         <Secao
-          titulo="Acesso ao portal do aluno"
-          descricao="Com e-mail e senha, o aluno entra no site e vê os materiais liberados para ele, os recibos e a frequência."
+          titulo="Acesso aos downloads"
+          descricao="O aluno entra em “Acesso aluno” só com este usuário (sem senha) e vê os materiais liberados para ele. Deixe vazio para não dar acesso."
         >
-          <Campo rotulo="E-mail (login)">
-            <Input type="email" name="email" defaultValue={aluno?.email ?? ""} />
-          </Campo>
-          <Campo rotulo={aluno?.temAcesso ? "Nova senha" : "Senha"}>
+          <Campo rotulo="Usuário" dica="Sugerido a partir do nome; pode trocar. Use só letras, números e ponto.">
             <Input
-              name="senha"
-              minLength={6}
-              autoComplete="new-password"
-              placeholder={aluno?.temAcesso ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+              name="usuario"
+              value={usuario}
+              autoComplete="off"
+              autoCapitalize="none"
+              onChange={(e) => {
+                setUsuario(e.target.value);
+                setMexeuNoUsuario(true);
+              }}
+              placeholder="ex.: julia.ramos"
             />
           </Campo>
-          {aluno?.temAcesso && (
-            <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
-              <input type="checkbox" name="removerAcesso" className="size-4 accent-marca" /> Remover acesso ao portal
-            </label>
-          )}
         </Secao>
 
         <div className="flex gap-2 p-5">

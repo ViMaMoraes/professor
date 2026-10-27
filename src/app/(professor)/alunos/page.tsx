@@ -42,7 +42,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
       <form className="mb-4 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-suave" />
-          <Input name="q" defaultValue={busca} placeholder="Buscar por nome, instrumento ou e-mail" className="pl-9" />
+          <Input name="q" defaultValue={busca} placeholder="Buscar por nome, curso ou e-mail" className="pl-9" />
         </div>
         {instituicoes.length > 0 && (
           <Select name="instituicao" defaultValue={instituicaoId ?? ""} className="sm:w-52">
@@ -72,10 +72,10 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
             <thead>
               <tr>
                 <th>Aluno</th>
-                <th>Instrumento</th>
+                <th>Curso</th>
                 <th>Aula</th>
                 <th>Mensalidade</th>
-                <th>Portal</th>
+                <th>Acesso</th>
               </tr>
             </thead>
             <tbody>
@@ -103,9 +103,9 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
                   <td className="whitespace-nowrap">{a.diaAula ? `${a.diaAula} ${a.horario ?? ""}` : "—"}</td>
                   <td className="whitespace-nowrap">{moeda(a.mensalidadeCentavos)}</td>
                   <td>
-                    {a.email && a.senhaHash ? (
+                    {a.usuario ? (
                       <Selo cor="verde">
-                        <KeyRound className="size-3" /> liberado
+                        <KeyRound className="size-3" /> {a.usuario}
                       </Selo>
                     ) : (
                       <Selo>sem acesso</Selo>

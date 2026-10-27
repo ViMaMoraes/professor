@@ -63,7 +63,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
               href={`/chamada/historico?inicio=${a.inicio}&fim=${a.fim}${filtroAluno}`}
               className={
                 ativo
-                  ? "rounded-full bg-marca px-3 py-1 text-sm font-medium text-white"
+                  ? "rounded-full bg-marca px-3 py-1 text-sm font-medium text-marca-contraste"
                   : "rounded-full border border-borda bg-superficie px-3 py-1 text-sm text-suave hover:text-texto"
               }
             >

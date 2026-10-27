@@ -8,6 +8,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { contaLiberada } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { explicarErroDeConfiguracao } from "@/lib/erros";
+import { normalizarUsuario } from "@/lib/usuario";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { COOKIE_SESSAO, criarToken, opcoesCookie, type Sessao } from "@/lib/sessao";
 
@@ -38,14 +39,25 @@ async function fazerLogin(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
     await iniciarSessao({ tipo: "professor", id: professor.id });
     redirect("/painel");
   }
-  const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.email, email) });
-  if (aluno?.ativo && aluno.senhaHash && (await bcrypt.compare(senha, aluno.senhaHash))) {
+  return { erro: "E-mail ou senha inválidos." };
+}
+
+/** Acesso aluno: só o usuário, sem senha (leva direto para os downloads). */
+export async function entrarAluno(estado: EstadoForm, dados: FormData): Promise<EstadoForm> {
+  try {
+    const usuario = normalizarUsuario(String(dados.get("usuario") ?? ""));
+    if (!usuario) return { erro: "Digite seu usuário." };
+    const db = await getDb();
+    const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.usuario, usuario) });
+    if (!aluno?.ativo) return { erro: "Usuário não encontrado. Confira com seu professor." };
     const dono = await db.query.professores.findFirst({ where: eq(schema.professores.id, aluno.professorId) });
-    if (!dono || !contaLiberada(dono)) return { erro: "O acesso ao portal está indisponível no momento. Fale com seu professor." };
+    if (!dono || !contaLiberada(dono)) return { erro: "O acesso está indisponível no momento. Fale com seu professor." };
     await iniciarSessao({ tipo: "aluno", id: aluno.id });
     redirect("/portal");
+  } catch (erro) {
+    unstable_rethrow(erro);
+    return explicarErroDeConfiguracao(erro);
   }
-  return { erro: "E-mail ou senha inválidos." };
 }
 
 export async function sair() {

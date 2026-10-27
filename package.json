@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "demo": "tsx src/scripts/demo.ts",
+    "vapid": "tsx src/scripts/vapid.ts",
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "db:generate": "drizzle-kit generate",

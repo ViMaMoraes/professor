@@ -13,32 +13,36 @@
   --color-marca-forte: var(--marca-forte);
   --color-marca-suave: var(--marca-suave);
   --color-marca-texto: var(--marca-texto);
+  --color-marca-contraste: var(--marca-contraste);
 }
 
 :root {
-  --fundo: oklch(0.985 0.004 290);
+  /* tema preto e branco: a "marca" é o preto (no escuro, o branco) */
+  --fundo: oklch(0.985 0 0);
   --superficie: oklch(1 0 0);
-  --texto: oklch(0.21 0.02 285);
-  --suave: oklch(0.52 0.02 285);
-  --borda: oklch(0.92 0.008 285);
-  --marca: oklch(0.52 0.21 290);
-  --marca-forte: oklch(0.45 0.21 290);
-  --marca-suave: oklch(0.95 0.03 290);
-  --marca-texto: oklch(0.45 0.2 290);
+  --texto: oklch(0.21 0 0);
+  --suave: oklch(0.5 0 0);
+  --borda: oklch(0.92 0 0);
+  --marca: oklch(0.21 0 0);
+  --marca-forte: oklch(0.32 0 0);
+  --marca-suave: oklch(0.955 0 0);
+  --marca-texto: oklch(0.21 0 0);
+  --marca-contraste: oklch(0.99 0 0);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fundo: oklch(0.16 0.012 285);
-    --superficie: oklch(0.205 0.014 285);
-    --texto: oklch(0.96 0.005 285);
-    --suave: oklch(0.7 0.015 285);
-    --borda: oklch(0.3 0.015 285);
-    --marca: oklch(0.62 0.19 290);
-    --marca-forte: oklch(0.68 0.18 290);
-    --marca-suave: oklch(0.3 0.07 290);
-    --marca-texto: oklch(0.8 0.12 290);
+    --fundo: oklch(0.15 0 0);
+    --superficie: oklch(0.2 0 0);
+    --texto: oklch(0.96 0 0);
+    --suave: oklch(0.68 0 0);
+    --borda: oklch(0.29 0 0);
+    --marca: oklch(0.96 0 0);
+    --marca-forte: oklch(0.86 0 0);
+    --marca-suave: oklch(0.27 0 0);
+    --marca-texto: oklch(0.96 0 0);
+    --marca-contraste: oklch(0.15 0 0);
     color-scheme: dark;
   }
 }
@@ -55,4 +59,15 @@ body {
   body {
     background: white;
   }
+}
+
+/* entrada suave de janelas e avisos */
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@utility animate-entrar {
+  animation: entrar 0.18s ease-out;
 }

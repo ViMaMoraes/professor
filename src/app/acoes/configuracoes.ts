@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { exigirAluno, exigirProfessor } from "@/lib/auth";
+import { exigirProfessor } from "@/lib/auth";
 import { emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
@@ -27,6 +27,13 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
     }
   }
 
+  // assinatura: PNG desenhado/enviado na tela (data URL); limite para não pesar o banco
+  const novaAssinatura = texto(dados, "assinatura");
+  if (novaAssinatura && (!novaAssinatura.startsWith("data:image/png;base64,") || novaAssinatura.length > 400_000)) {
+    return { erro: "Assinatura inválida ou muito grande. Tente desenhar de novo ou enviar uma imagem menor." };
+  }
+  const assinatura = novaAssinatura ? { assinatura: novaAssinatura } : dados.get("remover_assinatura") ? { assinatura: null } : {};
+
   await db
     .update(schema.professores)
     .set({
@@ -36,24 +43,11 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
       telefone: texto(dados, "telefone"),
       endereco: texto(dados, "endereco"),
       cidade: texto(dados, "cidade"),
-      chavePix: texto(dados, "chavePix"),
+      rg: texto(dados, "rg"),
+      ...assinatura,
       ...(novaSenha ? { senhaHash: await bcrypt.hash(novaSenha, 10) } : {}),
     })
     .where(eq(schema.professores.id, professor.id));
   revalidatePath("/", "layout");
   return { ok: "Configurações salvas." };
-}
-
-export async function trocarSenhaAluno(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const aluno = await exigirAluno();
-  const nova = String(dados.get("nova") ?? "");
-  if (!aluno.senhaHash || !(await bcrypt.compare(String(dados.get("atual") ?? ""), aluno.senhaHash))) {
-    return { erro: "Senha atual incorreta." };
-  }
-  if (nova.length < 6) return { erro: "A nova senha precisa ter pelo menos 6 caracteres." };
-  if (nova !== dados.get("confirmar")) return { erro: "As senhas não conferem." };
-
-  const db = await getDb();
-  await db.update(schema.alunos).set({ senhaHash: await bcrypt.hash(nova, 10) }).where(eq(schema.alunos.id, aluno.id));
-  return { ok: "Senha alterada." };
 }

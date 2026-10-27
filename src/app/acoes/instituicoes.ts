@@ -9,6 +9,7 @@ import { buscarInstituicao, listarAlunos } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { lerValorEmCentavos } from "@/lib/formato";
+import { TRATAMENTOS } from "@/lib/pagador";
 
 const { instituicoes, alunos } = schema;
 
@@ -31,6 +32,8 @@ export async function salvarInstituicao(id: number | null, _: EstadoForm, dados:
     telefone: texto(dados, "telefone"),
     endereco: texto(dados, "endereco"),
     valorMensalCentavos: valorMensal,
+    tratamento: TRATAMENTOS.find((t) => t === dados.get("tratamento")) ?? "de",
+    descricaoRecibo: texto(dados, "descricaoRecibo"),
     observacoes: texto(dados, "observacoes"),
   };
 

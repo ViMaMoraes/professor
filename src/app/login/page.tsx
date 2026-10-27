@@ -5,19 +5,20 @@ import { Suspense } from "react";
 
 import { existeProfessor } from "@/app/acoes/auth";
 import { TelaAuth } from "@/components/tela-auth";
+import { NOME_APP } from "@/lib/marca";
 
 import { FormLogin } from "./form-login";
 
 export const metadata: Metadata = { title: "Entrar" };
 
-export default function PaginaLogin() {
+export default async function PaginaLogin(props: PageProps<"/login">) {
+  const { acesso } = await props.searchParams;
   return (
-    <TelaAuth titulo="Aula de Música" subtitulo="Área do professor e do aluno">
+    <TelaAuth titulo={NOME_APP} subtitulo="Escolha como você quer entrar">
       <Suspense>
         <PrimeiroAcesso />
       </Suspense>
-      <FormLogin />
-      <p className="mt-4 text-center text-xs text-suave">Aluno sem acesso? Peça seu login ao professor.</p>
+      <FormLogin inicial={acesso === "aluno" ? "aluno" : "professor"} />
     </TelaAuth>
   );
 }

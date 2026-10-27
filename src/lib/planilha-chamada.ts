@@ -74,7 +74,7 @@ export function abasPlanilhaChamada(
     [],
     [
       cabecalho("Aluno", { align: "left" }),
-      cabecalho("Instrumento", { align: "left" }),
+      cabecalho("Curso", { align: "left" }),
       ...datas.map((d) => cabecalho(`${dataBR(d).slice(0, 5)}\n${diaDaSemana(d).slice(0, 3)}`, { wrap: true })),
       ...totaisCab,
       cabecalho("Frequência"),
@@ -107,7 +107,7 @@ export function abasPlanilhaChamada(
     [],
     [
       cabecalho("Aluno", { align: "left" }),
-      cabecalho("Instrumento", { align: "left" }),
+      cabecalho("Curso", { align: "left" }),
       cabecalho("Presenças"),
       cabecalho("Faltas"),
       cabecalho("Justificadas"),

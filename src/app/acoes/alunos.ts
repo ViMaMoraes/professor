@@ -1,15 +1,15 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, buscarInstituicao, emailEmUso } from "@/lib/consultas";
+import { buscarAluno, buscarInstituicao, usuarioEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
+import { normalizarUsuario } from "@/lib/usuario";
 
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor();
@@ -18,17 +18,16 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
 
   const nome = texto(dados, "nome");
   const email = texto(dados, "email")?.toLowerCase() ?? null;
-  const senha = String(dados.get("senha") ?? "");
+  const usuario = normalizarUsuario(String(dados.get("usuario") ?? "")) || null;
   const valorDigitado = texto(dados, "mensalidade");
   const mensalidade = lerValorEmCentavos(valorDigitado);
 
   if (!nome) return { erro: "Informe o nome do aluno." };
   if (valorDigitado && mensalidade == null) return { erro: "Valor da mensalidade inválido." };
-  if (senha && senha.length < 6) return { erro: "A senha do portal precisa ter pelo menos 6 caracteres." };
-  if (senha && !email) return { erro: "Para liberar o portal, informe o e-mail do aluno." };
-  // o e-mail é o login, então precisa ser único no site inteiro (entre todos os professores e alunos)
-  if (email && (await emailEmUso(email, { alunoId: id ?? undefined }))) {
-    return { erro: "Esse e-mail já está em uso por outra pessoa no site. Use outro." };
+  // o usuário é o login do aluno, então precisa ser único no site inteiro
+  if (usuario && usuario.length < 3) return { erro: "O usuário precisa ter pelo menos 3 caracteres." };
+  if (usuario && (await usuarioEmUso(usuario, id ?? undefined))) {
+    return { erro: `O usuário “${usuario}” já está em uso. Tente outro, por exemplo “${usuario}${Math.floor(Math.random() * 90 + 10)}”.` };
   }
 
   const instituicaoId = Number(dados.get("instituicaoId")) || null;
@@ -51,9 +50,9 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     mensalidadeCentavos: mensalidade,
     dataInicio: data("dataInicio"),
     observacoes: texto(dados, "observacoes"),
+    descricaoRecibo: texto(dados, "descricaoRecibo"),
     instituicaoId,
-    ...(senha ? { senhaHash: await bcrypt.hash(senha, 10) } : {}),
-    ...(dados.get("removerAcesso") ? { senhaHash: null } : {}),
+    usuario,
   };
 
   let alunoId = id;

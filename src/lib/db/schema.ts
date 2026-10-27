@@ -16,7 +16,9 @@ export const professores = sqliteTable("professores", {
   telefone: text("telefone"),
   endereco: text("endereco"),
   cidade: text("cidade"),
+  rg: text("rg"),
   chavePix: text("chave_pix"),
+  assinatura: text("assinatura"), // imagem PNG (data URL) que vai no recibo
   // administração da plataforma
   master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true), // conta liberada
@@ -46,6 +48,9 @@ export const instituicoes = sqliteTable(
     telefone: text("telefone"),
     endereco: text("endereco"),
     valorMensalCentavos: integer("valor_mensal_centavos"),
+    // texto do recibo: "recebi {tratamento} {nome} ... referente {descricaoRecibo}"
+    tratamento: text("tratamento"), // "da", "do" ou "de"
+    descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
     observacoes: text("observacoes"),
     ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
     criadoEm: criadoEm(),
@@ -59,8 +64,11 @@ export const alunos = sqliteTable("alunos", {
   // instituição que paga por este aluno (opcional)
   instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "set null" }),
   nome: text("nome").notNull(),
-  email: text("email").unique(),
-  senhaHash: text("senha_hash"),
+  email: text("email"),
+  // login do aluno (só usuário, sem senha); vazio = sem acesso aos downloads
+  usuario: text("usuario").unique(),
+  senhaHash: text("senha_hash"), // não é mais usada (o aluno entra só com o usuário); mantida para não recriar a tabela
+  descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
   telefone: text("telefone"),
   responsavel: text("responsavel"),
   dataNascimento: text("data_nascimento"), // AAAA-MM-DD
@@ -134,11 +142,47 @@ export const materiaisAlunos = sqliteTable(
   (t) => [primaryKey({ columns: [t.materialId, t.alunoId] })],
 );
 
+/** Inscrições para notificações (um aluno pode ter vários aparelhos). */
+export const pushInscricoes = sqliteTable("push_inscricoes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  alunoId: integer("aluno_id")
+    .notNull()
+    .references(() => alunos.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  criadoEm: criadoEm(),
+});
+
+/** Avisos que o professor manda para os alunos (aparecem no app e chegam como notificação). */
+export const avisos = sqliteTable("avisos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  professorId: professorId(),
+  titulo: text("titulo").notNull(),
+  mensagem: text("mensagem"),
+  paraTodos: integer("para_todos", { mode: "boolean" }).notNull().default(true),
+  criadoEm: criadoEm(),
+});
+
+export const avisosAlunos = sqliteTable(
+  "avisos_alunos",
+  {
+    avisoId: integer("aviso_id")
+      .notNull()
+      .references(() => avisos.id, { onDelete: "cascade" }),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.avisoId, t.alunoId] })],
+);
+
 export type Professor = typeof professores.$inferSelect;
 export type Aluno = typeof alunos.$inferSelect;
 export type Presenca = typeof presencas.$inferSelect;
 export type Recibo = typeof recibos.$inferSelect;
 export type Material = typeof materiais.$inferSelect;
 export type Instituicao = typeof instituicoes.$inferSelect;
+export type Aviso = typeof avisos.$inferSelect;
 export type StatusPresenca = Presenca["status"];
 export type TipoDrive = Material["tipoDrive"];

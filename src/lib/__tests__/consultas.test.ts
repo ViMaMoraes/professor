@@ -110,6 +110,45 @@ describe("isolamento entre professores", () => {
     expect(await consultas.emailEmUso("outra@x.com", { professorId: outro })).toBe(false);
     expect(await consultas.emailEmUso("ninguem@x.com")).toBe(false);
   });
+
+  it("usuário do aluno é único no site inteiro", async () => {
+    const db = await getDb();
+    await db.update(schema.alunos).set({ usuario: "ana.souza" }).where(eq(schema.alunos.id, ana.id));
+    expect(await consultas.usuarioEmUso("ana.souza")).toBe(true);
+    expect(await consultas.usuarioEmUso("ana.souza", ana.id)).toBe(false);
+    expect(await consultas.usuarioEmUso("outro.nome")).toBe(false);
+    await db.update(schema.alunos).set({ usuario: null }).where(eq(schema.alunos.id, ana.id));
+  });
+});
+
+describe("avisos", () => {
+  it("cada aluno vê os avisos para todos e os enviados para ele, só do próprio professor", async () => {
+    const db = await getDb();
+    const [geral, soBruno, doOutroProf] = await db
+      .insert(schema.avisos)
+      .values([
+        { professorId: prof, titulo: "Geral", criadoEm: "2026-10-01 10:00:00" },
+        { professorId: prof, titulo: "Só Bruno", paraTodos: false, criadoEm: "2026-10-02 10:00:00" },
+        { professorId: outro, titulo: "Do outro", criadoEm: "2026-10-03 10:00:00" },
+      ])
+      .returning();
+    await db.insert(schema.avisosAlunos).values({ avisoId: soBruno.id, alunoId: bruno.id });
+
+    expect((await consultas.avisosDoAluno(ana)).map((a) => a.titulo)).toEqual(["Geral"]);
+    expect((await consultas.avisosDoAluno(bruno)).map((a) => a.titulo)).toEqual(["Só Bruno", "Geral"]);
+    expect((await consultas.avisosDoAluno(lucas)).map((a) => a.titulo)).toEqual(["Do outro"]);
+    expect((await consultas.listarAvisos(prof)).map((l) => [l.aviso.titulo, l.destinatarios])).toEqual([
+      ["Só Bruno", 1],
+      ["Geral", 0],
+    ]);
+
+    await db.insert(schema.pushInscricoes).values({ alunoId: bruno.id, endpoint: "https://push.example/1", p256dh: "chave-p256dh", auth: "auth1" });
+    expect(await consultas.contarInscritos(prof)).toBe(1);
+    expect(await consultas.contarInscritos(outro)).toBe(0);
+
+    for (const a of [geral, soBruno, doOutroProf]) await db.delete(schema.avisos).where(eq(schema.avisos.id, a.id));
+    await db.delete(schema.pushInscricoes);
+  });
 });
 
 describe("instituições", () => {

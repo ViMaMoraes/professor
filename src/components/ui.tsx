@@ -8,7 +8,7 @@ export function cn(...classes: ClassValue[]) {
 }
 
 const VARIANTES = {
-  primario: "bg-marca text-white shadow-sm hover:bg-marca-forte",
+  primario: "bg-marca text-marca-contraste shadow-sm hover:bg-marca-forte",
   secundario: "border border-borda bg-superficie hover:bg-fundo",
   fantasma: "hover:bg-marca-suave hover:text-marca-texto",
   perigo: "border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950",
@@ -54,7 +54,7 @@ export function CardTitulo({ icone, children, acao }: { icone?: ReactNode; child
 }
 
 const campo =
-  "w-full rounded-lg border border-borda bg-superficie px-3 text-sm shadow-xs transition-colors placeholder:text-suave/70 focus:border-marca focus:ring-2 focus:ring-marca/20 focus:outline-none disabled:opacity-60";
+  "w-full rounded-lg border border-borda bg-superficie px-3 text-sm shadow-xs transition-colors placeholder:text-suave/70 focus:border-marca focus:ring-2 focus:ring-marca/20 focus:outline-none disabled:opacity-60 aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-red-500/20";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(campo, "h-10", className)} {...props} />;

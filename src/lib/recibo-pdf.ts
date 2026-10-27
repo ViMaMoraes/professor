@@ -1,23 +1,48 @@
-import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, type PDFFont } from "pdf-lib";
 
 import type { Professor, Recibo } from "./db/schema";
 import { valorPorExtenso } from "./extenso";
-import { dataPorExtenso, moeda, numeroRecibo } from "./formato";
-import type { Pagador } from "./pagador";
+import { MESES, moeda, numeroRecibo } from "./formato";
+import { referenteA, type Pagador } from "./pagador";
 
-const ROXO = rgb(0.36, 0.2, 0.7);
-const CINZA = rgb(0.4, 0.4, 0.45);
-const PRETO = rgb(0.1, 0.1, 0.12);
+const CINZA = rgb(0.45, 0.45, 0.45);
+const PRETO = rgb(0.1, 0.1, 0.1);
 
-/** Texto completo do recibo; usado no PDF e na pré-visualização da página. */
-export function textoRecibo(recibo: Recibo, pagador: Pick<Pagador, "recebiDe">) {
+export type ProfessorRecibo = Pick<Professor, "nome" | "documento" | "rg" | "endereco" | "cidade" | "assinatura">;
+
+const RUAS = /^(rua|r\.|avenida|av\.?|travessa|alameda|estrada|rodovia|praça|praca|rodovia)\s/i;
+
+/**
+ * Texto do recibo, no modelo:
+ * "Eu, Nome, CPF: ..., RG: ..., residente na Rua ... - Cidade/UF, recebi da Instituição X a quantia de
+ * R$ 800,00 (oitocentos reais) referente às aulas de violino."
+ */
+export function textoRecibo(recibo: Recibo, pagador: Pick<Pagador, "recebiDe">, professor: ProfessorRecibo | undefined) {
+  const partes: string[] = [];
+  if (professor) {
+    partes.push(`Eu, ${professor.nome}`);
+    if (professor.documento) partes.push(`CPF: ${professor.documento}`);
+    if (professor.rg) partes.push(`RG: ${professor.rg}`);
+    if (professor.endereco) {
+      const local = professor.cidade ? `${professor.endereco} - ${professor.cidade}` : professor.endereco;
+      partes.push(`${RUAS.test(professor.endereco) ? "residente na" : "residente em"} ${local}`);
+    }
+  }
+  const quem = partes.length ? `${partes.join(", ")}, recebi` : "Recebi";
   let texto =
-    `Recebi de ${pagador.recebiDe} a importância de ${moeda(recibo.valorCentavos)} ` +
-    `(${valorPorExtenso(recibo.valorCentavos)}), referente a ${recibo.referente}` +
-    (recibo.formaPagamento ? `, pago via ${recibo.formaPagamento}` : "") +
-    ".";
+    `${quem} ${pagador.recebiDe} a quantia de ${moeda(recibo.valorCentavos)} ` +
+    `(${valorPorExtenso(recibo.valorCentavos)}) ${referenteA(recibo.referente)}.`;
   if (recibo.observacoes) texto += ` ${recibo.observacoes}`;
-  return texto;
+  return texto.replace(/,,/g, ",");
+}
+
+/** "Salto, 10 de Março de 2026." (a cidade sem a UF, como no modelo) */
+export function linhaDataRecibo(dataISO: string, cidade: string | null | undefined) {
+  const [a, m, d] = dataISO.slice(0, 10).split("-").map(Number);
+  const mes = MESES[m - 1];
+  const data = `${d} de ${mes[0].toUpperCase() + mes.slice(1)} de ${a}`;
+  const lugar = cidade?.split("/")[0].trim();
+  return `${lugar ? lugar + ", " : ""}${data}.`;
 }
 
 function quebrarLinhas(texto: string, fonte: PDFFont, tamanho: number, largura: number) {
@@ -36,13 +61,8 @@ function quebrarLinhas(texto: string, fonte: PDFFont, tamanho: number, largura: 
   return linhas;
 }
 
-function centralizado(pagina: PDFPage, texto: string, y: number, fonte: PDFFont, tamanho: number, cor = PRETO) {
-  const largura = fonte.widthOfTextAtSize(texto, tamanho);
-  pagina.drawText(texto, { x: (pagina.getWidth() - largura) / 2, y, size: tamanho, font: fonte, color: cor });
-}
-
-/** Gera o recibo na metade de cima de uma folha A4. */
-export async function gerarReciboPdf(recibo: Recibo, pagador: Pagador, professor: Professor | undefined) {
+/** Recibo em folha A4, no layout do modelo: título, texto, local e data, assinatura. */
+export async function gerarReciboPdf(recibo: Recibo, pagador: Pagador, professor: ProfessorRecibo | undefined) {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Recibo ${numeroRecibo(recibo.numero)}`);
   pdf.setAuthor(professor?.nome ?? "");
@@ -51,62 +71,41 @@ export async function gerarReciboPdf(recibo: Recibo, pagador: Pagador, professor
   const negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const { width: L, height: A } = pagina.getSize();
-  const margem = 56;
-  const topo = A - margem;
-  const base = A / 2 + 14;
+  const margem = 72;
   const util = L - 2 * margem;
-  const pad = 24;
+  let y = A - 90;
 
-  pagina.drawRectangle({
-    x: margem,
-    y: base,
-    width: util,
-    height: topo - base,
-    borderColor: ROXO,
-    borderWidth: 1.5,
-  });
-
-  // cabeçalho
-  pagina.drawText("RECIBO", { x: margem + pad, y: topo - 44, size: 24, font: negrito, color: ROXO });
-  pagina.drawText(`Nº ${numeroRecibo(recibo.numero)}`, { x: margem + pad, y: topo - 62, size: 11, font: normal, color: CINZA });
-  const valor = moeda(recibo.valorCentavos);
-  pagina.drawText(valor, {
-    x: L - margem - pad - negrito.widthOfTextAtSize(valor, 18),
-    y: topo - 44,
-    size: 18,
-    font: negrito,
-    color: PRETO,
-  });
+  // título centralizado e número discreto à direita
+  const titulo = "RECIBO";
+  pagina.drawText(titulo, { x: (L - negrito.widthOfTextAtSize(titulo, 14)) / 2, y, size: 14, font: negrito, color: PRETO });
+  const numero = `Nº ${numeroRecibo(recibo.numero)}`;
+  pagina.drawText(numero, { x: L - margem - normal.widthOfTextAtSize(numero, 9), y: y + 2, size: 9, font: normal, color: CINZA });
 
   // corpo
-  let y = topo - 104;
-  for (const linha of quebrarLinhas(textoRecibo(recibo, pagador), normal, 12, util - 2 * pad)) {
-    pagina.drawText(linha, { x: margem + pad, y, size: 12, font: normal, color: PRETO });
-    y -= 19;
+  y -= 60;
+  for (const linha of quebrarLinhas(textoRecibo(recibo, pagador, professor), normal, 12, util)) {
+    pagina.drawText(linha, { x: margem, y, size: 12, font: normal, color: PRETO });
+    y -= 18;
   }
 
   // local e data
-  const local = `${professor?.cidade ? professor.cidade + ", " : ""}${dataPorExtenso(recibo.dataPagamento)}.`;
-  y -= 14;
-  pagina.drawText(local, { x: L - margem - pad - normal.widthOfTextAtSize(local, 12), y, size: 12, font: normal, color: PRETO });
+  y -= 36;
+  pagina.drawText(linhaDataRecibo(recibo.dataPagamento, professor?.cidade), { x: margem, y, size: 12, font: normal, color: PRETO });
 
-  // assinatura
-  const yAssinatura = base + 92;
-  pagina.drawLine({
-    start: { x: L / 2 - 170, y: yAssinatura },
-    end: { x: L / 2 + 170, y: yAssinatura },
-    thickness: 0.8,
-    color: PRETO,
-  });
-  if (professor) {
-    centralizado(pagina, professor.nome, yAssinatura - 16, negrito, 11);
-    const detalhes = [
-      professor.documento && `CPF/CNPJ: ${professor.documento}`,
-      professor.telefone && `Tel: ${professor.telefone}`,
-    ].filter(Boolean);
-    if (detalhes.length) centralizado(pagina, detalhes.join("  •  "), yAssinatura - 31, normal, 9, CINZA);
-    if (professor.endereco) centralizado(pagina, professor.endereco, yAssinatura - 44, normal, 9, CINZA);
+  // assinatura: imagem (se houver) em cima da linha
+  y -= 110;
+  const larguraLinha = 210;
+  if (professor?.assinatura?.startsWith("data:image/png;base64,")) {
+    try {
+      const imagem = await pdf.embedPng(professor.assinatura);
+      const escala = Math.min(larguraLinha / imagem.width, 70 / imagem.height);
+      pagina.drawImage(imagem, { x: margem, y: y + 2, width: imagem.width * escala, height: imagem.height * escala });
+    } catch {
+      // imagem inválida: o recibo sai com a linha em branco para assinar à mão
+    }
   }
+  pagina.drawLine({ start: { x: margem, y }, end: { x: margem + larguraLinha, y }, thickness: 0.8, color: PRETO });
+  pagina.drawText(professor?.nome ?? "Assinatura", { x: margem, y: y - 15, size: 11, font: normal, color: PRETO });
 
   return pdf.save();
 }

@@ -279,11 +279,65 @@ export async function listarProfessores() {
     .orderBy(desc(professores.master), asc(professores.nome));
 }
 
-/** E-mail já usado por algum professor ou aluno? (o login é único no site inteiro) */
-export async function emailEmUso(email: string, ignorar: { professorId?: number; alunoId?: number } = {}) {
+/** E-mail de login de professor já usado? (o login do professor é único no site inteiro) */
+export async function emailEmUso(email: string, ignorar: { professorId?: number } = {}) {
   const db = await getDb();
   const professor = await db.query.professores.findFirst({ where: eq(professores.email, email) });
-  if (professor && professor.id !== ignorar.professorId) return true;
-  const aluno = await db.query.alunos.findFirst({ where: eq(alunos.email, email) });
-  return Boolean(aluno && aluno.id !== ignorar.alunoId);
+  return Boolean(professor && professor.id !== ignorar.professorId);
+}
+
+/** Usuário de aluno já usado? (é o login do aluno, único no site inteiro) */
+export async function usuarioEmUso(usuario: string, ignorarAlunoId?: number) {
+  const db = await getDb();
+  const aluno = await db.query.alunos.findFirst({ where: eq(alunos.usuario, usuario) });
+  return Boolean(aluno && aluno.id !== ignorarAlunoId);
+}
+
+/** Avisos que o aluno recebeu: os "para todos" do professor dele e os enviados para ele. */
+export async function avisosDoAluno(aluno: AlunoDono, limite = 10) {
+  const db = await getDb();
+  return db
+    .select()
+    .from(schema.avisos)
+    .where(
+      and(
+        eq(schema.avisos.professorId, aluno.professorId),
+        or(
+          eq(schema.avisos.paraTodos, true),
+          exists(
+            db
+              .select({ um: sql`1` })
+              .from(schema.avisosAlunos)
+              .where(and(eq(schema.avisosAlunos.avisoId, schema.avisos.id), eq(schema.avisosAlunos.alunoId, aluno.id))),
+          ),
+        ),
+      ),
+    )
+    .orderBy(desc(schema.avisos.criadoEm), desc(schema.avisos.id))
+    .limit(limite);
+}
+
+/** Avisos enviados pelo professor, com quantos alunos receberam (quando não foi para todos). */
+export async function listarAvisos(professorId: number) {
+  const db = await getDb();
+  return db
+    .select({
+      aviso: schema.avisos,
+      destinatarios: sql<number>`(select count(*) from avisos_alunos where avisos_alunos.aviso_id = "avisos"."id")`,
+    })
+    .from(schema.avisos)
+    .where(eq(schema.avisos.professorId, professorId))
+    .orderBy(desc(schema.avisos.criadoEm), desc(schema.avisos.id))
+    .limit(100);
+}
+
+/** Inscrições de notificação dos alunos do professor (quantos aparelhos recebem avisos). */
+export async function contarInscritos(professorId: number) {
+  const db = await getDb();
+  const [linha] = await db
+    .select({ total: sql<number>`count(distinct ${schema.pushInscricoes.alunoId})` })
+    .from(schema.pushInscricoes)
+    .innerJoin(alunos, eq(alunos.id, schema.pushInscricoes.alunoId))
+    .where(eq(alunos.professorId, professorId));
+  return linha?.total ?? 0;
 }

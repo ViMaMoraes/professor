@@ -36,6 +36,13 @@
       "when": 1793134079457,
       "tag": "0004_instituicoes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793138656410,
+      "tag": "0005_usuario_assinatura_avisos",
+      "breakpoints": true
     }
   ]
 }

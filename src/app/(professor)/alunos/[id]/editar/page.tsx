@@ -20,11 +20,12 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["
   const aluno = await buscarAluno(professor.id, Number((await params).id));
   if (!aluno) notFound();
   const { senhaHash, ...dados } = aluno;
+  void senhaHash;
   return (
     <>
       <Cabecalho titulo={`Editar ${aluno.nome}`} />
       <FormAluno
-        aluno={{ ...dados, temAcesso: Boolean(aluno.email && senhaHash) }}
+        aluno={dados}
         instituicoes={(await listarInstituicoes(professor.id, { situacao: "todas" })).map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
       />
     </>

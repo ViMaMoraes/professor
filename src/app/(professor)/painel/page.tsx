@@ -75,7 +75,7 @@ async function Painel() {
                     {moeda(m.total)}
                   </span>
                   <div
-                    className="w-full max-w-12 rounded-t-lg bg-gradient-to-t from-marca to-fuchsia-400 transition-all group-hover:opacity-80"
+                    className="w-full max-w-12 rounded-t-lg bg-marca transition-all group-hover:opacity-80"
                     style={{ height: `${Math.max((m.total / maiorMes) * 100, m.total ? 4 : 1)}%` }}
                   />
                   <span className="text-xs text-suave capitalize">{mes}</span>

@@ -31,7 +31,8 @@ export const usuarioAtual = cache(async () => {
     return professor && contaLiberada(professor) ? { tipo: "professor" as const, professor } : null;
   }
   const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.id, sessao.id) });
-  if (!aluno?.ativo) return null;
+  // sem usuário = acesso removido pelo professor
+  if (!aluno?.ativo || !aluno.usuario) return null;
   const professor = await db.query.professores.findFirst({ where: eq(schema.professores.id, aluno.professorId) });
   return professor && contaLiberada(professor) ? { tipo: "aluno" as const, aluno, professor } : null;
 });

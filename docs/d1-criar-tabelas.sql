@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `endereco` text,
   `cidade` text,
   `chave_pix` text,
+  `rg` text,
+  `assinatura` text,
   `master` integer DEFAULT false NOT NULL,
   `ativo` integer DEFAULT true NOT NULL,
   `acesso_ate` text,
@@ -32,6 +34,8 @@ CREATE TABLE IF NOT EXISTS `instituicoes` (
   `endereco` text,
   `valor_mensal_centavos` integer,
   `observacoes` text,
+  `tratamento` text,
+  `descricao_recibo` text,
   `ativo` integer DEFAULT true NOT NULL,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
   FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
@@ -56,9 +60,11 @@ CREATE TABLE IF NOT EXISTS `alunos` (
   `data_inicio` text,
   `ativo` integer DEFAULT true NOT NULL,
   `observacoes` text,
-  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  `usuario` text,
+  `descricao_recibo` text
 );
-CREATE UNIQUE INDEX IF NOT EXISTS `alunos_email_unique` ON `alunos` (`email`);
+CREATE UNIQUE INDEX IF NOT EXISTS `alunos_usuario_unique` ON `alunos` (`usuario`);
 CREATE INDEX IF NOT EXISTS `alunos_professor` ON `alunos` (`professor_id`);
 
 CREATE TABLE IF NOT EXISTS `presencas` (
@@ -111,6 +117,35 @@ CREATE TABLE IF NOT EXISTS `materiais_alunos` (
   FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
+CREATE TABLE IF NOT EXISTS `push_inscricoes` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `endpoint` text NOT NULL,
+  `p256dh` text NOT NULL,
+  `auth` text NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE UNIQUE INDEX IF NOT EXISTS `push_inscricoes_endpoint_unique` ON `push_inscricoes` (`endpoint`);
+
+CREATE TABLE IF NOT EXISTS `avisos` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `titulo` text NOT NULL,
+  `mensagem` text,
+  `para_todos` integer DEFAULT true NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE TABLE IF NOT EXISTS `avisos_alunos` (
+  `aviso_id` integer NOT NULL,
+  `aluno_id` integer NOT NULL,
+  PRIMARY KEY (`aviso_id`, `aluno_id`),
+  FOREIGN KEY (`aviso_id`) REFERENCES `avisos`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
 -- Marca as migrações como já aplicadas, para o
 -- `wrangler d1 migrations apply` não tentar criar as tabelas de novo.
 CREATE TABLE IF NOT EXISTS `d1_migrations` (
@@ -123,4 +158,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0001_materiais_drive.sql'),
   ('0002_remove_upload.sql'),
   ('0003_multi_professor.sql'),
-  ('0004_instituicoes.sql');
+  ('0004_instituicoes.sql'),
+  ('0005_usuario_assinatura_avisos.sql');

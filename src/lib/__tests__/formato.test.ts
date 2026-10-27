@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { valorPorExtenso, numeroPorExtenso } from "../extenso";
 import { centavosParaCampo, dataBR, dataPorExtenso, isoValido, lerValorEmCentavos, moeda, somarDias } from "../formato";
 import { linkWhatsapp } from "../mensagens";
-import { pagadorDoRecibo } from "../pagador";
+import { pagadorDoRecibo, referenteA } from "../pagador";
+import { linhaDataRecibo, textoRecibo } from "../recibo-pdf";
+import { normalizarUsuario, sugerirUsuario } from "../usuario";
 
 describe("valores", () => {
   it("lê valores digitados em reais", () => {
@@ -73,15 +75,74 @@ describe("outros", () => {
 describe("pagador do recibo", () => {
   const aluno = { nome: "Carla", responsavel: null, telefone: "1", email: null };
   it("aluno, responsável ou instituição", () => {
-    expect(pagadorDoRecibo(aluno, null).recebiDe).toBe("Carla");
-    expect(pagadorDoRecibo({ ...aluno, responsavel: "Marina" }, null).recebiDe).toBe("Marina (responsável por Carla)");
+    expect(pagadorDoRecibo(aluno, null).recebiDe).toBe("de Carla");
+    expect(pagadorDoRecibo({ ...aluno, responsavel: "Marina" }, null).recebiDe).toBe("de Marina, responsável por Carla,");
     const escola = { nome: "Escola X", documento: "12.345.678/0001-90", telefone: "2", email: "e@x.com" };
     expect(pagadorDoRecibo(null, escola)).toEqual({
       tipo: "instituicao",
       nome: "Escola X",
-      recebiDe: "Escola X (CNPJ/CPF 12.345.678/0001-90)",
+      recebiDe: "de Escola X (CNPJ/CPF 12.345.678/0001-90)",
+      descricao: null,
       telefone: "2",
       email: "e@x.com",
     });
+    const igreja = { nome: "Igreja Assembleia de Deus", documento: null, telefone: null, email: null, tratamento: "da", descricaoRecibo: "às aulas de violino" };
+    expect(pagadorDoRecibo(null, igreja)).toMatchObject({ recebiDe: "da Igreja Assembleia de Deus", descricao: "às aulas de violino" });
+  });
+
+  it("referente a / referente às", () => {
+    expect(referenteA("às aulas de violino")).toBe("referente às aulas de violino");
+    expect(referenteA("aulas de violino")).toBe("referente a aulas de violino");
+    expect(referenteA("ao curso de inglês")).toBe("referente ao curso de inglês");
+  });
+});
+
+describe("texto do recibo", () => {
+  const professor = {
+    nome: "Marcus Vinicius de Moraes",
+    documento: "465.101.488-70",
+    rg: "39.473.723-4",
+    endereco: "Rua Augusto Godofredo Kleber, 113 Pq. Residencial Rondon",
+    cidade: "Salto/SP",
+    assinatura: null,
+  };
+  const recibo = {
+    id: 1,
+    professorId: 1,
+    numero: 1,
+    alunoId: null,
+    instituicaoId: 1,
+    valorCentavos: 80000,
+    referente: "às aulas de violino",
+    formaPagamento: "Pix",
+    dataPagamento: "2026-03-10",
+    observacoes: null,
+    criadoEm: "2026-03-10",
+  };
+  it("segue o modelo, sem nomes de alunos", () => {
+    expect(textoRecibo(recibo, { recebiDe: "da Igreja Assembleia de Deus" }, professor)).toBe(
+      "Eu, Marcus Vinicius de Moraes, CPF: 465.101.488-70, RG: 39.473.723-4, residente na Rua Augusto Godofredo Kleber, 113 " +
+        "Pq. Residencial Rondon - Salto/SP, recebi da Igreja Assembleia de Deus a quantia de R$ 800,00 (oitocentos reais) " +
+        "referente às aulas de violino.",
+    );
+    expect(textoRecibo(recibo, { recebiDe: "de Ana" }, { ...professor, documento: null, rg: null, endereco: null })).toBe(
+      "Eu, Marcus Vinicius de Moraes, recebi de Ana a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino.",
+    );
+  });
+  it("local e data", () => {
+    expect(linhaDataRecibo("2026-03-10", "Salto/SP")).toBe("Salto, 10 de Março de 2026.");
+    expect(linhaDataRecibo("2026-03-10", null)).toBe("10 de Março de 2026.");
+  });
+});
+
+describe("usuário do aluno", () => {
+  it("sugere nome.sobrenome sem acentos nem preposições", () => {
+    expect(sugerirUsuario("Ana Souza")).toBe("ana.souza");
+    expect(sugerirUsuario("João da Silva Araújo")).toBe("joao.araujo");
+    expect(sugerirUsuario("Lia")).toBe("lia");
+  });
+  it("normaliza o que foi digitado", () => {
+    expect(normalizarUsuario("  Ana Souza ")).toBe("ana.souza");
+    expect(normalizarUsuario("JOÃO#1")).toBe("joao1");
   });
 });

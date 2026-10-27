@@ -9,15 +9,9 @@ import { BotaoLink, Campo, Card, cn, Input, Select } from "@/components/ui";
 import { FORMAS_PAGAMENTO } from "@/lib/constantes";
 import { centavosParaCampo } from "@/lib/formato";
 
-type AlunoOpcao = { id: number; nome: string; mensalidade: number | null };
-type InstituicaoOpcao = { id: number; nome: string; mensalidade: number | null; alunos: string[] };
+// "descricao" vem do cadastro do aluno/instituição (ex.: "às aulas de violino")
+type Opcao = { id: number; nome: string; mensalidade: number | null; descricao: string | null };
 type Tipo = "aluno" | "instituicao";
-
-/** Texto "referente a" de um recibo de instituição, já com os alunos atendidos. */
-function referenteInstituicao(padrao: string, instituicao?: InstituicaoOpcao) {
-  if (!instituicao?.alunos.length) return padrao;
-  return `${padrao} - alunos: ${instituicao.alunos.join(", ")}`;
-}
 
 export function FormRecibo({
   alunos,
@@ -27,8 +21,8 @@ export function FormRecibo({
   hoje,
   referentePadrao,
 }: {
-  alunos: AlunoOpcao[];
-  instituicoes: InstituicaoOpcao[];
+  alunos: Opcao[];
+  instituicoes: Opcao[];
   alunoInicial?: number;
   instituicaoInicial?: number;
   hoje: string;
@@ -37,20 +31,22 @@ export function FormRecibo({
   const [tipo, setTipo] = useState<Tipo>(instituicaoInicial || alunos.length === 0 ? "instituicao" : "aluno");
   const [alunoId, setAlunoId] = useState(alunoInicial ? String(alunoInicial) : "");
   const [instituicaoId, setInstituicaoId] = useState(instituicaoInicial ? String(instituicaoInicial) : "");
-  const instituicao = (id: string) => instituicoes.find((i) => String(i.id) === id);
-  const [valor, setValor] = useState(() =>
-    centavosParaCampo(
-      instituicaoInicial ? instituicao(String(instituicaoInicial))?.mensalidade : alunos.find((a) => a.id === alunoInicial)?.mensalidade,
-    ),
-  );
-  const [referente, setReferente] = useState(() =>
-    instituicaoInicial ? referenteInstituicao(referentePadrao, instituicao(String(instituicaoInicial))) : referentePadrao,
-  );
+  const achar = (lista: Opcao[], id: string | number | undefined) => lista.find((o) => String(o.id) === String(id));
+  const inicial = instituicaoInicial ? achar(instituicoes, instituicaoInicial) : achar(alunos, alunoInicial);
+  const [valor, setValor] = useState(() => centavosParaCampo(inicial?.mensalidade));
+  const [referente, setReferente] = useState(() => inicial?.descricao || referentePadrao);
+
+  /** Ao escolher aluno/instituição, traz o valor e a descrição do cadastro. */
+  function preencher(escolhido: Opcao | undefined) {
+    const v = centavosParaCampo(escolhido?.mensalidade);
+    if (v) setValor(v);
+    setReferente(escolhido?.descricao || referentePadrao);
+  }
 
   function trocarTipo(novo: Tipo) {
     setTipo(novo);
     setValor("");
-    setReferente(novo === "instituicao" ? referenteInstituicao(referentePadrao, instituicao(instituicaoId)) : referentePadrao);
+    preencher(novo === "instituicao" ? achar(instituicoes, instituicaoId) : achar(alunos, alunoId));
   }
 
   return (
@@ -97,8 +93,7 @@ export function FormRecibo({
               value={alunoId}
               onChange={(e) => {
                 setAlunoId(e.target.value);
-                const v = centavosParaCampo(alunos.find((a) => String(a.id) === e.target.value)?.mensalidade);
-                if (v) setValor(v);
+                preencher(achar(alunos, e.target.value));
               }}
             >
               <option value="">Selecione...</option>
@@ -121,10 +116,7 @@ export function FormRecibo({
               value={instituicaoId}
               onChange={(e) => {
                 setInstituicaoId(e.target.value);
-                const escolhida = instituicao(e.target.value);
-                const v = centavosParaCampo(escolhida?.mensalidade);
-                if (v) setValor(v);
-                setReferente(referenteInstituicao(referentePadrao, escolhida));
+                preencher(achar(instituicoes, e.target.value));
               }}
             >
               <option value="">Selecione...</option>
@@ -142,7 +134,7 @@ export function FormRecibo({
         <Campo rotulo="Data do pagamento *">
           <Input type="date" name="dataPagamento" required defaultValue={hoje} />
         </Campo>
-        <Campo rotulo="Referente a *" className="sm:col-span-3">
+        <Campo rotulo="Referente *" dica="Ex.: “às aulas de violino” (sai: “…referente às aulas de violino.”)" className="sm:col-span-3">
           <Input name="referente" required value={referente} onChange={(e) => setReferente(e.target.value)} />
         </Campo>
         <Campo rotulo="Forma de pagamento">

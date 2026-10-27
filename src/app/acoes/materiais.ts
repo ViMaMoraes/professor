@@ -9,6 +9,7 @@ import { buscarMaterial, listarAlunos } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { lerLinkDrive } from "@/lib/drive";
 import { texto, type EstadoForm } from "@/lib/estado-form";
+import { notificarAlunos } from "@/lib/push";
 
 export async function salvarMaterial(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor();
@@ -19,7 +20,8 @@ export async function salvarMaterial(id: number | null, _: EstadoForm, dados: Fo
   const drive = lerLinkDrive(texto(dados, "link"));
   const paraTodos = dados.get("destino") === "todos";
   // só aceita alunos deste professor
-  const meus = new Set((await listarAlunos(professor.id, { situacao: "todos" })).map((a) => a.id));
+  const todosAlunos = await listarAlunos(professor.id, { situacao: "todos" });
+  const meus = new Set(todosAlunos.map((a) => a.id));
   const alunoIds = [...new Set(dados.getAll("alunos").map(Number))].filter((alunoId) => meus.has(alunoId));
 
   if (!drive) return { erro: "Cole o link de compartilhamento de um arquivo, pasta ou documento do Google Drive." };
@@ -54,6 +56,12 @@ export async function salvarMaterial(id: number | null, _: EstadoForm, dados: Fo
     db.delete(schema.materiaisAlunos).where(eq(schema.materiaisAlunos.materialId, materialId)),
     ...(vinculos.length ? [db.insert(schema.materiaisAlunos).values(vinculos)] : []),
   ]);
+
+  // material novo: avisa no celular quem tem acesso (só quem ativou as notificações recebe)
+  if (!id) {
+    const destino = paraTodos ? todosAlunos.filter((a) => a.ativo).map((a) => a.id) : alunoIds;
+    await notificarAlunos(destino, { title: "Novo material", body: titulo, url: "/portal" });
+  }
 
   revalidatePath("/", "layout");
   redirect("/materiais");

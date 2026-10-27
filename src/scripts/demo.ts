@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { getDb, schema } from "../lib/db";
 import { lerLinkDrive } from "../lib/drive";
 import { hojeISO, somarDias } from "../lib/formato";
+import { sugerirUsuario } from "../lib/usuario";
 
 async function main() {
   const db = await getDb();
@@ -20,14 +21,14 @@ async function main() {
       email: "professor@exemplo.com",
       senhaHash: await bcrypt.hash("professor", 10),
       documento: "123.456.789-00",
+      rg: "12.345.678-9",
       telefone: "(11) 99999-0000",
+      endereco: "Rua das Flores, 100 - Centro",
       cidade: "São Paulo/SP",
-      chavePix: "professor@exemplo.com",
     })
     .returning();
 
   const hoje = hojeISO();
-  const senhaAluno = await bcrypt.hash("aluno123", 10);
   const dados = [
     ["Ana Souza", "Violão", "Iniciante", "Segunda", "18:00", 18000, null],
     ["Bruno Lima", "Guitarra", "Intermediário", "Segunda", "19:00", 20000, null],
@@ -48,7 +49,8 @@ async function main() {
         responsavel,
         telefone: `(11) 98888-000${i + 1}`,
         email: `${nome.split(" ")[0].toLowerCase()}@exemplo.com`,
-        senhaHash: senhaAluno,
+        usuario: sugerirUsuario(nome),
+        descricaoRecibo: `às aulas de ${instrumento.toLowerCase()}`,
         dataInicio: somarDias(hoje, -90 * (i + 1)),
       })),
     )
@@ -77,7 +79,7 @@ async function main() {
         numero: numero++,
         alunoId: aluno.id,
         valorCentavos: aluno.mensalidadeCentavos!,
-        referente: "aulas de música - mensalidade",
+        referente: `às aulas de ${aluno.instrumento!.toLowerCase()}`,
         formaPagamento: "Pix",
         dataPagamento: data,
       });
@@ -94,6 +96,8 @@ async function main() {
       contato: "Coordenadora Sílvia",
       telefone: "(11) 3333-4444",
       valorMensalCentavos: 60000,
+      tratamento: "da",
+      descricaoRecibo: "às aulas de flauta",
     })
     .returning();
   const daEscola = await db
@@ -106,6 +110,7 @@ async function main() {
         instrumento: "Flauta",
         diaAula: "Terça",
         horario: "14:00",
+        usuario: sugerirUsuario(nome),
       })),
     )
     .returning();
@@ -121,7 +126,7 @@ async function main() {
     numero: numero++,
     instituicaoId: escola.id,
     valorCentavos: 60000,
-    referente: "aulas de música - alunos: Fernanda Reis, Gabriel Souza",
+    referente: "às aulas de flauta",
     formaPagamento: "Transferência",
     dataPagamento: hoje,
   });
@@ -179,17 +184,21 @@ async function main() {
       acessoAte: somarDias(hoje, 30),
     })
     .returning();
+  await db.insert(schema.avisos).values({
+    professorId: professor.id,
+    titulo: "Bem-vindos!",
+    mensagem: "Os materiais das aulas ficam aqui. Ative as notificações para saber quando chegar coisa nova.",
+  });
   await db.insert(schema.alunos).values({
     professorId: outra.id,
     nome: "Lucas Prado",
     instrumento: "Canto",
     diaAula: "Quinta",
-    email: "lucas@exemplo.com",
-    senhaHash: senhaAluno,
+    usuario: "lucas.prado",
   });
 
   console.log(
-    "Pronto! Master: professor@exemplo.com / professor · Outra professora: marina@exemplo.com / professor · Alunos: ana@exemplo.com (etc.) / aluno123",
+    "Pronto! Master: professor@exemplo.com / professor · Outra professora: marina@exemplo.com / professor · Alunos (só usuário, em /aluno): ana.souza, bruno.lima...",
   );
 }
 

@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { salvarInstituicao } from "@/app/acoes/instituicoes";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
-import { BotaoLink, Campo, Card, cn, Input, Textarea } from "@/components/ui";
+import { BotaoLink, Campo, Card, cn, Input, Select, Textarea } from "@/components/ui";
 import type { Instituicao } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
 
@@ -46,6 +46,16 @@ export function FormInstituicao({ instituicao, alunos }: { instituicao?: Institu
               placeholder="1.200,00"
               defaultValue={centavosParaCampo(instituicao?.valorMensalCentavos)}
             />
+          </Campo>
+          <Campo rotulo="Tratamento no recibo" dica="“recebi da Igreja…”, “recebi do Colégio…”">
+            <Select name="tratamento" defaultValue={instituicao?.tratamento ?? "da"}>
+              <option value="da">da</option>
+              <option value="do">do</option>
+              <option value="de">de</option>
+            </Select>
+          </Campo>
+          <Campo rotulo="Descrição do pagamento (recibo)" dica="Ex.: “às aulas de violino”. Vem preenchida ao gerar o recibo." className="sm:col-span-2">
+            <Input name="descricaoRecibo" placeholder="às aulas de violino" defaultValue={instituicao?.descricaoRecibo ?? ""} />
           </Campo>
           <Campo rotulo="Observações" className="sm:col-span-2 lg:col-span-3">
             <Textarea name="observacoes" rows={2} defaultValue={instituicao?.observacoes ?? ""} placeholder="Contrato, horários, turma..." />

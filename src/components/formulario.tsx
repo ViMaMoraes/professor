@@ -1,44 +1,89 @@
 "use client";
 
 import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
-import { createContext, startTransition, use, useActionState, type ComponentProps, type ReactNode } from "react";
+import { createContext, startTransition, use, useActionState, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import type { EstadoForm } from "@/lib/estado-form";
 
+import { useInterface } from "./interface";
 import { Botao, cn } from "./ui";
 
 const Enviando = createContext(false);
 
+/** Mensagem para o primeiro campo inválido (no lugar do balão padrão do navegador). */
+function mensagemDoCampo(campo: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement) {
+  const rotulo = campo.closest("label")?.querySelector("span")?.textContent?.replace("*", "").trim();
+  const nome = rotulo ? `“${rotulo}”` : "o campo destacado";
+  const v = campo.validity;
+  if (v.valueMissing) return `Preencha ${nome}.`;
+  if (v.typeMismatch && campo.type === "email") return `Confira o e-mail em ${nome}.`;
+  if (v.tooShort) return `${nome[0].toUpperCase() + nome.slice(1)} precisa ter pelo menos ${(campo as HTMLInputElement).minLength} caracteres.`;
+  return `Confira ${nome}.`;
+}
+
 /**
- * Form ligado a uma Server Action com mensagens de erro/sucesso.
- * Envia via onSubmit (e não via prop `action`) para o React não limpar os campos quando há erro.
+ * Form ligado a uma Server Action, com mensagens no estilo do site.
+ * - valida os campos obrigatórios sem os balões padrão do navegador (destaca o campo e mostra o motivo);
+ * - erros aparecem no topo do formulário; sucesso aparece como aviso no canto da tela;
+ * - envia via onSubmit (e não via prop `action`) para o React não limpar os campos quando há erro.
  */
 export function Formulario({
   acao,
   children,
   className,
   confirmar,
+  limparAoEnviar,
 }: {
   acao: (estado: EstadoForm, dados: FormData) => Promise<EstadoForm>;
   children: ReactNode;
   className?: string;
   confirmar?: string;
+  /** Limpa os campos depois de um envio com sucesso (ex.: formulário de envio de aviso). */
+  limparAoEnviar?: boolean;
 }) {
   const [estado, executar, enviando] = useActionState(acao, null);
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
+  const { confirmar: perguntar, notificar } = useInterface();
+
+  // sucesso vira aviso no canto (o estado muda a cada envio)
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!estado?.ok) return;
+    notificar(estado.ok);
+    if (limparAoEnviar) formRef.current?.reset();
+  }, [estado, notificar, limparAoEnviar]);
+
+  const erro = erroLocal ?? estado?.erro;
 
   return (
     <form
+      ref={formRef}
+      noValidate
       className={className}
-      onSubmit={(e) => {
+      onInput={(e) => {
+        const alvo = e.target as HTMLElement;
+        if (alvo.getAttribute("aria-invalid")) alvo.removeAttribute("aria-invalid");
+      }}
+      onSubmit={async (e) => {
         e.preventDefault();
-        if (confirmar && !window.confirm(confirmar)) return;
-        const dados = new FormData(e.currentTarget);
+        const form = e.currentTarget;
+        const invalidos = [...form.elements].filter(
+          (el): el is HTMLInputElement => "validity" in el && !(el as HTMLInputElement).validity.valid,
+        );
+        if (invalidos.length) {
+          invalidos.forEach((el) => el.setAttribute("aria-invalid", "true"));
+          invalidos[0].focus();
+          setErroLocal(mensagemDoCampo(invalidos[0]));
+          return;
+        }
+        setErroLocal(null);
+        if (confirmar && !(await perguntar(confirmar))) return;
+        const dados = new FormData(form);
         startTransition(() => executar(dados));
       }}
     >
       <Enviando value={enviando}>
-        {estado?.erro && <Aviso tipo="erro">{estado.erro}</Aviso>}
-        {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
         {children}
       </Enviando>
     </form>

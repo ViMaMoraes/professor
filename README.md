@@ -1,6 +1,8 @@
-# Professor 🎵: gestão de aulas de música
+# Portal de Aulas: acesso professor e acesso aluno
 
-Site para professor de música, com cadastro de alunos, chamada, recibos em PDF e central de downloads com materiais liberados por aluno. Os alunos têm um portal próprio.
+Site para professores (de qualquer matéria) com cadastro de alunos, chamada, recibos em PDF assinados e central de downloads com materiais liberados por aluno. Os alunos entram só com um usuário e veem os downloads e avisos. Funciona como app no celular (PWA) e manda notificações.
+
+O nome que aparece no site é "Portal de Aulas"; para trocar, defina a variável `NEXT_PUBLIC_NOME_APP` no build.
 
 Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind CSS 4** e **Drizzle ORM**, com banco **SQLite**: arquivo local no desenvolvimento e **Cloudflare D1** em produção.
 
@@ -10,7 +12,8 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
 
 - **Painel:** alunos ativos, chamadas do dia, valor recebido no mês, gráfico dos últimos 6 meses, aulas de hoje e últimos recibos.
 - **Alunos:**
-  - cadastro com contato, responsável, instrumento, nível, dia e horário, mensalidade e observações;
+  - cadastro com contato, responsável, curso/matéria, nível, dia e horário, mensalidade e observações;
+  - **usuário de acesso** do aluno, sugerido a partir do nome (ex.: `joao.araujo`) e editável;
   - busca e filtro por situação;
   - página do aluno com histórico de aulas, recibos, materiais e frequência.
 - **Chamada:**
@@ -24,9 +27,12 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
     - **Registros:** todas as marcações, com as observações das aulas.
 - **Instituições:**
   - cadastro de escolas, igrejas, projetos ou famílias que pagam por vários alunos (CNPJ/CPF, contato, valor mensal);
-  - o recibo pode sair no nome da instituição, já listando os alunos atendidos;
+  - o recibo pode sair no nome da instituição (sem listar os alunos);
   - a chamada continua por aluno: filtro por instituição na chamada e no histórico, frequência de cada aluno na página da instituição e planilha só dos alunos dela.
 - **Recibos:**
+  - texto no modelo: *"Eu, Nome, CPF: ..., RG: ..., residente na Rua ... - Cidade/UF, recebi da Igreja X a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino."*, com local, data e **assinatura**;
+  - o "referente a" vem do cadastro do aluno ou da instituição (campo *Descrição do pagamento*) e pode ser editado na hora;
+  - no cadastro da instituição dá para escolher "da", "do" ou "de" (recebi **da** Igreja, **do** Colégio...);
   - numeração automática;
   - valor por extenso;
   - nome do responsável quando o aluno é menor;
@@ -40,7 +46,9 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - **Ver** abre o arquivo dentro do próprio site (visualização do Drive);
   - **Baixar** baixa direto; documentos do Google vêm em PDF;
   - **download em lote:** marque vários e baixe tudo num **ZIP** (arquivos separados) ou num **PDF único** (páginas em ordem alfabética). O site avisa quais arquivos não puderam entrar.
-- **Configurações:** dados que saem no recibo (CPF/CNPJ, telefone, endereço, cidade) e chave Pix.
+- **Avisos:** mande um aviso para todos os alunos, para os de uma instituição ou para alunos escolhidos. Ele aparece na área do aluno e chega como **notificação** no celular de quem ativou. Material novo também gera notificação.
+- **Configurações:** dados que saem no recibo (CPF, RG, endereço, cidade) e a **assinatura**, desenhada na tela (dedo ou mouse) ou enviada como imagem. Com ela, o recibo já sai assinado.
+- **Avisos e confirmações** do site aparecem em janelas e mensagens próprias, sem os alertas padrão do navegador.
 
 ### Vários professores (venda para outros professores)
 
@@ -53,18 +61,33 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
   - renovar a data de acesso;
   - excluir a conta (apaga todos os dados daquele professor).
 - **Conta bloqueada ou vencida:** o professor e os alunos dele não conseguem entrar, mas nada é apagado. Ao liberar ou renovar, tudo volta como estava.
-- O e-mail é o login, então é único no site inteiro, entre todos os professores e alunos.
+- O e-mail do professor é o login dele e o usuário do aluno é o login do aluno; os dois são únicos no site inteiro.
 
-### Portal do aluno
+### Acesso aluno
 
-O aluno entra com o e-mail e a senha cadastrados pelo professor e vê:
+O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) **só com o usuário** criado pelo professor, sem senha, e vê:
 
 - os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;
-- os seus recibos em PDF;
-- a frequência nas aulas;
-- a chave Pix com botão de copiar.
+- os avisos do professor;
+- o botão para **ativar as notificações** no celular.
 
-Ele também pode trocar a própria senha.
+Como não há senha, a área do aluno não mostra recibos nem dados financeiros. Para tirar o acesso de um aluno, apague o usuário dele ou marque-o como inativo.
+
+### App no celular (PWA) e notificações
+
+O site pode ser instalado na tela de início do celular, como um app:
+
+- **Android (Chrome):** menu ⋮ → *Instalar app* (ou *Adicionar à tela inicial*);
+- **iPhone (Safari):** botão *Compartilhar* → *Adicionar à Tela de Início*. No iPhone as notificações só funcionam com o app instalado (iOS 16.4 ou mais novo).
+
+As notificações precisam de uma chave (VAPID), gerada uma vez:
+
+```bash
+npm run vapid        # imprime a chave; guarde em segredo
+npx wrangler secret put VAPID_PRIVATE_KEY   # cole a linha {"kty":"EC",...}
+```
+
+Opcional: `VAPID_CONTATO` com `mailto:seu@email.com` (os serviços de push usam para contato). Sem a chave, o site funciona normalmente, só sem notificações.
 
 Cada aluno só acessa os próprios materiais e recibos. Essa verificação acontece no servidor, em toda página, ação e download.
 
@@ -102,7 +125,7 @@ npm run demo
 O comando cria:
 
 - o professor `professor@exemplo.com`, senha `professor`;
-- os alunos `ana@exemplo.com`, `bruno@exemplo.com` etc., senha `aluno123`.
+- os alunos entram em `/aluno` com os usuários `ana.souza`, `bruno.lima` etc.
 
 ### Comandos
 
@@ -157,7 +180,8 @@ Antes do primeiro deploy pelo GitHub:
 
 - o `database_id` real do D1 precisa estar no `wrangler.jsonc` commitado (o deploy usa o arquivo do repositório);
 - as tabelas precisam existir. Rode `npm run cf:migrar` uma vez no seu computador (e de novo sempre que houver migração nova em `drizzle/`), ou cole o conteúdo de [`docs/d1-criar-tabelas.sql`](docs/d1-criar-tabelas.sql) no console do D1 no painel;
-- o `SESSION_SECRET` precisa estar cadastrado (pelo `wrangler secret put` ou no painel, em *Settings → Variables and Secrets*, como tipo **Secret**).
+- o `SESSION_SECRET` precisa estar cadastrado (pelo `wrangler secret put` ou no painel, em *Settings → Variables and Secrets*, como tipo **Secret**);
+- para as notificações, cadastre também o `VAPID_PRIVATE_KEY` do mesmo jeito (veja *App no celular*).
 
 **Quando o banco mudar** (nova migração em `drizzle/`), rode `npm run cf:migrar` antes do `npm run deploy`. Também dá para deixar automático, usando como Deploy command no Workers Builds: `npx wrangler d1 migrations apply professor-db --remote && npx wrangler deploy`.
 
@@ -187,6 +211,9 @@ Variáveis de ambiente opcionais:
 | Variável | Para quê |
 | --- | --- |
 | `SESSION_SECRET` | chave das sessões (recomendado em produção) |
+| `VAPID_PRIVATE_KEY` | chave das notificações (gerada com `npm run vapid`) |
+| `VAPID_CONTATO` | contato para os serviços de push (ex.: `mailto:voce@email.com`) |
+| `NEXT_PUBLIC_NOME_APP` | nome do site (padrão: "Portal de Aulas") |
 | `DATA_DIR` | outra pasta para o banco |
 | `DATABASE_URL` / `DATABASE_AUTH_TOKEN` | banco libSQL remoto (ex.: [Turso](https://turso.tech)) em vez do arquivo local |
 

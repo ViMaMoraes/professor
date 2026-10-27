@@ -3,11 +3,11 @@
 import { CheckSquare, Eye, FileArchive, FileStack, LoaderCircle, Square, X } from "lucide-react";
 import { createContext, use, useEffect, useState, type ReactNode } from "react";
 
+import { useInterface } from "./interface";
 import { Botao, cn, Input } from "./ui";
 
 type Item = { id: number; titulo: string };
 type Formato = "zip" | "pdf";
-type Mensagem = { tipo: "ok" | "aviso" | "erro"; texto: string };
 
 const Selecao = createContext<{ selecionados: number[]; alternar: (id: number) => void } | null>(null);
 
@@ -36,7 +36,7 @@ export function ProvedorSelecao({
   const [nome, setNome] = useState("");
   const [baixando, setBaixando] = useState<Formato | null>(null);
   const [passo, setPasso] = useState(0);
-  const [mensagem, setMensagem] = useState<Mensagem | null>(null);
+  const { notificar } = useInterface();
 
   const alternar = (id: number) => setSelecionados((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const todos = selecionados.length === itens.length;
@@ -47,12 +47,6 @@ export function ProvedorSelecao({
     const intervalo = setInterval(() => setPasso((p) => Math.min(p + 1, 3)), 1800);
     return () => clearInterval(intervalo);
   }, [baixando]);
-
-  useEffect(() => {
-    if (!mensagem) return;
-    const tempo = setTimeout(() => setMensagem(null), 8000);
-    return () => clearTimeout(tempo);
-  }, [mensagem]);
 
   function abrirDialogo(formato: Formato) {
     const titulos = itens.filter((i) => selecionados.includes(i.id)).map((i) => i.titulo);
@@ -84,14 +78,11 @@ export function ProvedorSelecao({
       URL.revokeObjectURL(url);
 
       const falhas: string[] = JSON.parse(decodeURIComponent(resposta.headers.get("X-Materiais-Falhas") ?? "%5B%5D"));
-      setMensagem(
-        falhas.length
-          ? { tipo: "aviso", texto: `Download pronto, mas ${falhas.length} ficaram de fora: ${falhas.join(", ")}.` }
-          : { tipo: "ok", texto: "Download pronto! 🎼" },
-      );
+      if (falhas.length) notificar(`Download pronto, mas ${falhas.length} ficaram de fora: ${falhas.join(", ")}.`, "aviso");
+      else notificar("Download pronto!");
       setSelecionados([]);
     } catch (erro) {
-      setMensagem({ tipo: "erro", texto: erro instanceof Error ? erro.message : "Não foi possível baixar." });
+      notificar(erro instanceof Error ? erro.message : "Não foi possível baixar.", "erro");
     } finally {
       setBaixando(null);
     }
@@ -121,7 +112,7 @@ export function ProvedorSelecao({
           <span className="hidden h-6 w-px bg-borda sm:block" />
           <button
             onClick={() => abrirDialogo("pdf")}
-            className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 dark:text-emerald-400"
+            className="flex items-center gap-1.5 text-sm font-medium text-texto hover:opacity-80"
             title="Juntar os selecionados em um PDF único (ordem alfabética)"
           >
             <FileStack className="size-4" /> Juntar PDF
@@ -181,7 +172,7 @@ export function ProvedorSelecao({
             <p className="mb-5 text-sm text-suave">{selecionados.length} material(is) selecionado(s)</p>
             <div className="mb-4 h-2 overflow-hidden rounded-full bg-fundo">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-marca to-fuchsia-400 transition-all duration-700"
+                className="h-full rounded-full bg-marca transition-all duration-700"
                 style={{ width: `${[15, 45, 75, 92][passo]}%` }}
               />
             </div>
@@ -193,19 +184,6 @@ export function ProvedorSelecao({
         </Janela>
       )}
 
-      {mensagem && (
-        <div
-          role="status"
-          className={cn(
-            "fixed top-4 right-4 left-4 z-[60] mx-auto max-w-md rounded-xl border px-4 py-3 text-sm shadow-lg sm:left-auto",
-            mensagem.tipo === "ok" && "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-            mensagem.tipo === "aviso" && "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
-            mensagem.tipo === "erro" && "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
-          )}
-        >
-          {mensagem.texto}
-        </div>
-      )}
     </Selecao>
   );
 }
@@ -245,13 +223,13 @@ export function BotaoVer({ id, titulo, className }: { id: number; titulo: string
       {aberto && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-2 backdrop-blur-sm sm:p-4" onClick={() => setAberto(false)}>
           <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-superficie shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between gap-4 bg-marca px-4 py-3 text-white">
+            <div className="flex items-center justify-between gap-4 bg-marca px-4 py-3 text-marca-contraste">
               <h3 className="truncate font-semibold">{titulo}</h3>
               <div className="flex items-center gap-1">
-                <a href={`/api/materiais/${id}`} target="_blank" rel="noopener" className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/15">
+                <a href={`/api/materiais/${id}`} target="_blank" rel="noopener" className="rounded-lg px-3 py-1.5 text-sm hover:bg-marca-contraste/15">
                   Abrir no Drive
                 </a>
-                <button onClick={() => setAberto(false)} className="rounded-lg p-1.5 hover:bg-white/15" aria-label="Fechar">
+                <button onClick={() => setAberto(false)} className="rounded-lg p-1.5 hover:bg-marca-contraste/15" aria-label="Fechar">
                   <X className="size-5" />
                 </button>
               </div>
