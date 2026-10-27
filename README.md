@@ -128,7 +128,20 @@ No fim aparece o endereço `https://professor.<sua-conta>.workers.dev`. Abra e c
 
 **Domínio próprio:** no painel da Cloudflare, abra *Workers & Pages → professor → Settings → Domains & Routes → Add → Custom domain*. O domínio precisa estar na sua conta Cloudflare.
 
-**Deploy automático pelo GitHub (opcional):** em *Workers & Pages → professor → Settings → Build*, conecte o repositório. Use `npx opennextjs-cloudflare build` como comando de build e `npx opennextjs-cloudflare deploy` como comando de deploy. O D1 e o `SESSION_SECRET` continuam os mesmos.
+**Deploy automático pelo GitHub (Workers Builds):** em *Workers & Pages → professor → Settings → Build*, conecte o repositório e configure:
+
+| Campo | Valor |
+| --- | --- |
+| Build command | `npx opennextjs-cloudflare build` |
+| Deploy command | `npx wrangler deploy` |
+
+> O build command **não pode** ser `npm run build`. Esse script só roda o `next build`, e o deploy falha com *"Could not find compiled Open Next config"*. Também não troque o script `build` do `package.json`: o `opennextjs-cloudflare build` chama esse script por dentro.
+
+Antes do primeiro deploy pelo GitHub:
+
+- o `database_id` real do D1 precisa estar no `wrangler.jsonc` commitado (o deploy usa o arquivo do repositório);
+- as tabelas precisam existir: rode `npm run cf:migrar` uma vez no seu computador e de novo sempre que houver migração nova em `drizzle/`;
+- o `SESSION_SECRET` precisa estar cadastrado (pelo `wrangler secret put` ou no painel, em *Settings → Variables and Secrets*, como tipo **Secret**).
 
 **Quando o banco mudar** (nova migração em `drizzle/`), rode `npm run cf:migrar` antes do `npm run deploy`.
 
