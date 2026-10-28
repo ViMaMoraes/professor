@@ -53,14 +53,14 @@ export function FormProfessor({ professor }: { professor: Dados }) {
 }
 
 /** Novo professor: a senha é gerada pelo site e mostrada uma vez, com a mensagem pronta para enviar. */
-export function FormNovoProfessor() {
+export function FormNovoProfessor({ endereco }: { endereco: string | null }) {
   return (
     <Formulario
       acao={criarProfessor}
       className="max-w-2xl"
       sucesso={(estado) => (
         <div className="space-y-4">
-          <Credenciais nome={estado.nome!} email={estado.email!} senha={estado.senha!} nova />
+          <Credenciais nome={estado.nome!} email={estado.email!} senha={estado.senha!} nova endereco={endereco} />
           <div className="flex gap-2">
             <BotaoLink href="/admin">Voltar para a administração</BotaoLink>
             <BotaoLink href={`/admin/${estado.id}`} variante="secundario">

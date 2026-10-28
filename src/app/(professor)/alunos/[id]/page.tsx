@@ -8,6 +8,7 @@ import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
+import { enderecoSite } from "@/lib/endereco";
 import {
   buscarAluno,
   buscarInstituicao,
@@ -85,7 +86,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6">
-          {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} telefone={aluno.telefone} />}
+          {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} telefone={aluno.telefone} endereco={enderecoSite()} />}
           <Card>
             <CardTitulo>Dados</CardTitulo>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 p-5 text-sm">

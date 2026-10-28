@@ -25,6 +25,13 @@
       "migrations_dir": "drizzle"
     }
   ],
+  // endereço oficial: os links que o professor copia e envia (acesso do aluno, dados de um professor novo)
+  // usam sempre este endereço, mesmo acessando pelo workers.dev
+  "vars": {
+    "ENDERECO_SITE": "https://professor.mmoraes.com.br"
+  },
+  // não apaga as variáveis criadas pelo painel da Cloudflare (ex.: VAPID_CONTATO) a cada deploy
+  "keep_vars": true,
   // todo dia às 8h17 (Brasília): aviso de vencimento dos professores ao master
   "triggers": {
     "crons": ["17 11 * * *"]

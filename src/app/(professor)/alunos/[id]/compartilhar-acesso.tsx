@@ -1,18 +1,27 @@
 "use client";
 
 import { Check, Copy, Link2, MessageCircle } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 
 import { useInterface } from "@/components/interface";
+import { useEnderecoSite } from "@/components/use-endereco-site";
 import { Botao, Card, CardTitulo, estiloBotao } from "@/components/ui";
 import { primeiroNome } from "@/lib/formato";
 import { linkWhatsapp } from "@/lib/mensagens";
 
-const nada = () => () => {};
-
 /** Link pessoal do aluno (já com o usuário preenchido) e mensagem pronta para mandar. */
-export function CompartilharAcesso({ nome, usuario, telefone }: { nome: string; usuario: string; telefone: string | null }) {
-  const origem = useSyncExternalStore(nada, () => window.location.origin, () => "");
+export function CompartilharAcesso({
+  nome,
+  usuario,
+  telefone,
+  endereco,
+}: {
+  nome: string;
+  usuario: string;
+  telefone: string | null;
+  endereco: string | null;
+}) {
+  const origem = useEnderecoSite(endereco);
   const { notificar } = useInterface();
   const [copiado, setCopiado] = useState<"link" | "mensagem" | null>(null);
 

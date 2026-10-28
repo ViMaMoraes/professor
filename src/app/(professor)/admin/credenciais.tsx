@@ -1,17 +1,28 @@
 "use client";
 
 import { Check, Copy, KeyRound, MessageCircle } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 
 import { useInterface } from "@/components/interface";
+import { useEnderecoSite } from "@/components/use-endereco-site";
 import { Botao, Card, estiloBotao } from "@/components/ui";
 import { NOME_APP } from "@/lib/marca";
 
-const nada = () => () => {};
-
 /** Dados de acesso com a senha provisória: aparecem uma vez só, para o master passar ao professor. */
-export function Credenciais({ nome, email, senha, nova }: { nome: string; email: string; senha: string; nova: boolean }) {
-  const origem = useSyncExternalStore(nada, () => window.location.origin, () => "");
+export function Credenciais({
+  nome,
+  email,
+  senha,
+  nova,
+  endereco,
+}: {
+  nome: string;
+  email: string;
+  senha: string;
+  nova: boolean;
+  endereco: string | null;
+}) {
+  const origem = useEnderecoSite(endereco);
   const { notificar } = useInterface();
   const [copiado, setCopiado] = useState<string | null>(null);
   const link = `${origem}/login`;

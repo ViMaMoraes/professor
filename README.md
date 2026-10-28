@@ -221,6 +221,7 @@ Variáveis de ambiente opcionais:
 | `VAPID_PRIVATE_KEY` | chave das notificações (gerada com `npm run vapid`) |
 | `VAPID_CONTATO` | contato para os serviços de push (ex.: `mailto:voce@email.com`) |
 | `NEXT_PUBLIC_NOME_APP` | nome do site (padrão: "Portal de Aulas") |
+| `ENDERECO_SITE` | endereço oficial usado nos links enviados aos alunos e professores (ex.: `https://professor.mmoraes.com.br`; fica no `wrangler.jsonc`) |
 | `DATA_DIR` | outra pasta para o banco |
 | `DATABASE_URL` / `DATABASE_AUTH_TOKEN` | banco libSQL remoto (ex.: [Turso](https://turso.tech)) em vez do arquivo local |
 

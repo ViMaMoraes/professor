@@ -5,6 +5,7 @@ import { excluirProfessor } from "@/app/acoes/admin";
 import { BotaoAcao } from "@/components/botao-acao";
 import { Cabecalho, Card } from "@/components/ui";
 import { exigirMaster } from "@/lib/auth";
+import { enderecoSite } from "@/lib/endereco";
 import { buscarProfessor } from "@/lib/consultas";
 
 import { FormProfessor } from "../form-professor";
@@ -24,7 +25,7 @@ export default async function PaginaEditarProfessor(props: PageProps<"/admin/[id
       <FormProfessor professor={dados} />
       {professor.id !== master.id && (
         <div className="mt-6">
-          <RedefinirSenha id={professor.id} nome={professor.nome} email={professor.email} pendente={professor.trocarSenha} />
+          <RedefinirSenha id={professor.id} nome={professor.nome} email={professor.email} pendente={professor.trocarSenha} endereco={enderecoSite()} />
         </div>
       )}
       {!professor.master && (

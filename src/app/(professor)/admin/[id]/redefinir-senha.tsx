@@ -10,12 +10,24 @@ import { Botao, Card } from "@/components/ui";
 import { Credenciais } from "../credenciais";
 
 /** Gera uma nova senha provisória (ex.: o professor esqueceu a dele). */
-export function RedefinirSenha({ id, nome, email, pendente }: { id: number; nome: string; email: string; pendente: boolean }) {
+export function RedefinirSenha({
+  id,
+  nome,
+  email,
+  pendente,
+  endereco,
+}: {
+  id: number;
+  nome: string;
+  email: string;
+  pendente: boolean;
+  endereco: string | null;
+}) {
   const [senha, setSenha] = useState<string | null>(null);
   const [gerando, iniciar] = useTransition();
   const { confirmar, notificar } = useInterface();
 
-  if (senha) return <Credenciais nome={nome} email={email} senha={senha} nova={false} />;
+  if (senha) return <Credenciais nome={nome} email={email} senha={senha} nova={false} endereco={endereco} />;
 
   return (
     <Card className="max-w-2xl p-5">
