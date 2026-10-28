@@ -3,11 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { alternarProfessor } from "@/app/acoes/admin";
+import { AtivarNotificacoes } from "@/components/ativar-notificacoes";
 import { BotaoAcao } from "@/components/botao-acao";
 import { BotaoLink, Cabecalho, Card, Selo, Tabela } from "@/components/ui";
 import { contaLiberada, exigirMaster } from "@/lib/auth";
 import { listarProfessores } from "@/lib/consultas";
 import { dataBR, hojeISO } from "@/lib/formato";
+import { chavePublicaVapid } from "@/lib/push";
+import { DIAS_AVISO_VENCIMENTO, diasAte, textoVencimento } from "@/lib/vencimentos";
 
 export const metadata: Metadata = { title: "Administração" };
 
@@ -17,6 +20,7 @@ export default async function PaginaAdmin() {
   const hoje = hojeISO();
   const clientes = linhas.filter((l) => !l.professor.master);
   const liberados = clientes.filter((l) => contaLiberada(l.professor, hoje)).length;
+  const chavePublica = chavePublicaVapid();
 
   return (
     <>
@@ -25,6 +29,20 @@ export default async function PaginaAdmin() {
           <UserPlus /> Novo professor
         </BotaoLink>
       </Cabecalho>
+
+      <div className="mb-6">
+        {chavePublica ? (
+          <AtivarNotificacoes
+            chavePublica={chavePublica}
+            titulo="Receba no celular o aviso de vencimento dos professores"
+            motivo={`${DIAS_AVISO_VENCIMENTO} dias antes de o acesso de um professor vencer`}
+          />
+        ) : (
+          <p className="text-sm text-suave">
+            Para receber no celular o aviso de vencimento dos professores, configure o secret VAPID_PRIVATE_KEY (veja o README).
+          </p>
+        )}
+      </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <Card className="p-5">
@@ -57,6 +75,7 @@ export default async function PaginaAdmin() {
             {linhas.map(({ professor: p, alunosAtivos }) => {
               const liberado = contaLiberada(p, hoje);
               const vencido = p.ativo && !liberado;
+              const dias = p.acessoAte ? diasAte(p.acessoAte, hoje) : null;
               return (
                 <tr key={p.id}>
                   <td>
@@ -64,7 +83,10 @@ export default async function PaginaAdmin() {
                       {p.nome}
                     </Link>
                     {p.id === master.id && <span className="ml-1 text-xs text-suave">(você)</span>}
-                    <div className="text-xs text-suave">{p.email}</div>
+                    <div className="text-xs text-suave">
+                      {p.email}
+                      {p.trocarSenha && " · senha provisória (ainda não entrou)"}
+                    </div>
                   </td>
                   <td className="tabular-nums">{alunosAtivos}</td>
                   <td className="tabular-nums">{dataBR(p.criadoEm)}</td>
@@ -76,6 +98,8 @@ export default async function PaginaAdmin() {
                       </Selo>
                     ) : vencido ? (
                       <Selo cor="amarelo">vencido</Selo>
+                    ) : liberado && dias != null && dias <= 7 ? (
+                      <Selo cor="amarelo">{textoVencimento(dias)}</Selo>
                     ) : liberado ? (
                       <Selo cor="verde">
                         <ShieldCheck className="size-3" /> liberado

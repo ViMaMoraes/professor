@@ -5,7 +5,7 @@ import { count, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 
-import { contaLiberada } from "@/lib/auth";
+import { contaLiberada, usuarioAtual } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { explicarErroDeConfiguracao } from "@/lib/erros";
 import { normalizarUsuario } from "@/lib/usuario";
@@ -37,7 +37,7 @@ async function fazerLogin(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
       return { erro: "Sua conta está suspensa ou o acesso expirou. Fale com o administrador do site para reativar." };
     }
     await iniciarSessao({ tipo: "professor", id: professor.id });
-    redirect("/painel");
+    redirect(professor.trocarSenha ? "/trocar-senha" : "/painel");
   }
   return { erro: "E-mail ou senha inválidos." };
 }
@@ -58,6 +58,23 @@ export async function entrarAluno(estado: EstadoForm, dados: FormData): Promise<
     unstable_rethrow(erro);
     return explicarErroDeConfiguracao(erro);
   }
+}
+
+/** Primeiro acesso com senha provisória: o professor cria a própria senha. */
+export async function definirSenha(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
+  const usuario = await usuarioAtual();
+  if (usuario?.tipo !== "professor") redirect("/login");
+  const { professor } = usuario;
+  const nova = String(dados.get("novaSenha") ?? "");
+  if (nova.length < 6) return { erro: "A senha precisa ter pelo menos 6 caracteres." };
+  if (nova !== dados.get("confirmar")) return { erro: "As duas senhas não são iguais." };
+  if (await bcrypt.compare(nova, professor.senhaHash)) return { erro: "Escolha uma senha diferente da provisória." };
+  const db = await getDb();
+  await db
+    .update(schema.professores)
+    .set({ senhaHash: await bcrypt.hash(nova, 10), trocarSenha: false })
+    .where(eq(schema.professores.id, professor.id));
+  redirect("/painel");
 }
 
 export async function sair() {

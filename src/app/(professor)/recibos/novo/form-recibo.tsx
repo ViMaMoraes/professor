@@ -3,7 +3,7 @@
 import { Building2, ReceiptText, User } from "lucide-react";
 import { useState } from "react";
 
-import { criarRecibo } from "@/app/acoes/recibos";
+import { salvarRecibo } from "@/app/acoes/recibos";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { BotaoLink, Campo, Card, cn, Input, Select } from "@/components/ui";
 import { FORMAS_PAGAMENTO } from "@/lib/constantes";
@@ -12,6 +12,17 @@ import { centavosParaCampo } from "@/lib/formato";
 // "descricao" vem do cadastro do aluno/instituição (ex.: "às aulas de violino")
 type Opcao = { id: number; nome: string; mensalidade: number | null; descricao: string | null };
 type Tipo = "aluno" | "instituicao";
+/** Recibo já emitido, para editar. */
+export type ReciboEditavel = {
+  id: number;
+  alunoId: number | null;
+  instituicaoId: number | null;
+  valorCentavos: number;
+  dataPagamento: string;
+  referente: string;
+  formaPagamento: string | null;
+  observacoes: string | null;
+};
 
 export function FormRecibo({
   alunos,
@@ -20,6 +31,7 @@ export function FormRecibo({
   instituicaoInicial,
   hoje,
   referentePadrao,
+  recibo,
 }: {
   alunos: Opcao[];
   instituicoes: Opcao[];
@@ -27,14 +39,18 @@ export function FormRecibo({
   instituicaoInicial?: number;
   hoje: string;
   referentePadrao: string;
+  recibo?: ReciboEditavel;
 }) {
-  const [tipo, setTipo] = useState<Tipo>(instituicaoInicial || alunos.length === 0 ? "instituicao" : "aluno");
-  const [alunoId, setAlunoId] = useState(alunoInicial ? String(alunoInicial) : "");
-  const [instituicaoId, setInstituicaoId] = useState(instituicaoInicial ? String(instituicaoInicial) : "");
+  // editando: começa com o pagador do recibo
+  const alunoIni = recibo ? (recibo.alunoId ?? undefined) : alunoInicial;
+  const instituicaoIni = recibo ? (recibo.instituicaoId ?? undefined) : instituicaoInicial;
+  const [tipo, setTipo] = useState<Tipo>(instituicaoIni || alunos.length === 0 ? "instituicao" : "aluno");
+  const [alunoId, setAlunoId] = useState(alunoIni ? String(alunoIni) : "");
+  const [instituicaoId, setInstituicaoId] = useState(instituicaoIni ? String(instituicaoIni) : "");
   const achar = (lista: Opcao[], id: string | number | undefined) => lista.find((o) => String(o.id) === String(id));
-  const inicial = instituicaoInicial ? achar(instituicoes, instituicaoInicial) : achar(alunos, alunoInicial);
-  const [valor, setValor] = useState(() => centavosParaCampo(inicial?.mensalidade));
-  const [referente, setReferente] = useState(() => inicial?.descricao || referentePadrao);
+  const inicial = instituicaoIni ? achar(instituicoes, instituicaoIni) : achar(alunos, alunoIni);
+  const [valor, setValor] = useState(() => centavosParaCampo(recibo ? recibo.valorCentavos : inicial?.mensalidade));
+  const [referente, setReferente] = useState(() => recibo?.referente || inicial?.descricao || referentePadrao);
 
   /** Ao escolher aluno/instituição, traz o valor e a descrição do cadastro. */
   function preencher(escolhido: Opcao | undefined) {
@@ -50,7 +66,7 @@ export function FormRecibo({
   }
 
   return (
-    <Formulario acao={criarRecibo}>
+    <Formulario acao={salvarRecibo.bind(null, recibo?.id ?? null)}>
       <input type="hidden" name="tipo" value={tipo} />
       <Card className="grid gap-4 p-5 sm:grid-cols-4">
         <fieldset className="sm:col-span-4">
@@ -132,26 +148,27 @@ export function FormRecibo({
           <Input name="valor" inputMode="decimal" required placeholder="150,00" value={valor} onChange={(e) => setValor(e.target.value)} />
         </Campo>
         <Campo rotulo="Data do pagamento *">
-          <Input type="date" name="dataPagamento" required defaultValue={hoje} />
+          <Input type="date" name="dataPagamento" required defaultValue={recibo?.dataPagamento ?? hoje} />
         </Campo>
         <Campo rotulo="Referente *" dica="Ex.: “às aulas de violino” (sai: “…referente às aulas de violino.”)" className="sm:col-span-3">
           <Input name="referente" required value={referente} onChange={(e) => setReferente(e.target.value)} />
         </Campo>
         <Campo rotulo="Forma de pagamento">
-          <Select name="formaPagamento" defaultValue="Pix">
+          <Select name="formaPagamento" defaultValue={recibo ? (recibo.formaPagamento ?? "") : "Pix"}>
+            {recibo && <option value="">—</option>}
             {FORMAS_PAGAMENTO.map((f) => (
               <option key={f}>{f}</option>
             ))}
           </Select>
         </Campo>
         <Campo rotulo="Observações" dica="Opcional. Aparece no recibo." className="sm:col-span-4">
-          <Input name="observacoes" />
+          <Input name="observacoes" defaultValue={recibo?.observacoes ?? ""} />
         </Campo>
         <div className="flex gap-2 sm:col-span-4">
           <BotaoEnviar>
-            <ReceiptText /> Gerar recibo
+            <ReceiptText /> {recibo ? "Salvar alterações" : "Gerar recibo"}
           </BotaoEnviar>
-          <BotaoLink href="/recibos" variante="secundario">
+          <BotaoLink href={recibo ? `/recibos/${recibo.id}` : "/recibos"} variante="secundario">
             Cancelar
           </BotaoLink>
         </div>

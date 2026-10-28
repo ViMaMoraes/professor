@@ -11,7 +11,7 @@ import { NOME_TIPO_DRIVE, podeBaixarEmLote, urlBaixar } from "@/lib/drive";
 import { dataBR, primeiroNome } from "@/lib/formato";
 import { chavePublicaVapid } from "@/lib/push";
 
-import { AtivarNotificacoes } from "./ativar-notificacoes";
+import { AtivarNotificacoes } from "@/components/ativar-notificacoes";
 
 export const metadata: Metadata = { title: "Downloads" };
 

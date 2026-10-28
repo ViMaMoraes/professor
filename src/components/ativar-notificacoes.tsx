@@ -3,8 +3,8 @@
 import { Bell, BellOff, LoaderCircle, Share } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { useInterface } from "@/components/interface";
-import { Botao } from "@/components/ui";
+import { useInterface } from "./interface";
+import { Botao } from "./ui";
 
 type Estado = "carregando" | "sem-suporte" | "instalar-ios" | "bloqueado" | "desativado" | "ativado";
 
@@ -17,7 +17,17 @@ const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const instalado = () => window.matchMedia("(display-mode: standalone)").matches || ("standalone" in navigator && navigator.standalone === true);
 
 /** Liga/desliga as notificações de avisos e materiais novos neste aparelho. */
-export function AtivarNotificacoes({ chavePublica }: { chavePublica: string }) {
+export function AtivarNotificacoes({
+  chavePublica,
+  titulo = "Receba avisos e materiais novos no celular",
+  motivo = "quando o professor mandar um aviso ou liberar material",
+}: {
+  chavePublica: string;
+  /** Chamada do cartão enquanto as notificações estão desligadas. */
+  titulo?: string;
+  /** Completa "Você será avisado ..." / "Ative para ser avisado ...". */
+  motivo?: string;
+}) {
   const [estado, setEstado] = useState<Estado>("carregando");
   const [ocupado, setOcupado] = useState(false);
   const { notificar } = useInterface();
@@ -98,7 +108,7 @@ export function AtivarNotificacoes({ chavePublica }: { chavePublica: string }) {
         </span>
         <div className="text-sm">
           <p className="font-medium">
-            {estado === "ativado" ? "Notificações ativadas" : "Receba avisos e materiais novos no celular"}
+            {estado === "ativado" ? "Notificações ativadas neste aparelho" : titulo}
           </p>
           <p className="text-suave">
             {estado === "instalar-ios" ? (
@@ -109,9 +119,9 @@ export function AtivarNotificacoes({ chavePublica }: { chavePublica: string }) {
             ) : estado === "bloqueado" ? (
               "As notificações estão bloqueadas para este site. Libere nas configurações do navegador."
             ) : estado === "ativado" ? (
-              "Você será avisado quando o professor mandar um aviso ou liberar material."
+              `Você será avisado ${motivo}.`
             ) : (
-              "Ative para ser avisado quando o professor mandar um aviso ou liberar material."
+              `Ative para ser avisado ${motivo}.`
             )}
           </p>
         </div>

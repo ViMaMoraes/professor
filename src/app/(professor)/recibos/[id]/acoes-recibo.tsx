@@ -1,6 +1,7 @@
 "use client";
 
-import { Eye, FileDown, Mail, MessageCircle, Share2, Trash2 } from "lucide-react";
+import { Eye, FileDown, Mail, MessageCircle, Pencil, Share2, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 
 import { excluirRecibo } from "@/app/acoes/recibos";
@@ -64,14 +65,20 @@ export function AcoesRecibo({
         <a href={email} className={estiloBotao({ variante: "secundario" })}>
           <Mail /> E-mail
         </a>
-        <BotaoAcao acao={excluirRecibo.bind(null, id)} confirmar={`Excluir o recibo nº ${numero}?`} variante="perigo" className="sm:ml-auto">
+        <Link href={`/recibos/${id}/editar`} className={estiloBotao({ variante: "secundario" }, "sm:ml-auto")}>
+          <Pencil /> Editar
+        </Link>
+        <BotaoAcao
+          acao={excluirRecibo.bind(null, id, true)}
+          confirmar={`Excluir o recibo nº ${numero}?`}
+          variante="perigo"
+        >
           <Trash2 /> Excluir
         </BotaoAcao>
       </div>
       <p className="text-xs text-suave">
         WhatsApp e e-mail abrem com uma mensagem pronta; anexe o PDF baixado.
-        {podeCompartilhar && " No celular, “Compartilhar PDF” envia o arquivo direto pelo app que você escolher."} O aluno com acesso ao
-        portal também baixa o recibo por lá.
+        {podeCompartilhar && " No celular, “Compartilhar PDF” envia o arquivo direto pelo app que você escolher."}
       </p>
     </div>
   );

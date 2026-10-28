@@ -8,18 +8,25 @@ import { exigirMaster } from "@/lib/auth";
 import { buscarProfessor } from "@/lib/consultas";
 
 import { FormProfessor } from "../form-professor";
+import { RedefinirSenha } from "./redefinir-senha";
 
 export default async function PaginaEditarProfessor(props: PageProps<"/admin/[id]">) {
-  await exigirMaster();
+  const master = await exigirMaster();
   const professor = await buscarProfessor(Number((await props.params).id));
   if (!professor) notFound();
-  const { senhaHash, ...dados } = professor;
-  void senhaHash;
+  // só o que o formulário usa (nada de senha ou assinatura indo para o navegador)
+  const { id, nome, email, acessoAte, ativo, master: ehMaster } = professor;
+  const dados = { id, nome, email, acessoAte, ativo, master: ehMaster };
 
   return (
     <>
       <Cabecalho titulo={professor.nome} descricao={professor.master ? "Conta master (administrador do site)." : "Conta de professor cliente."} />
       <FormProfessor professor={dados} />
+      {professor.id !== master.id && (
+        <div className="mt-6">
+          <RedefinirSenha id={professor.id} nome={professor.nome} email={professor.email} pendente={professor.trocarSenha} />
+        </div>
+      )}
       {!professor.master && (
         <Card className="mt-6 max-w-2xl border-red-200 p-5 dark:border-red-900">
           <h2 className="font-semibold text-red-600 dark:text-red-400">Excluir conta</h2>

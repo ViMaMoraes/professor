@@ -1,7 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "professor",
-  "main": ".open-next/worker.js",
+  // worker.ts = o site (.open-next/worker.js, gerado no build) + as tarefas agendadas abaixo
+  "main": "worker.ts",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
@@ -24,6 +25,10 @@
       "migrations_dir": "drizzle"
     }
   ],
+  // todo dia às 8h17 (Brasília): aviso de vencimento dos professores ao master
+  "triggers": {
+    "crons": ["17 11 * * *"]
+  },
   "observability": {
     "enabled": true
   }

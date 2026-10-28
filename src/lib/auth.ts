@@ -41,6 +41,8 @@ export async function exigirProfessor() {
   const usuario = await usuarioAtual();
   if (!usuario) redirect("/login");
   if (usuario.tipo !== "professor") redirect("/portal");
+  // entrou com senha provisória: precisa criar a própria antes de usar o site
+  if (usuario.professor.trocarSenha) redirect("/trocar-senha");
   return usuario.professor;
 }
 

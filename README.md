@@ -34,6 +34,7 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - o "referente a" vem do cadastro do aluno ou da instituição (campo *Descrição do pagamento*) e pode ser editado na hora;
   - no cadastro da instituição dá para escolher "da", "do" ou "de" (recebi **da** Igreja, **do** Colégio...);
   - numeração automática;
+  - **ver** o recibo numa janela direto da lista, **editar** (o número continua o mesmo) e **excluir**;
   - valor por extenso;
   - nome do responsável quando o aluno é menor;
   - PDF para baixar ou imprimir;
@@ -56,10 +57,12 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
 
 - **Master:** a primeira conta criada (no `/configurar`) é a do administrador do site. Só ela vê o menu **Administração**.
 - **Administração:**
-  - criar a conta de cada professor cliente (nome, e-mail, senha inicial e data de validade);
+  - criar a conta de cada professor cliente (nome, e-mail e data de validade). O site gera uma **senha provisória** e mostra os dados de acesso com botões para copiar ou enviar por WhatsApp; no primeiro login o professor é obrigado a criar a própria senha;
+  - **gerar nova senha** provisória para quem esqueceu a dele;
   - bloquear ou liberar contas;
   - renovar a data de acesso;
   - excluir a conta (apaga todos os dados daquele professor).
+- **Aviso de vencimento:** todo dia às 8h17 (Brasília) o site confere os acessos e manda uma notificação **só para o master** quando o acesso de um professor vence em até 2 dias, para dar tempo de cobrar e renovar. Ative as notificações no topo da tela **Administração** (precisa do `VAPID_PRIVATE_KEY`). A tabela também mostra "vence em X dias" na última semana.
 - **Conta bloqueada ou vencida:** o professor e os alunos dele não conseguem entrar, mas nada é apagado. Ao liberar ou renovar, tudo volta como estava.
 - O e-mail do professor é o login dele e o usuário do aluno é o login do aluno; os dois são únicos no site inteiro.
 

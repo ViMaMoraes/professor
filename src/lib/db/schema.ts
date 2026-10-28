@@ -23,6 +23,8 @@ export const professores = sqliteTable("professores", {
   master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true), // conta liberada
   acessoAte: text("acesso_ate"), // AAAA-MM-DD; vazio = sem data de validade
+  trocarSenha: integer("trocar_senha", { mode: "boolean" }).notNull().default(false), // senha provisória: troca no próximo login
+  vencimentoAvisado: text("vencimento_avisado"), // acessoAte que já gerou o aviso de vencimento para o master
   criadoEm: text("criado_em").$defaultFn(() => new Date().toISOString().slice(0, 10)),
 });
 
@@ -148,6 +150,18 @@ export const pushInscricoes = sqliteTable("push_inscricoes", {
   alunoId: integer("aluno_id")
     .notNull()
     .references(() => alunos.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  criadoEm: criadoEm(),
+});
+
+/** Aparelhos do professor que recebem notificações (o master recebe o aviso de vencimento dos clientes). */
+export const pushProfessores = sqliteTable("push_professores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  professorId: integer("professor_id")
+    .notNull()
+    .references(() => professores.id, { onDelete: "cascade" }),
   endpoint: text("endpoint").notNull().unique(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),

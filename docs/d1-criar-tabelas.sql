@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `chave_pix` text,
   `rg` text,
   `assinatura` text,
+  `trocar_senha` integer DEFAULT false NOT NULL,
+  `vencimento_avisado` text,
   `master` integer DEFAULT false NOT NULL,
   `ativo` integer DEFAULT true NOT NULL,
   `acesso_ate` text,
@@ -128,6 +130,17 @@ CREATE TABLE IF NOT EXISTS `push_inscricoes` (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `push_inscricoes_endpoint_unique` ON `push_inscricoes` (`endpoint`);
 
+CREATE TABLE IF NOT EXISTS `push_professores` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `endpoint` text NOT NULL,
+  `p256dh` text NOT NULL,
+  `auth` text NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE UNIQUE INDEX IF NOT EXISTS `push_professores_endpoint_unique` ON `push_professores` (`endpoint`);
+
 CREATE TABLE IF NOT EXISTS `avisos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `professor_id` integer NOT NULL,
@@ -159,4 +172,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0002_remove_upload.sql'),
   ('0003_multi_professor.sql'),
   ('0004_instituicoes.sql'),
-  ('0005_usuario_assinatura_avisos.sql');
+  ('0005_usuario_assinatura_avisos.sql'),
+  ('0006_senha_provisoria_aviso_vencimento.sql');

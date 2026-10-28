@@ -1,18 +1,21 @@
 "use client";
 
-import { Eye, FileDown, SquareArrowOutUpRight, X } from "lucide-react";
+import { Eye, FileDown, Pencil, SquareArrowOutUpRight, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { excluirRecibo } from "@/app/acoes/recibos";
+import { BotaoAcao } from "@/components/botao-acao";
 import { estiloBotao } from "@/components/ui";
 
-/** Botão "Ver" da lista: abre o recibo numa janela, do jeito que sai no PDF. */
+/** Botão "Ver" da lista: abre o recibo numa janela, do jeito que sai no PDF, com editar e excluir. */
 export function VerRecibo({ id, numero }: { id: number; numero: string }) {
   const [aberto, setAberto] = useState(false);
 
   useEffect(() => {
     if (!aberto) return;
-    const fechar = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
+    // Esc com a confirmação de excluir aberta fecha só a confirmação
+    const fechar = (e: KeyboardEvent) => e.key === "Escape" && !document.querySelector("[role=alertdialog]") && setAberto(false);
     window.addEventListener("keydown", fechar);
     return () => window.removeEventListener("keydown", fechar);
   }, [aberto]);
@@ -46,9 +49,23 @@ export function VerRecibo({ id, numero }: { id: number; numero: string }) {
                 <a href={`/api/recibos/${id}?baixar=1`} className={estiloBotao({ tamanho: "sm" })}>
                   <FileDown /> <span className="hidden sm:inline">Baixar PDF</span>
                 </a>
-                <Link href={`/recibos/${id}`} className={estiloBotao({ variante: "secundario", tamanho: "sm" })} title="Abrir a página do recibo (enviar, excluir...)">
+                <Link href={`/recibos/${id}/editar`} className={estiloBotao({ variante: "secundario", tamanho: "sm" })} title="Editar recibo">
+                  <Pencil /> <span className="hidden sm:inline">Editar</span>
+                </Link>
+                <Link href={`/recibos/${id}`} className={estiloBotao({ variante: "secundario", tamanho: "sm" })} title="Abrir a página do recibo (enviar por WhatsApp, e-mail...)">
                   <SquareArrowOutUpRight /> <span className="hidden sm:inline">Abrir</span>
                 </Link>
+                <BotaoAcao
+                  acao={excluirRecibo.bind(null, id, false)}
+                  confirmar={`Excluir o recibo nº ${numero}?`}
+                  sucesso="Recibo excluído."
+                  variante="perigo"
+                  tamanho="sm"
+                  aria-label="Excluir recibo"
+                  title="Excluir recibo"
+                >
+                  <Trash2 />
+                </BotaoAcao>
                 <button onClick={() => setAberto(false)} className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto" aria-label="Fechar">
                   <X className="size-5" />
                 </button>

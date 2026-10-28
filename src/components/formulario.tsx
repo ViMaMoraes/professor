@@ -27,21 +27,24 @@ function mensagemDoCampo(campo: HTMLInputElement | HTMLSelectElement | HTMLTextA
  * - erros aparecem no topo do formulário; sucesso aparece como aviso no canto da tela;
  * - envia via onSubmit (e não via prop `action`) para o React não limpar os campos quando há erro.
  */
-export function Formulario({
+export function Formulario<E extends EstadoForm>({
   acao,
   children,
   className,
   confirmar,
   limparAoEnviar,
+  sucesso,
 }: {
-  acao: (estado: EstadoForm, dados: FormData) => Promise<EstadoForm>;
+  acao: (estado: E, dados: FormData) => Promise<E>;
   children: ReactNode;
   className?: string;
   confirmar?: string;
   /** Limpa os campos depois de um envio com sucesso (ex.: formulário de envio de aviso). */
   limparAoEnviar?: boolean;
+  /** Depois de um envio com sucesso, mostra isto no lugar do formulário (ex.: a senha gerada). */
+  sucesso?: (estado: NonNullable<E>) => ReactNode;
 }) {
-  const [estado, executar, enviando] = useActionState(acao, null);
+  const [estado, executar, enviando] = useActionState<E, FormData>(acao, null as Awaited<E>);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const { confirmar: perguntar, notificar } = useInterface();
 
@@ -54,6 +57,7 @@ export function Formulario({
   }, [estado, notificar, limparAoEnviar]);
 
   const erro = erroLocal ?? estado?.erro;
+  if (estado?.ok && sucesso) return sucesso(estado);
 
   return (
     <form
