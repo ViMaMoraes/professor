@@ -121,16 +121,6 @@ function CamposAluno({ aluno, instituicoes, limpar }: Props & { limpar: () => vo
           </Campo>
         </Secao>
 
-        <Secao
-          id="mensagem"
-          titulo="Mensagem para o aluno"
-          descricao="Aparece em destaque quando o aluno entra (um lembrete, um recado, um parabéns...). Se ele ativou as notificações, recebe um aviso quando a mensagem mudar. Deixe vazio para não mostrar nada."
-        >
-          <Campo rotulo="Mensagem" className="sm:col-span-2 lg:col-span-3">
-            <Textarea name="mensagem" rows={3} maxLength={1000} defaultValue={aluno?.mensagem ?? ""} placeholder="Ex.: Lembre de trazer o caderno de partituras na próxima aula!" />
-          </Campo>
-        </Secao>
-
         <div className="flex gap-2 p-5">
           <BotaoEnviar>
             <Check /> Salvar

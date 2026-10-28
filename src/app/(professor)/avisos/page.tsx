@@ -36,7 +36,7 @@ export default async function PaginaAvisos() {
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="lg:col-span-3">
           <FormAviso
-            alunos={alunos.map(({ id, nome }) => ({ id, nome }))}
+            alunos={alunos.map(({ id, nome, instrumento, instituicaoId }) => ({ id, nome, instrumento, instituicaoId }))}
             instituicoes={instituicoes.filter((i) => i.alunosAtivos > 0).map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
           />
         </div>

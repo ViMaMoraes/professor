@@ -1,10 +1,11 @@
 "use client";
 
-import { Search, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useState } from "react";
 
 import { enviarAviso } from "@/app/acoes/avisos";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { SeletorAlunos, type AlunoSelecionavel } from "@/components/seletor-alunos";
 import { Campo, Card, cn, Input, Select, Textarea } from "@/components/ui";
 
 type Destino = "todos" | "instituicao" | "alguns";
@@ -13,11 +14,10 @@ export function FormAviso({
   alunos,
   instituicoes,
 }: {
-  alunos: { id: number; nome: string }[];
+  alunos: AlunoSelecionavel[];
   instituicoes: { id: number; nome: string }[];
 }) {
   const [destino, setDestino] = useState<Destino>("todos");
-  const [filtro, setFiltro] = useState("");
   const opcoes = [
     { valor: "todos" as const, titulo: "Todos os alunos", desc: "Todos os alunos ativos." },
     ...(instituicoes.length ? [{ valor: "instituicao" as const, titulo: "Uma instituição", desc: "Os alunos de uma instituição." }] : []),
@@ -74,26 +74,8 @@ export function FormAviso({
             </Campo>
           )}
 
-          <div className={cn("mt-3 rounded-xl border border-borda", destino !== "alguns" && "hidden")}>
-            <div className="relative border-b border-borda p-2">
-              <Search className="pointer-events-none absolute top-1/2 left-5 size-4 -translate-y-1/2 text-suave" />
-              <Input value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Filtrar alunos..." className="h-9 border-0 pl-9 shadow-none" />
-            </div>
-            <div className="grid max-h-64 gap-1 overflow-y-auto p-2 sm:grid-cols-2">
-              {alunos.length === 0 && <p className="p-2 text-sm text-suave">Nenhum aluno ativo cadastrado.</p>}
-              {alunos.map((a) => (
-                <label
-                  key={a.id}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-fundo",
-                    !a.nome.toLowerCase().includes(filtro.toLowerCase()) && "hidden",
-                  )}
-                >
-                  <input type="checkbox" name="alunos" value={a.id} className="size-4 accent-marca" />
-                  {a.nome}
-                </label>
-              ))}
-            </div>
+          <div className={cn("mt-3", destino !== "alguns" && "hidden")}>
+            <SeletorAlunos alunos={alunos} instituicoes={instituicoes} />
           </div>
         </fieldset>
 

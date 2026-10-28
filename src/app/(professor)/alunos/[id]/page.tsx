@@ -1,4 +1,4 @@
-import { CalendarCheck, CloudDownload, MessageSquareText, Pencil, ReceiptText, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { CalendarCheck, CloudDownload, Pencil, ReceiptText, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -22,6 +22,7 @@ import { dataBR, hojeISO, moeda, numeroRecibo } from "@/lib/formato";
 
 import { CompartilharAcesso } from "./compartilhar-acesso";
 import { DiarioAluno } from "./diario-aluno";
+import { MensagemAluno } from "./mensagem-aluno";
 
 export default function PaginaAluno(props: PageProps<"/alunos/[id]">) {
   return (
@@ -88,6 +89,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6">
           {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} telefone={aluno.telefone} endereco={enderecoSite()} />}
+          {aluno.usuario && aluno.ativo && <MensagemAluno alunoId={aluno.id} mensagem={aluno.mensagem} />}
           <Card>
             <CardTitulo>Dados</CardTitulo>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 p-5 text-sm">
@@ -130,20 +132,6 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
         </div>
 
         <div className="min-w-0 space-y-6 lg:col-span-2">
-          {aluno.mensagem && (
-            <Card className="flex items-start gap-3 p-5">
-              <MessageSquareText className="mt-0.5 size-5 shrink-0 text-suave" />
-              <div className="min-w-0 text-sm">
-                <p className="font-medium">
-                  Mensagem no acesso do aluno{" "}
-                  <Link href={`/alunos/${aluno.id}/editar#mensagem`} className="font-normal text-marca-texto hover:underline">
-                    (editar)
-                  </Link>
-                </p>
-                <p className="mt-0.5 whitespace-pre-line text-suave">{aluno.mensagem}</p>
-              </div>
-            </Card>
-          )}
           <DiarioAluno alunoId={aluno.id} registros={diario} hoje={hojeISO()} />
           <Card>
             <CardTitulo

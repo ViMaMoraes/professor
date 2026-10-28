@@ -15,8 +15,7 @@ import { normalizarUsuario } from "@/lib/usuario";
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor();
   const db = await getDb();
-  const anterior = id ? await buscarAluno(professor.id, id) : undefined;
-  if (id && !anterior) return { erro: "Aluno não encontrado." };
+  if (id && !(await buscarAluno(professor.id, id))) return { erro: "Aluno não encontrado." };
 
   const nome = texto(dados, "nome");
   const email = texto(dados, "email")?.toLowerCase() ?? null;
@@ -53,7 +52,6 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     dataInicio: data("dataInicio"),
     observacoes: texto(dados, "observacoes"),
     descricaoRecibo: texto(dados, "descricaoRecibo"),
-    mensagem: texto(dados, "mensagem")?.slice(0, 1000) ?? null,
     instituicaoId,
     usuario,
   };
@@ -70,10 +68,6 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
       .values({ ...valores, professorId: professor.id })
       .returning({ id: schema.alunos.id });
     alunoId = novo.id;
-  }
-  // mensagem nova ou alterada: avisa no celular do aluno (se ele ativou as notificações)
-  if (valores.mensagem && valores.mensagem !== anterior?.mensagem) {
-    await notificarAlunos([alunoId!], { title: `Mensagem de ${professor.nome.split(" ")[0]}`, body: valores.mensagem.slice(0, 180), url: "/portal" });
   }
   revalidatePath("/", "layout");
   // aluno novo: o formulário pergunta se quer cadastrar outro; editando, volta para a página dele
@@ -95,4 +89,22 @@ export async function excluirAluno(id: number) {
   await db.delete(schema.alunos).where(and(eq(schema.alunos.id, id), eq(schema.alunos.professorId, professor.id)));
   revalidatePath("/", "layout");
   redirect("/alunos");
+}
+
+/** Mensagem do professor que aparece em destaque no acesso do aluno (vazia = remove). */
+export async function salvarMensagemAluno(id: number, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
+  const professor = await exigirProfessor();
+  const aluno = await buscarAluno(professor.id, id);
+  if (!aluno) return { erro: "Aluno não encontrado." };
+  const mensagem = texto(dados, "mensagem");
+  if (mensagem && mensagem.length > 1000) return { erro: "A mensagem pode ter no máximo 1000 caracteres." };
+
+  const db = await getDb();
+  await db.update(schema.alunos).set({ mensagem }).where(eq(schema.alunos.id, id));
+  // mensagem nova ou alterada: avisa no celular do aluno (se ele ativou as notificações)
+  if (mensagem && mensagem !== aluno.mensagem) {
+    await notificarAlunos([id], { title: `Mensagem de ${professor.nome.split(" ")[0]}`, body: mensagem.slice(0, 180), url: "/portal" });
+  }
+  revalidatePath(`/alunos/${id}`);
+  return { ok: mensagem ? "Mensagem salva. O aluno já vê no acesso dele." : "Mensagem removida." };
 }

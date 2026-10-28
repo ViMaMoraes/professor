@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { buscarMaterial, listarAlunos } from "@/lib/consultas";
+import { buscarMaterial, listarAlunos, listarInstituicoes } from "@/lib/consultas";
 
 import { FormMaterial } from "../../form-material";
 
@@ -23,6 +23,12 @@ async function Conteudo({ params }: { params: PageProps<"/materiais/[id]/editar"
   const professor = await exigirProfessor();
   const material = await buscarMaterial(professor.id, Number((await params).id));
   if (!material) notFound();
-  const alunos = await listarAlunos(professor.id);
-  return <FormMaterial material={material} alunos={alunos.map(({ id, nome, instrumento }) => ({ id, nome, instrumento }))} />;
+  const [alunos, instituicoes] = await Promise.all([listarAlunos(professor.id), listarInstituicoes(professor.id)]);
+  return (
+    <FormMaterial
+      material={material}
+      alunos={alunos.map(({ id, nome, instrumento, instituicaoId }) => ({ id, nome, instrumento, instituicaoId }))}
+      instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
+    />
+  );
 }

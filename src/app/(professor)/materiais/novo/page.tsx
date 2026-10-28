@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { listarAlunos } from "@/lib/consultas";
+import { listarAlunos, listarInstituicoes } from "@/lib/consultas";
 
 import { FormMaterial } from "../form-material";
 
@@ -13,7 +13,10 @@ export default function PaginaNovoMaterial() {
   return (
     <>
       <Voltar href="/materiais">Voltar para downloads</Voltar>
-      <Cabecalho titulo="Adicionar material" descricao="O arquivo fica no seu Google Drive; aqui você só cola o link e escolhe quem pode acessar." />
+      <Cabecalho
+        titulo="Adicionar material"
+        descricao="O arquivo fica no seu Google Drive; aqui você só cola o link e escolhe quem pode acessar."
+      />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo />
       </Suspense>
@@ -23,6 +26,11 @@ export default function PaginaNovoMaterial() {
 
 async function Conteudo() {
   const professor = await exigirProfessor();
-  const alunos = await listarAlunos(professor.id);
-  return <FormMaterial alunos={alunos.map(({ id, nome, instrumento }) => ({ id, nome, instrumento }))} />;
+  const [alunos, instituicoes] = await Promise.all([listarAlunos(professor.id), listarInstituicoes(professor.id)]);
+  return (
+    <FormMaterial
+      alunos={alunos.map(({ id, nome, instrumento, instituicaoId }) => ({ id, nome, instrumento, instituicaoId }))}
+      instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
+    />
+  );
 }

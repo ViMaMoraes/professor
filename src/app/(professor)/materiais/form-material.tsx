@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, CircleAlert, CircleCheck, ExternalLink, Search } from "lucide-react";
+import { Check, CircleAlert, CircleCheck, ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import { salvarMaterial } from "@/app/acoes/materiais";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { SeletorAlunos, type AlunoSelecionavel } from "@/components/seletor-alunos";
 import { BotaoLink, Campo, Card, cn, Input, Select, Textarea } from "@/components/ui";
 import { CATEGORIAS_MATERIAL } from "@/lib/constantes";
 import { lerLinkDrive, NOME_TIPO_DRIVE } from "@/lib/drive";
@@ -19,7 +20,7 @@ type Material = {
   alunoIds: number[];
 };
 
-type Props = { material?: Material; alunos: { id: number; nome: string; instrumento: string | null }[] };
+type Props = { material?: Material; alunos: AlunoSelecionavel[]; instituicoes: { id: number; nome: string }[] };
 
 export function FormMaterial(props: Props) {
   // muda a cada "adicionar outro": recria o formulário vazio
@@ -27,9 +28,8 @@ export function FormMaterial(props: Props) {
   return <CamposMaterial key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
 }
 
-function CamposMaterial({ material, alunos, limpar }: Props & { limpar: () => void }) {
+function CamposMaterial({ material, alunos, instituicoes, limpar }: Props & { limpar: () => void }) {
   const [paraTodos, setParaTodos] = useState(material?.paraTodos ?? false);
-  const [filtro, setFiltro] = useState("");
   const [link, setLink] = useState(material?.link ?? "");
   const drive = lerLinkDrive(link);
   const acao = salvarMaterial.bind(null, material?.id ?? null);
@@ -114,27 +114,8 @@ function CamposMaterial({ material, alunos, limpar }: Props & { limpar: () => vo
             ))}
           </div>
 
-          <div className={cn("mt-3 rounded-xl border border-borda", paraTodos && "hidden")}>
-            <div className="relative border-b border-borda p-2">
-              <Search className="pointer-events-none absolute top-1/2 left-5 size-4 -translate-y-1/2 text-suave" />
-              <Input value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Filtrar alunos..." className="h-9 border-0 pl-9 shadow-none" />
-            </div>
-            <div className="grid max-h-64 gap-1 overflow-y-auto p-2 sm:grid-cols-2">
-              {alunos.length === 0 && <p className="p-2 text-sm text-suave">Nenhum aluno ativo cadastrado.</p>}
-              {alunos.map((a) => (
-                <label
-                  key={a.id}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-fundo",
-                    !a.nome.toLowerCase().includes(filtro.toLowerCase()) && "hidden",
-                  )}
-                >
-                  <input type="checkbox" name="alunos" value={a.id} defaultChecked={material?.alunoIds.includes(a.id)} className="size-4 accent-marca" />
-                  {a.nome}
-                  {a.instrumento && <span className="text-xs text-suave">{a.instrumento}</span>}
-                </label>
-              ))}
-            </div>
+          <div className={cn("mt-3", paraTodos && "hidden")}>
+            <SeletorAlunos alunos={alunos} instituicoes={instituicoes} iniciais={material?.alunoIds} />
           </div>
         </fieldset>
 
