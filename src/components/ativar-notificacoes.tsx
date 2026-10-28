@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useInterface } from "./interface";
 import { Botao } from "./ui";
 
-type Estado = "carregando" | "sem-suporte" | "instalar-ios" | "bloqueado" | "desativado" | "ativado";
+type Estado = "carregando" | "navegador-de-app" | "sem-suporte" | "instalar-ios" | "bloqueado" | "desativado" | "ativado";
 
 function chaveParaBytes(base64url: string) {
   const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
@@ -14,6 +14,8 @@ function chaveParaBytes(base64url: string) {
 }
 
 const ehIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+// navegador interno do WhatsApp, Instagram, Facebook etc. (abre quando o aluno toca no link dentro do app): não recebe notificações
+const navegadorDeApp = () => /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/i.test(navigator.userAgent);
 const instalado = () => window.matchMedia("(display-mode: standalone)").matches || ("standalone" in navigator && navigator.standalone === true);
 
 /** Liga/desliga as notificações de avisos e materiais novos neste aparelho. */
@@ -34,6 +36,7 @@ export function AtivarNotificacoes({
 
   useEffect(() => {
     (async () => {
+      if (navegadorDeApp()) return setEstado("navegador-de-app");
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
         // no iPhone/iPad as notificações só existem com o app instalado na tela de início
         setEstado(ehIOS() && !instalado() ? "instalar-ios" : "sem-suporte");
@@ -98,7 +101,7 @@ export function AtivarNotificacoes({
     }
   }
 
-  if (estado === "carregando" || estado === "sem-suporte") return null;
+  if (estado === "carregando") return null;
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-borda bg-superficie p-4 sm:flex-row sm:items-center">
@@ -116,8 +119,20 @@ export function AtivarNotificacoes({
                 No iPhone, primeiro instale o app: toque em <Share className="inline size-3.5" /> Compartilhar e depois em
                 “Adicionar à Tela de Início”. Abra pelo ícone e ative aqui.
               </>
+            ) : estado === "navegador-de-app" ? (
+              <>
+                Você abriu pelo navegador de outro app (WhatsApp, Instagram…), que não recebe notificações. Toque nos três pontinhos
+                ou em <Share className="inline size-3.5" /> e escolha “Abrir no {ehIOS() ? "Safari" : "Chrome"}” (ou “Abrir no
+                navegador”). Depois entre de novo e ative aqui.
+              </>
+            ) : estado === "sem-suporte" ? (
+              ehIOS() ? (
+                "Este iPhone não recebe notificações de sites. Atualize o iOS (16.4 ou mais novo) e abra pelo app instalado na tela de início."
+              ) : (
+                "Este navegador não recebe notificações. No celular, use o Chrome; no computador, Chrome, Edge ou Firefox."
+              )
             ) : estado === "bloqueado" ? (
-              "As notificações estão bloqueadas para este site. Libere nas configurações do navegador."
+              "As notificações estão bloqueadas para este site. Toque no ícone ao lado do endereço (cadeado ou ajustes) → Permissões → Notificações → Permitir e recarregue a página."
             ) : estado === "ativado" ? (
               `Você será avisado ${motivo}.`
             ) : (

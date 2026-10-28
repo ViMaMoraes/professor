@@ -50,7 +50,7 @@ async function Conteudo() {
       )}
 
       {chavePublica && (
-        <div className="mb-6">
+        <div id="notificacoes" className="mb-6 scroll-mt-20">
           <AtivarNotificacoes chavePublica={chavePublica} />
         </div>
       )}
