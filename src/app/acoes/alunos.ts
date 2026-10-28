@@ -9,12 +9,14 @@ import { buscarAluno, buscarInstituicao, usuarioEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
+import { notificarAlunos } from "@/lib/push";
 import { normalizarUsuario } from "@/lib/usuario";
 
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor();
   const db = await getDb();
-  if (id && !(await buscarAluno(professor.id, id))) return { erro: "Aluno não encontrado." };
+  const anterior = id ? await buscarAluno(professor.id, id) : undefined;
+  if (id && !anterior) return { erro: "Aluno não encontrado." };
 
   const nome = texto(dados, "nome");
   const email = texto(dados, "email")?.toLowerCase() ?? null;
@@ -51,6 +53,7 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     dataInicio: data("dataInicio"),
     observacoes: texto(dados, "observacoes"),
     descricaoRecibo: texto(dados, "descricaoRecibo"),
+    mensagem: texto(dados, "mensagem")?.slice(0, 1000) ?? null,
     instituicaoId,
     usuario,
   };
@@ -67,6 +70,10 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
       .values({ ...valores, professorId: professor.id })
       .returning({ id: schema.alunos.id });
     alunoId = novo.id;
+  }
+  // mensagem nova ou alterada: avisa no celular do aluno (se ele ativou as notificações)
+  if (valores.mensagem && valores.mensagem !== anterior?.mensagem) {
+    await notificarAlunos([alunoId!], { title: `Mensagem de ${professor.nome.split(" ")[0]}`, body: valores.mensagem.slice(0, 180), url: "/portal" });
   }
   revalidatePath("/", "layout");
   redirect(`/alunos/${alunoId}`);

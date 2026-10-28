@@ -246,3 +246,24 @@ describe("chamada e recibos", () => {
     ]);
   });
 });
+
+describe("diário de aulas", () => {
+  it("o aluno vê só os registros marcados para ele, do mais recente para o mais antigo", async () => {
+    const db = await getDb();
+    await db.insert(schema.diario).values([
+      { alunoId: ana.id, data: "2026-10-07", conteudo: "Escala de Dó" },
+      { alunoId: ana.id, data: "2026-10-21", conteudo: "Asa Branca", paraCasa: "Treinar 10 min por dia" },
+      { alunoId: ana.id, data: "2026-10-14", conteudo: "Anotação só minha", visivelAluno: false },
+      { alunoId: bruno.id, data: "2026-10-21", conteudo: "Do Bruno" },
+    ]);
+    expect((await consultas.diarioDoAluno(ana.id)).map((r) => r.conteudo)).toEqual(["Asa Branca", "Anotação só minha", "Escala de Dó"]);
+    expect((await consultas.diarioDoAluno(ana.id, { soVisiveis: true })).map((r) => r.conteudo)).toEqual(["Asa Branca", "Escala de Dó"]);
+    expect((await consultas.diarioDoAluno(ana.id, { limite: 1 }))[0].paraCasa).toBe("Treinar 10 min por dia");
+
+    // excluir o aluno apaga o diário dele
+    const [temp] = await db.insert(schema.alunos).values({ nome: "Temp", professorId: prof }).returning();
+    await db.insert(schema.diario).values({ alunoId: temp.id, data: "2026-10-01", conteudo: "x" });
+    await db.delete(schema.alunos).where(eq(schema.alunos.id, temp.id));
+    expect(await consultas.diarioDoAluno(temp.id)).toEqual([]);
+  });
+});

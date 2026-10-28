@@ -15,7 +15,9 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - cadastro com contato, responsável, curso/matéria, nível, dia e horário, mensalidade e observações;
   - **usuário de acesso** do aluno, sugerido a partir do nome (ex.: `joao.araujo`) e editável;
   - busca e filtro por situação;
-  - página do aluno com histórico de aulas, recibos, materiais e frequência.
+  - página do aluno com histórico de aulas, recibos, materiais e frequência;
+  - **diário de aulas:** em cada aula, registre o conteúdo passado e o que estudar em casa. Cada registro pode aparecer para o aluno (em "Minhas aulas") ou ficar como anotação só sua;
+  - **mensagem para o aluno:** um recado que aparece em destaque quando ele entra (e chega como notificação quando muda).
 - **Chamada:**
   - por data, já mostrando quem tem aula naquele dia da semana;
   - situações Presente, Falta, Falta justificada e Reposição, com anotação da aula;
@@ -71,6 +73,8 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
 O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) **só com o usuário** criado pelo professor, sem senha, e vê:
 
 - os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;
+- a mensagem do professor para ele, em destaque;
+- "Minhas aulas": o diário com o conteúdo de cada aula e o que estudar em casa;
 - os avisos do professor;
 - o botão para **ativar as notificações** no celular.
 

@@ -119,6 +119,16 @@ export function FormAluno({
           </Campo>
         </Secao>
 
+        <Secao
+          id="mensagem"
+          titulo="Mensagem para o aluno"
+          descricao="Aparece em destaque quando o aluno entra (um lembrete, um recado, um parabéns...). Se ele ativou as notificações, recebe um aviso quando a mensagem mudar. Deixe vazio para não mostrar nada."
+        >
+          <Campo rotulo="Mensagem" className="sm:col-span-2 lg:col-span-3">
+            <Textarea name="mensagem" rows={3} maxLength={1000} defaultValue={aluno?.mensagem ?? ""} placeholder="Ex.: Lembre de trazer o caderno de partituras na próxima aula!" />
+          </Campo>
+        </Secao>
+
         <div className="flex gap-2 p-5">
           <BotaoEnviar>
             <Check /> Salvar
@@ -132,9 +142,9 @@ export function FormAluno({
   );
 }
 
-function Secao({ titulo, descricao, children }: { titulo: string; descricao?: string; children: React.ReactNode }) {
+function Secao({ titulo, descricao, id, children }: { titulo: string; descricao?: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="p-5">
+    <section id={id} className="scroll-mt-20 p-5">
       <h2 className="font-semibold">{titulo}</h2>
       {descricao && <p className="mt-0.5 text-sm text-suave">{descricao}</p>}
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>

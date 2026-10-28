@@ -51,6 +51,7 @@ async function main() {
         email: `${nome.split(" ")[0].toLowerCase()}@exemplo.com`,
         usuario: sugerirUsuario(nome),
         descricaoRecibo: `às aulas de ${instrumento.toLowerCase()}`,
+        mensagem: i === 0 ? "Parabéns pela evolução! Lembre de trazer o caderno na próxima aula." : null,
         dataInicio: somarDias(hoje, -90 * (i + 1)),
       })),
     )
@@ -66,6 +67,13 @@ async function main() {
       { alunoId: alunos[1].id, data, status: s === 2 ? "falta" : "presente", observacao: s === 2 ? "Avisou que estava doente" : null },
     ]);
   }
+
+  // diário de aulas da Ana (um registro só para o professor)
+  await db.insert(schema.diario).values([
+    { alunoId: alunos[0].id, data: somarDias(segunda, -14), conteudo: "Acordes de Dó, Sol e Ré. Postura da mão esquerda." },
+    { alunoId: alunos[0].id, data: somarDias(segunda, -7), conteudo: "Asa Branca: introdução e primeira parte.", paraCasa: "Tocar a introdução devagar, 10 minutos por dia." },
+    { alunoId: alunos[0].id, data: somarDias(segunda, -7), conteudo: "Ainda troca o Sol pelo Ré; revisar.", visivelAluno: false },
+  ]);
 
   // recibos dos últimos meses para o gráfico do painel
   let numero = 1;

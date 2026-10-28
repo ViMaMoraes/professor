@@ -34,6 +34,7 @@ export function Formulario<E extends EstadoForm>({
   confirmar,
   limparAoEnviar,
   sucesso,
+  aoConcluir,
 }: {
   acao: (estado: E, dados: FormData) => Promise<E>;
   children: ReactNode;
@@ -43,6 +44,8 @@ export function Formulario<E extends EstadoForm>({
   limparAoEnviar?: boolean;
   /** Depois de um envio com sucesso, mostra isto no lugar do formulário (ex.: a senha gerada). */
   sucesso?: (estado: NonNullable<E>) => ReactNode;
+  /** Chamado depois de cada envio com sucesso (ex.: sair do modo de edição). */
+  aoConcluir?: () => void;
 }) {
   const [estado, executar, enviando] = useActionState<E, FormData>(acao, null as Awaited<E>);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
@@ -54,7 +57,9 @@ export function Formulario<E extends EstadoForm>({
     if (!estado?.ok) return;
     notificar(estado.ok);
     if (limparAoEnviar) formRef.current?.reset();
-  }, [estado, notificar, limparAoEnviar]);
+    aoConcluir?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando chega um resultado novo
+  }, [estado]);
 
   const erro = erroLocal ?? estado?.erro;
   if (estado?.ok && sucesso) return sucesso(estado);

@@ -341,3 +341,17 @@ export async function contarInscritos(professorId: number) {
     .where(eq(alunos.professorId, professorId));
   return linha?.total ?? 0;
 }
+
+/** Diário de aulas do aluno (mais recentes primeiro). `soVisiveis` = o que o aluno pode ver no acesso dele. */
+export async function diarioDoAluno(alunoId: number, { soVisiveis = false, limite = 100 } = {}) {
+  const db = await getDb();
+  const { diario } = schema;
+  const condicoes = [eq(diario.alunoId, alunoId)];
+  if (soVisiveis) condicoes.push(eq(diario.visivelAluno, true));
+  return db
+    .select()
+    .from(diario)
+    .where(and(...condicoes))
+    .orderBy(desc(diario.data), desc(diario.id))
+    .limit(limite);
+}

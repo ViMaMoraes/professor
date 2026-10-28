@@ -1,4 +1,4 @@
-import { CalendarCheck, CloudDownload, Pencil, ReceiptText, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { CalendarCheck, CloudDownload, MessageSquareText, Pencil, ReceiptText, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -8,8 +8,18 @@ import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, buscarInstituicao, frequenciaDoAluno, materiaisDoAluno, presencasDoAluno, recibosDoAluno } from "@/lib/consultas";
-import { dataBR, moeda, numeroRecibo } from "@/lib/formato";
+import {
+  buscarAluno,
+  buscarInstituicao,
+  diarioDoAluno,
+  frequenciaDoAluno,
+  materiaisDoAluno,
+  presencasDoAluno,
+  recibosDoAluno,
+} from "@/lib/consultas";
+import { dataBR, hojeISO, moeda, numeroRecibo } from "@/lib/formato";
+
+import { DiarioAluno } from "./diario-aluno";
 
 export default function PaginaAluno(props: PageProps<"/alunos/[id]">) {
   return (
@@ -24,12 +34,13 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
   const id = Number((await params).id);
   const aluno = await buscarAluno(professor.id, id);
   if (!aluno) notFound();
-  const [presencas, frequencia, recibos, materiais, instituicao] = await Promise.all([
+  const [presencas, frequencia, recibos, materiais, instituicao, diario] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
     recibosDoAluno(id),
     materiaisDoAluno(aluno),
     aluno.instituicaoId ? buscarInstituicao(professor.id, aluno.instituicaoId) : undefined,
+    diarioDoAluno(id),
   ]);
 
   return (
@@ -115,6 +126,21 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
         </div>
 
         <div className="space-y-6 lg:col-span-2">
+          {aluno.mensagem && (
+            <Card className="flex items-start gap-3 p-5">
+              <MessageSquareText className="mt-0.5 size-5 shrink-0 text-suave" />
+              <div className="min-w-0 text-sm">
+                <p className="font-medium">
+                  Mensagem no acesso do aluno{" "}
+                  <Link href={`/alunos/${aluno.id}/editar#mensagem`} className="font-normal text-marca-texto hover:underline">
+                    (editar)
+                  </Link>
+                </p>
+                <p className="mt-0.5 whitespace-pre-line text-suave">{aluno.mensagem}</p>
+              </div>
+            </Card>
+          )}
+          <DiarioAluno alunoId={aluno.id} registros={diario} hoje={hojeISO()} />
           <Card>
             <CardTitulo
               icone={<CalendarCheck />}

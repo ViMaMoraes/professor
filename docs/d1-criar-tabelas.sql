@@ -64,7 +64,8 @@ CREATE TABLE IF NOT EXISTS `alunos` (
   `observacoes` text,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
   `usuario` text,
-  `descricao_recibo` text
+  `descricao_recibo` text,
+  `mensagem` text
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `alunos_usuario_unique` ON `alunos` (`usuario`);
 CREATE INDEX IF NOT EXISTS `alunos_professor` ON `alunos` (`professor_id`);
@@ -130,6 +131,18 @@ CREATE TABLE IF NOT EXISTS `push_inscricoes` (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `push_inscricoes_endpoint_unique` ON `push_inscricoes` (`endpoint`);
 
+CREATE TABLE IF NOT EXISTS `diario` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `data` text NOT NULL,
+  `conteudo` text NOT NULL,
+  `para_casa` text,
+  `visivel_aluno` integer DEFAULT true NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS `diario_aluno_data` ON `diario` (`aluno_id`, `data`);
+
 CREATE TABLE IF NOT EXISTS `push_professores` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `professor_id` integer NOT NULL,
@@ -173,4 +186,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0003_multi_professor.sql'),
   ('0004_instituicoes.sql'),
   ('0005_usuario_assinatura_avisos.sql'),
-  ('0006_senha_provisoria_aviso_vencimento.sql');
+  ('0006_senha_provisoria_aviso_vencimento.sql'),
+  ('0007_diario_mensagem_aluno.sql');

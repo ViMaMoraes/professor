@@ -71,6 +71,7 @@ export const alunos = sqliteTable("alunos", {
   usuario: text("usuario").unique(),
   senhaHash: text("senha_hash"), // não é mais usada (o aluno entra só com o usuário); mantida para não recriar a tabela
   descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
+  mensagem: text("mensagem"), // recado do professor que aparece em destaque no acesso do aluno
   telefone: text("telefone"),
   responsavel: text("responsavel"),
   dataNascimento: text("data_nascimento"), // AAAA-MM-DD
@@ -156,6 +157,23 @@ export const pushInscricoes = sqliteTable("push_inscricoes", {
   criadoEm: criadoEm(),
 });
 
+/** Diário de aulas: o conteúdo passado para cada aluno (e o que estudar em casa). */
+export const diario = sqliteTable(
+  "diario",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    data: text("data").notNull(), // AAAA-MM-DD
+    conteudo: text("conteudo").notNull(),
+    paraCasa: text("para_casa"),
+    visivelAluno: integer("visivel_aluno", { mode: "boolean" }).notNull().default(true), // false = anotação só do professor
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("diario_aluno_data").on(t.alunoId, t.data)],
+);
+
 /** Aparelhos do professor que recebem notificações (o master recebe o aviso de vencimento dos clientes). */
 export const pushProfessores = sqliteTable("push_professores", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -198,5 +216,6 @@ export type Recibo = typeof recibos.$inferSelect;
 export type Material = typeof materiais.$inferSelect;
 export type Instituicao = typeof instituicoes.$inferSelect;
 export type Aviso = typeof avisos.$inferSelect;
+export type RegistroDiario = typeof diario.$inferSelect;
 export type StatusPresenca = Presenca["status"];
 export type TipoDrive = Material["tipoDrive"];
