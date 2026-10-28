@@ -87,6 +87,8 @@ O site pode ser instalado na tela de início do celular, como um app:
 - **Android (Chrome):** menu ⋮ → *Instalar app* (ou *Adicionar à tela inicial*);
 - **iPhone (Safari):** botão *Compartilhar* → *Adicionar à Tela de Início*. No iPhone as notificações só funcionam com o app instalado (iOS 16.4 ou mais novo).
 
+**Atualizações:** quando uma versão nova é publicada, quem está com o site ou o app aberto vê o aviso "Nova versão disponível" com o botão **Atualizar** (o site confere ao abrir, ao voltar para o app e a cada 15 minutos). Assim ninguém fica preso numa versão antiga em cache.
+
 As notificações precisam de uma chave (VAPID), gerada uma vez:
 
 ```bash
