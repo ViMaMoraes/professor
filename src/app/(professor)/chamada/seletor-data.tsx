@@ -33,7 +33,8 @@ export function SeletorInstituicao({
   return (
     <Select
       value={valor ?? ""}
-      className="w-auto"
+      // nome de instituição comprido não pode alargar a página no celular
+      className="w-auto max-w-[calc(100vw-2rem)] sm:max-w-xs"
       aria-label="Filtrar por instituição"
       onChange={(e) => router.push(`/chamada?data=${data}${e.target.value ? `&todos=1&instituicao=${e.target.value}` : ""}`)}
     >

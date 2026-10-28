@@ -38,7 +38,8 @@ export function BotaoLink({ variante, tamanho, className, ...props }: ComponentP
 }
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("rounded-2xl border border-borda bg-superficie shadow-xs", className)} {...props} />;
+  // min-w-0: dentro de grids, deixa o texto longo ser cortado (truncate) em vez de alargar a página
+  return <div className={cn("min-w-0 rounded-2xl border border-borda bg-superficie shadow-xs", className)} {...props} />;
 }
 
 export function CardTitulo({ icone, children, acao }: { icone?: ReactNode; children: ReactNode; acao?: ReactNode }) {

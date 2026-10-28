@@ -117,7 +117,7 @@ export default async function PaginaInstituicao(props: PageProps<"/instituicoes/
                 return (
                   <li key={a.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
                     <Users className="size-4 shrink-0 text-suave" />
-                    <Link href={`/alunos/${a.id}`} className="flex-1 truncate font-medium hover:text-marca-texto">
+                    <Link href={`/alunos/${a.id}`} className="min-w-0 flex-1 truncate font-medium hover:text-marca-texto">
                       {a.nome} {!a.ativo && <Selo className="ml-1">inativo</Selo>}
                     </Link>
                     {f ? (
@@ -149,7 +149,7 @@ export default async function PaginaInstituicao(props: PageProps<"/instituicoes/
                   <Link href={`/recibos/${r.id}`} className="flex items-center gap-4 px-5 py-2.5 text-sm hover:bg-fundo/60">
                     <span className="font-mono text-xs text-suave">#{numeroRecibo(r.numero)}</span>
                     <span className="w-24 tabular-nums">{dataBR(r.dataPagamento)}</span>
-                    <span className="flex-1 truncate">{r.referente}</span>
+                    <span className="min-w-0 flex-1 truncate">{r.referente}</span>
                     <span className="font-medium tabular-nums">{moeda(r.valorCentavos)}</span>
                   </Link>
                 </li>

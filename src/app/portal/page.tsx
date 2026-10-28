@@ -56,7 +56,7 @@ async function Conteudo() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className={cn("space-y-6", avisos.length ? "lg:col-span-2" : "lg:col-span-3")}>
+        <div className={cn("min-w-0 space-y-6", avisos.length ? "lg:col-span-2" : "lg:col-span-3")}>
           <Card>
             <CardTitulo icone={<CloudDownload />}>Downloads</CardTitulo>
             {materiais.length === 0 ? (

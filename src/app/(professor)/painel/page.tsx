@@ -44,7 +44,7 @@ async function Painel() {
           <p className="text-sm text-suave">
             {diaSemana}, {dataBR(hoje)}
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Olá, {primeiroNome(professor.nome)}! 🎵</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Olá, {primeiroNome(professor.nome)}!</h1>
         </div>
         <div className="flex gap-2">
           <BotaoLink href="/chamada">
@@ -96,7 +96,7 @@ async function Painel() {
                 return (
                   <li key={a.id} className="flex items-center gap-3 px-5 py-3 text-sm">
                     <span className="w-12 font-mono text-xs text-suave">{a.horario ?? "—"}</span>
-                    <Link href={`/alunos/${a.id}`} className="flex-1 truncate font-medium hover:text-marca-texto">
+                    <Link href={`/alunos/${a.id}`} className="min-w-0 flex-1 truncate font-medium hover:text-marca-texto">
                       {a.nome}
                     </Link>
                     {status ? <SeloPresenca status={status} /> : <span className="text-xs text-suave">{a.instrumento}</span>}
@@ -126,7 +126,7 @@ async function Painel() {
                 <li key={recibo.id}>
                   <Link href={`/recibos/${recibo.id}`} className="flex items-center gap-4 px-5 py-3 text-sm hover:bg-fundo/60">
                     <span className="font-mono text-xs text-suave">#{numeroRecibo(recibo.numero)}</span>
-                    <span className="flex-1 truncate font-medium">{instituicao?.nome ?? aluno?.nome}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{instituicao?.nome ?? aluno?.nome}</span>
                     <span className="hidden text-suave sm:inline">{dataBR(recibo.dataPagamento)}</span>
                     <span className="font-semibold tabular-nums">{moeda(recibo.valorCentavos)}</span>
                   </Link>
@@ -142,13 +142,13 @@ async function Painel() {
 
 function Indicador({ titulo, valor, icone, href }: { titulo: string; valor: ReactNode; icone: ReactNode; href: string }) {
   return (
-    <Link href={href}>
+    <Link href={href} className="min-w-0">
       <Card className="group h-full p-5 transition-all hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-center justify-between text-suave">
           <span className="text-sm">{titulo}</span>
           <span className="rounded-lg bg-marca-suave p-2 text-marca-texto [&_svg]:size-4">{icone}</span>
         </div>
-        <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{valor}</p>
+        <p className="mt-3 truncate text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{valor}</p>
       </Card>
     </Link>
   );

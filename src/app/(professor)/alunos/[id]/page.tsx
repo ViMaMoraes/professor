@@ -84,7 +84,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} telefone={aluno.telefone} />}
           <Card>
             <CardTitulo>Dados</CardTitulo>
@@ -127,7 +127,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
           </Card>
         </div>
 
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           {aluno.mensagem && (
             <Card className="flex items-start gap-3 p-5">
               <MessageSquareText className="mt-0.5 size-5 shrink-0 text-suave" />
@@ -179,7 +179,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
                     <Link href={`/recibos/${r.id}`} className="flex items-center gap-4 px-5 py-2.5 text-sm hover:bg-fundo/60">
                       <span className="font-mono text-xs text-suave">#{numeroRecibo(r.numero)}</span>
                       <span className="w-24 tabular-nums">{dataBR(r.dataPagamento)}</span>
-                      <span className="flex-1 truncate">{r.referente}</span>
+                      <span className="min-w-0 flex-1 truncate">{r.referente}</span>
                       <span className="font-medium tabular-nums">{moeda(r.valorCentavos)}</span>
                     </Link>
                   </li>
