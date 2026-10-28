@@ -70,7 +70,7 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
 
 ### Acesso aluno
 
-O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) **só com o usuário** criado pelo professor, sem senha, e vê:
+O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) **só com o usuário** criado pelo professor, sem senha. Na página de cada aluno, o cartão **Acesso do aluno** tem o link pessoal dele (`/aluno?u=usuario`, que já abre com o usuário preenchido) e botões para copiar o link, copiar uma mensagem pronta ou enviar pelo WhatsApp. O aluno vê:
 
 - os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;
 - a mensagem do professor para ele, em destaque;
