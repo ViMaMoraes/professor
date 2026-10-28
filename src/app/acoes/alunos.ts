@@ -76,6 +76,8 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     await notificarAlunos([alunoId!], { title: `Mensagem de ${professor.nome.split(" ")[0]}`, body: valores.mensagem.slice(0, 180), url: "/portal" });
   }
   revalidatePath("/", "layout");
+  // aluno novo: o formulário pergunta se quer cadastrar outro; editando, volta para a página dele
+  if (!id) return { ok: `Aluno “${nome}” cadastrado!`, criado: true };
   redirect(`/alunos/${alunoId}`);
 }
 

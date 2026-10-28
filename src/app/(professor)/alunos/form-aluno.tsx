@@ -11,19 +11,21 @@ import type { Aluno } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
 import { sugerirUsuario } from "@/lib/usuario";
 
-export function FormAluno({
-  aluno,
-  instituicoes,
-}: {
-  aluno?: Omit<Aluno, "senhaHash">;
-  instituicoes: { id: number; nome: string }[];
-}) {
+type Props = { aluno?: Omit<Aluno, "senhaHash">; instituicoes: { id: number; nome: string }[] };
+
+export function FormAluno(props: Props) {
+  // muda a cada "cadastrar outro": recria o formulário vazio (inclusive a sugestão de usuário)
+  const [versao, setVersao] = useState(0);
+  return <CamposAluno key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
+}
+
+function CamposAluno({ aluno, instituicoes, limpar }: Props & { limpar: () => void }) {
   const [usuario, setUsuario] = useState(aluno?.usuario ?? "");
   // num aluno novo, o usuário vai sendo sugerido enquanto o nome é digitado (até ser editado à mão)
   const [mexeuNoUsuario, setMexeuNoUsuario] = useState(Boolean(aluno));
   const acao = salvarAluno.bind(null, aluno?.id ?? null);
   return (
-    <Formulario acao={acao}>
+    <Formulario acao={acao} cadastrarOutro={aluno ? undefined : { lista: "/alunos", limpar }}>
       <Card className="divide-y divide-borda">
         <Secao titulo="Dados pessoais">
           <Campo rotulo="Nome *" className="sm:col-span-2">

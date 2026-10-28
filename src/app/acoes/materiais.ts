@@ -64,6 +64,8 @@ export async function salvarMaterial(id: number | null, _: EstadoForm, dados: Fo
   }
 
   revalidatePath("/", "layout");
+  // material novo: o formulário pergunta se quer adicionar outro
+  if (!id) return { ok: `Material “${titulo}” publicado!`, criado: true };
   redirect("/materiais");
 }
 

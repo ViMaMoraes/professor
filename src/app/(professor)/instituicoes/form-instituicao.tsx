@@ -11,12 +11,20 @@ import { centavosParaCampo } from "@/lib/formato";
 
 type AlunoOpcao = { id: number; nome: string; instrumento: string | null; outraInstituicao: string | null; marcado: boolean };
 
-export function FormInstituicao({ instituicao, alunos }: { instituicao?: Instituicao; alunos: AlunoOpcao[] }) {
+type Props = { instituicao?: Instituicao; alunos: AlunoOpcao[] };
+
+export function FormInstituicao(props: Props) {
+  // muda a cada "cadastrar outra": recria o formulário vazio
+  const [versao, setVersao] = useState(0);
+  return <CamposInstituicao key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
+}
+
+function CamposInstituicao({ instituicao, alunos, limpar }: Props & { limpar: () => void }) {
   const [filtro, setFiltro] = useState("");
   const acao = salvarInstituicao.bind(null, instituicao?.id ?? null);
 
   return (
-    <Formulario acao={acao}>
+    <Formulario acao={acao} cadastrarOutro={instituicao ? undefined : { lista: "/instituicoes", limpar, pergunta: "Deseja cadastrar outra?" }}>
       <input type="hidden" name="atualizarAlunos" value="1" />
       <Card className="divide-y divide-borda">
         <section className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -3,6 +3,8 @@
 import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { createContext, startTransition, use, useActionState, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
+import { useRouter } from "next/navigation";
+
 import type { EstadoForm } from "@/lib/estado-form";
 
 import { useInterface } from "./interface";
@@ -35,6 +37,7 @@ export function Formulario<E extends EstadoForm>({
   limparAoEnviar,
   sucesso,
   aoConcluir,
+  cadastrarOutro,
 }: {
   acao: (estado: E, dados: FormData) => Promise<E>;
   children: ReactNode;
@@ -46,15 +49,38 @@ export function Formulario<E extends EstadoForm>({
   sucesso?: (estado: NonNullable<E>) => ReactNode;
   /** Chamado depois de cada envio com sucesso (ex.: sair do modo de edição). */
   aoConcluir?: () => void;
+  /**
+   * Depois de um cadastro novo (estado.criado), pergunta "Deseja cadastrar outro?":
+   * Sim chama `limpar` (o formulário volta vazio); Não vai para a `lista`.
+   */
+  cadastrarOutro?: { lista: string; limpar: () => void; pergunta?: string };
 }) {
   const [estado, executar, enviando] = useActionState<E, FormData>(acao, null as Awaited<E>);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const { confirmar: perguntar, notificar } = useInterface();
+  const router = useRouter();
 
   // sucesso vira aviso no canto (o estado muda a cada envio)
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (!estado?.ok) return;
+    if (estado.criado && cadastrarOutro) {
+      perguntar({
+        titulo: estado.ok,
+        mensagem: cadastrarOutro.pergunta ?? "Deseja cadastrar outro?",
+        confirmar: "Sim",
+        cancelar: "Não",
+        sucesso: true,
+      }).then((outro) => {
+        if (outro) {
+          cadastrarOutro.limpar();
+          window.scrollTo({ top: 0 });
+        } else {
+          router.push(cadastrarOutro.lista);
+        }
+      });
+      return;
+    }
     notificar(estado.ok);
     if (limparAoEnviar) formRef.current?.reset();
     aoConcluir?.();

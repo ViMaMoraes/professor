@@ -19,13 +19,15 @@ type Material = {
   alunoIds: number[];
 };
 
-export function FormMaterial({
-  material,
-  alunos,
-}: {
-  material?: Material;
-  alunos: { id: number; nome: string; instrumento: string | null }[];
-}) {
+type Props = { material?: Material; alunos: { id: number; nome: string; instrumento: string | null }[] };
+
+export function FormMaterial(props: Props) {
+  // muda a cada "adicionar outro": recria o formulário vazio
+  const [versao, setVersao] = useState(0);
+  return <CamposMaterial key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
+}
+
+function CamposMaterial({ material, alunos, limpar }: Props & { limpar: () => void }) {
   const [paraTodos, setParaTodos] = useState(material?.paraTodos ?? false);
   const [filtro, setFiltro] = useState("");
   const [link, setLink] = useState(material?.link ?? "");
@@ -33,7 +35,7 @@ export function FormMaterial({
   const acao = salvarMaterial.bind(null, material?.id ?? null);
 
   return (
-    <Formulario acao={acao}>
+    <Formulario acao={acao} cadastrarOutro={material ? undefined : { lista: "/materiais", limpar, pergunta: "Deseja adicionar outro?" }}>
       <Card className="grid gap-4 p-5 sm:grid-cols-3">
         <div className="sm:col-span-3">
           <Campo rotulo="Link do Google Drive *">

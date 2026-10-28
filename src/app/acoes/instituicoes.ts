@@ -67,6 +67,8 @@ export async function salvarInstituicao(id: number | null, _: EstadoForm, dados:
   }
 
   revalidatePath("/", "layout");
+  // instituição nova: o formulário pergunta se quer cadastrar outra; editando, volta para a página dela
+  if (!id) return { ok: `Instituição “${nome}” cadastrada!`, criado: true };
   redirect(`/instituicoes/${instituicaoId}`);
 }
 

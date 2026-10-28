@@ -13,6 +13,8 @@ type Confirmacao = {
   confirmar?: string;
   cancelar?: string;
   perigo?: boolean;
+  /** Ícone de concluído (✓), ex.: "Aluno cadastrado! Deseja cadastrar outro?" */
+  sucesso?: boolean;
 };
 
 type Interface = {
@@ -121,10 +123,20 @@ function JanelaConfirmacao({
           <span
             className={cn(
               "flex size-10 shrink-0 items-center justify-center rounded-full",
-              pedido.perigo ? "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400" : "bg-marca-suave text-marca-texto",
+              pedido.perigo
+                ? "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400"
+                : pedido.sucesso
+                  ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400"
+                  : "bg-marca-suave text-marca-texto",
             )}
           >
-            {pedido.perigo ? <TriangleAlert className="size-5" /> : <Info className="size-5" />}
+            {pedido.perigo ? (
+              <TriangleAlert className="size-5" />
+            ) : pedido.sucesso ? (
+              <CircleCheck className="size-5" />
+            ) : (
+              <Info className="size-5" />
+            )}
           </span>
           <div>
             <h2 id="confirmacao-titulo" className="font-semibold">

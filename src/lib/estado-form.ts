@@ -1,4 +1,5 @@
-export type EstadoForm = { erro?: string; ok?: string } | null;
+/** Resultado de uma ação de formulário. `criado` = um cadastro novo foi salvo (o formulário pergunta se quer cadastrar outro). */
+export type EstadoForm = { erro?: string; ok?: string; criado?: boolean } | null;
 
 /** Lê um campo de texto do FormData, já sem espaços; vazio vira null. */
 export function texto(dados: FormData, nome: string): string | null {
