@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { FolhaRecibo } from "@/components/folha-recibo";
-import { EsqueletoPagina } from "@/components/ui";
+import { EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarRecibo } from "@/lib/consultas";
 import { numeroRecibo } from "@/lib/formato";
@@ -40,10 +40,8 @@ async function Conteudo({ params }: { params: PageProps<"/recibos/[id]">["params
   return (
     <>
       <div className="mb-6">
-        <Link href="/recibos" className="text-sm text-suave hover:text-texto">
-          ← Recibos
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Recibo nº {numero}</h1>
+        <Voltar href="/recibos">Voltar para recibos</Voltar>
+        <h1 className="text-2xl font-semibold tracking-tight">Recibo nº {numero}</h1>
         <p className="text-sm text-suave">
           {pagador.tipo === "instituicao" ? "Instituição: " : "Aluno: "}
           <Link

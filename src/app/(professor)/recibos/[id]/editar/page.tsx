@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { Cabecalho, EsqueletoPagina } from "@/components/ui";
+import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarRecibo, listarAlunos, listarInstituicoes } from "@/lib/consultas";
 import { hojeISO, numeroRecibo } from "@/lib/formato";
@@ -30,6 +30,7 @@ async function Conteudo({ params }: { params: PageProps<"/recibos/[id]/editar">[
   ]);
   return (
     <>
+      <Voltar href={`/recibos/${linha.recibo.id}`}>Voltar para o recibo</Voltar>
       <Cabecalho titulo={`Editar recibo nº ${numeroRecibo(linha.recibo.numero)}`} descricao="O número do recibo continua o mesmo." />
       <FormRecibo
         alunos={alunos.map((a) => ({ id: a.id, nome: a.nome, mensalidade: a.mensalidadeCentavos, descricao: a.descricaoRecibo }))}

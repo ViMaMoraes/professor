@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 import { alternarInstituicao, excluirInstituicao } from "@/app/acoes/instituicoes";
 import { BotaoAcao } from "@/components/botao-acao";
-import { BotaoLink, Card, CardTitulo, estiloBotao, Selo } from "@/components/ui";
+import { BotaoLink, Card, CardTitulo, estiloBotao, Selo, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarInstituicao, historicoPresencas, listarAlunos, listarRecibos } from "@/lib/consultas";
 import { dataBR, hojeISO, MESES, moeda, numeroRecibo } from "@/lib/formato";
@@ -30,6 +30,7 @@ export default async function PaginaInstituicao(props: PageProps<"/instituicoes/
 
   return (
     <>
+      <Voltar href="/instituicoes">Voltar para instituições</Voltar>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <span className="flex size-14 items-center justify-center rounded-2xl bg-marca-suave text-marca-texto">

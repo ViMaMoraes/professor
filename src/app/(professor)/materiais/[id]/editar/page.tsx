@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { Cabecalho, EsqueletoPagina } from "@/components/ui";
+import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarMaterial, listarAlunos } from "@/lib/consultas";
 
@@ -10,6 +10,7 @@ import { FormMaterial } from "../../form-material";
 export default function PaginaEditarMaterial(props: PageProps<"/materiais/[id]/editar">) {
   return (
     <>
+      <Voltar href="/materiais">Voltar para downloads</Voltar>
       <Cabecalho titulo="Editar material" />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo params={props.params} />

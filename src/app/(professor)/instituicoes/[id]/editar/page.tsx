@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { Cabecalho } from "@/components/ui";
+import { Cabecalho, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarInstituicao } from "@/lib/consultas";
 
@@ -13,6 +13,7 @@ export default async function PaginaEditarInstituicao(props: PageProps<"/institu
   if (!instituicao) notFound();
   return (
     <>
+      <Voltar href={`/instituicoes/${instituicao.id}`}>{`Voltar para ${instituicao.nome}`}</Voltar>
       <Cabecalho titulo={`Editar ${instituicao.nome}`} />
       <FormInstituicao instituicao={instituicao} alunos={await opcoesDeAlunos(professor.id, instituicao.id)} />
     </>

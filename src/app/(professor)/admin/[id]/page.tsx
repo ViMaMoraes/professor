@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { excluirProfessor } from "@/app/acoes/admin";
 import { BotaoAcao } from "@/components/botao-acao";
-import { Cabecalho, Card } from "@/components/ui";
+import { Cabecalho, Card, Voltar } from "@/components/ui";
 import { exigirMaster } from "@/lib/auth";
 import { enderecoSite } from "@/lib/endereco";
 import { buscarProfessor } from "@/lib/consultas";
@@ -21,6 +21,7 @@ export default async function PaginaEditarProfessor(props: PageProps<"/admin/[id
 
   return (
     <>
+      <Voltar href="/admin">Voltar para administração</Voltar>
       <Cabecalho titulo={professor.nome} descricao={professor.master ? "Conta master (administrador do site)." : "Conta de professor cliente."} />
       <FormProfessor professor={dados} />
       {professor.id !== master.id && (

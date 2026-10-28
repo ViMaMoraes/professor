@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { Cabecalho, EsqueletoPagina } from "@/components/ui";
+import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { listarAlunos } from "@/lib/consultas";
 
@@ -12,6 +12,7 @@ export const metadata: Metadata = { title: "Adicionar material" };
 export default function PaginaNovoMaterial() {
   return (
     <>
+      <Voltar href="/materiais">Voltar para downloads</Voltar>
       <Cabecalho titulo="Adicionar material" descricao="O arquivo fica no seu Google Drive; aqui você só cola o link e escolhe quem pode acessar." />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo />

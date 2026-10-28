@@ -6,7 +6,7 @@ import { Suspense, type ReactNode } from "react";
 import { alternarSituacao, excluirAluno } from "@/app/acoes/alunos";
 import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
-import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo } from "@/components/ui";
+import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { enderecoSite } from "@/lib/endereco";
 import {
@@ -47,6 +47,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
 
   return (
     <>
+      <Voltar href="/alunos">Voltar para alunos</Voltar>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <span className="flex size-14 items-center justify-center rounded-2xl bg-marca-suave text-xl font-semibold text-marca-texto">

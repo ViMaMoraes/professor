@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { Cabecalho, EsqueletoPagina } from "@/components/ui";
+import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarAluno, listarInstituicoes } from "@/lib/consultas";
 
@@ -23,6 +23,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["
   void senhaHash;
   return (
     <>
+      <Voltar href={`/alunos/${aluno.id}`}>{`Voltar para ${aluno.nome}`}</Voltar>
       <Cabecalho titulo={`Editar ${aluno.nome}`} />
       <FormAluno
         aluno={dados}

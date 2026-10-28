@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
@@ -108,6 +109,20 @@ export function Selo({ cor = "neutro", className, ...props }: ComponentProps<"sp
       )}
       {...props}
     />
+  );
+}
+
+/** Seta "voltar" no topo das telas de visualização, edição e cadastro. O texto vira dica e rótulo de acessibilidade. */
+export function Voltar({ href, children }: { href: string; children: string }) {
+  return (
+    <Link
+      href={href}
+      title={children}
+      aria-label={children}
+      className="-ml-2 mb-2 inline-flex size-9 items-center justify-center rounded-full text-suave transition-colors hover:bg-marca-suave hover:text-texto"
+    >
+      <ArrowLeft className="size-5" />
+    </Link>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { BotaoLink, Cabecalho, Card, EsqueletoPagina, Vazio } from "@/components/ui";
+import { BotaoLink, Cabecalho, Card, EsqueletoPagina, Vazio, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { listarAlunos, listarInstituicoes } from "@/lib/consultas";
 import { hojeISO } from "@/lib/formato";
@@ -14,6 +14,7 @@ export const metadata: Metadata = { title: "Novo recibo" };
 export default function PaginaNovoRecibo(props: PageProps<"/recibos/novo">) {
   return (
     <>
+      <Voltar href="/recibos">Voltar para recibos</Voltar>
       <Cabecalho titulo="Novo recibo" descricao="O número é gerado automaticamente." />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo searchParams={props.searchParams} />
