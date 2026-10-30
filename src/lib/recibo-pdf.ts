@@ -3,6 +3,7 @@ import { PDFDocument, rgb, StandardFonts, type PDFFont } from "pdf-lib";
 import type { Professor, Recibo } from "./db/schema";
 import { valorPorExtenso } from "./extenso";
 import { MESES, moeda, numeroRecibo } from "./formato";
+import { formatarDocumento, mascaraRg, soDigitos } from "./mascaras";
 import { referenteA, type Pagador } from "./pagador";
 
 const CINZA = rgb(0.45, 0.45, 0.45);
@@ -21,8 +22,11 @@ export function textoRecibo(recibo: Recibo, pagador: Pick<Pagador, "recebiDe">, 
   const partes: string[] = [];
   if (professor) {
     partes.push(`Eu, ${professor.nome}`);
-    if (professor.documento) partes.push(`CPF: ${professor.documento}`);
-    if (professor.rg) partes.push(`RG: ${professor.rg}`);
+    if (professor.documento) {
+      const documento = formatarDocumento(professor.documento);
+      partes.push(`${soDigitos(documento).length === 14 ? "CNPJ" : "CPF"}: ${documento}`);
+    }
+    if (professor.rg) partes.push(`RG: ${mascaraRg(professor.rg)}`);
     if (professor.endereco) {
       const local = professor.cidade ? `${professor.endereco} - ${professor.cidade}` : professor.endereco;
       partes.push(`${RUAS.test(professor.endereco) ? "residente na" : "residente em"} ${local}`);

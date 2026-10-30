@@ -1,4 +1,5 @@
 import type { Aluno, Instituicao } from "./db/schema";
+import { formatarDocumento, soDigitos } from "./mascaras";
 
 export type Pagador = {
   tipo: "aluno" | "instituicao";
@@ -17,6 +18,15 @@ type InstituicaoPagadora = Pick<Instituicao, "nome" | "documento" | "telefone" |
   descricaoRecibo?: string | null;
 };
 
+/** " (CNPJ 12.345.678/0001-90)" ou " (CPF 000.000.000-00)", conforme o número cadastrado. */
+function documentoInstituicao(documento: string | null) {
+  if (!documento) return "";
+  const formatado = formatarDocumento(documento);
+  const tamanho = soDigitos(formatado).length;
+  const rotulo = tamanho === 14 ? "CNPJ" : tamanho === 11 ? "CPF" : "CNPJ/CPF";
+  return ` (${rotulo} ${formatado})`;
+}
+
 export const TRATAMENTOS = ["da", "do", "de"] as const;
 
 /** Quem pagou o recibo: a instituição (quando houver) ou o aluno (ou o responsável dele). */
@@ -26,7 +36,7 @@ export function pagadorDoRecibo(aluno: AlunoPagador | null, instituicao: Institu
     return {
       tipo: "instituicao",
       nome: instituicao.nome,
-      recebiDe: `${preposicao} ${instituicao.nome}${instituicao.documento ? ` (CNPJ/CPF ${instituicao.documento})` : ""}`,
+      recebiDe: `${preposicao} ${instituicao.nome}${documentoInstituicao(instituicao.documento)}`,
       descricao: instituicao.descricaoRecibo ?? null,
       telefone: instituicao.telefone,
       email: instituicao.email,

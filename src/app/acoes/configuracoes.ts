@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { exigirProfessor } from "@/lib/auth";
 import { emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { erroDocumento, erroTelefone, mascaraDocumento, mascaraRg, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 
 export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
@@ -27,6 +28,10 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
     }
   }
 
+  // CPF/CNPJ, RG e telefone saem formatados no recibo
+  const erroDados = erroDocumento(texto(dados, "documento"), "CPF/CNPJ") ?? erroTelefone(texto(dados, "telefone"));
+  if (erroDados) return { erro: erroDados };
+
   // assinatura: PNG desenhado/enviado na tela (data URL); limite para não pesar o banco
   const novaAssinatura = texto(dados, "assinatura");
   if (novaAssinatura && (!novaAssinatura.startsWith("data:image/png;base64,") || novaAssinatura.length > 400_000)) {
@@ -39,11 +44,11 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
     .set({
       nome,
       email,
-      documento: texto(dados, "documento"),
-      telefone: texto(dados, "telefone"),
+      documento: mascaraDocumento(texto(dados, "documento")) || null,
+      telefone: mascaraTelefone(texto(dados, "telefone")) || null,
       endereco: texto(dados, "endereco"),
       cidade: texto(dados, "cidade"),
-      rg: texto(dados, "rg"),
+      rg: mascaraRg(texto(dados, "rg")) || null,
       ...assinatura,
       ...(novaSenha ? { senhaHash: await bcrypt.hash(novaSenha, 10) } : {}),
     })

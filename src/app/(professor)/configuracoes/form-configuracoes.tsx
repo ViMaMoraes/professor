@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 
 import { salvarConfiguracoes } from "@/app/acoes/configuracoes";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { InputMascara } from "@/components/input-mascara";
 import { CampoAssinatura } from "@/components/campo-assinatura";
 import { Campo, Card, Input } from "@/components/ui";
 import type { Professor } from "@/lib/db/schema";
@@ -24,10 +25,10 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
             <Input type="email" name="email" required defaultValue={p.email} />
           </Campo>
           <Campo rotulo="CPF ou CNPJ">
-            <Input name="documento" defaultValue={p.documento ?? ""} />
+            <InputMascara mascara="documento" name="documento" defaultValue={p.documento} />
           </Campo>
           <Campo rotulo="RG">
-            <Input name="rg" defaultValue={p.rg ?? ""} />
+            <InputMascara mascara="rg" name="rg" defaultValue={p.rg} />
           </Campo>
           <Campo rotulo="Endereço" className="sm:col-span-2">
             <Input name="endereco" placeholder="Rua Exemplo, 113 - Bairro" defaultValue={p.endereco ?? ""} />
@@ -36,7 +37,7 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
             <Input name="cidade" placeholder="Salto/SP" defaultValue={p.cidade ?? ""} />
           </Campo>
           <Campo rotulo="Telefone">
-            <Input name="telefone" defaultValue={p.telefone ?? ""} />
+            <InputMascara mascara="telefone" name="telefone" defaultValue={p.telefone} />
           </Campo>
         </section>
         <section className="p-5">

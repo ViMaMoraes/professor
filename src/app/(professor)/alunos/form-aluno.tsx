@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { salvarAluno } from "@/app/acoes/alunos";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { InputMascara } from "@/components/input-mascara";
 import { BotaoLink, Campo, Card, Input, Select, Textarea } from "@/components/ui";
 import { DIAS_SEMANA, INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
 import type { Aluno } from "@/lib/db/schema";
@@ -37,7 +38,7 @@ function CamposAluno({ aluno, instituicoes, limpar }: Props & { limpar: () => vo
             />
           </Campo>
           <Campo rotulo="Telefone / WhatsApp">
-            <Input name="telefone" placeholder="(11) 99999-9999" defaultValue={aluno?.telefone ?? ""} />
+            <InputMascara mascara="telefone" name="telefone" defaultValue={aluno?.telefone} />
           </Campo>
           <Campo rotulo="E-mail" dica="Para enviar o recibo.">
             <Input type="email" name="email" defaultValue={aluno?.email ?? ""} />

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { salvarInstituicao } from "@/app/acoes/instituicoes";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { InputMascara } from "@/components/input-mascara";
 import { BotaoLink, Campo, Card, cn, Input, Select, Textarea } from "@/components/ui";
 import type { Instituicao } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
@@ -33,13 +34,13 @@ function CamposInstituicao({ instituicao, alunos, limpar }: Props & { limpar: ()
             <Input name="nome" required defaultValue={instituicao?.nome} placeholder="Ex.: Escola Municipal Villa-Lobos" />
           </Campo>
           <Campo rotulo="CNPJ ou CPF" dica="Aparece no recibo.">
-            <Input name="documento" defaultValue={instituicao?.documento ?? ""} />
+            <InputMascara mascara="documento" name="documento" defaultValue={instituicao?.documento} placeholder="CNPJ ou CPF" />
           </Campo>
           <Campo rotulo="Pessoa de contato">
             <Input name="contato" defaultValue={instituicao?.contato ?? ""} placeholder="Ex.: Coordenadora Ana" />
           </Campo>
           <Campo rotulo="Telefone / WhatsApp">
-            <Input name="telefone" defaultValue={instituicao?.telefone ?? ""} />
+            <InputMascara mascara="telefone" name="telefone" defaultValue={instituicao?.telefone} />
           </Campo>
           <Campo rotulo="E-mail">
             <Input type="email" name="email" defaultValue={instituicao?.email ?? ""} />

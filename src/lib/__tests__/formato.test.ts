@@ -81,7 +81,7 @@ describe("pagador do recibo", () => {
     expect(pagadorDoRecibo(null, escola)).toEqual({
       tipo: "instituicao",
       nome: "Escola X",
-      recebiDe: "de Escola X (CNPJ/CPF 12.345.678/0001-90)",
+      recebiDe: "de Escola X (CNPJ 12.345.678/0001-90)",
       descricao: null,
       telefone: "2",
       email: "e@x.com",
@@ -128,6 +128,13 @@ describe("texto do recibo", () => {
     expect(textoRecibo(recibo, { recebiDe: "de Ana" }, { ...professor, documento: null, rg: null, endereco: null })).toBe(
       "Eu, Marcus Vinicius de Moraes, recebi de Ana a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino.",
     );
+  });
+  it("CPF, RG e CNPJ cadastrados sem pontuação saem formatados", () => {
+    const semPontos = { ...professor, documento: "46510148870", rg: "394737234" };
+    expect(textoRecibo(recibo, { recebiDe: "de Ana" }, semPontos)).toContain("CPF: 465.101.488-70, RG: 39.473.723-4,");
+    const escola = { nome: "Escola X", documento: "12345678000190", telefone: null, email: null };
+    expect(pagadorDoRecibo(null, escola).recebiDe).toBe("de Escola X (CNPJ 12.345.678/0001-90)");
+    expect(pagadorDoRecibo(null, { ...escola, documento: "46510148870" }).recebiDe).toBe("de Escola X (CPF 465.101.488-70)");
   });
   it("local e data", () => {
     expect(linhaDataRecibo("2026-03-10", "Salto/SP")).toBe("Salto, 10 de Março de 2026.");

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarInstituicao, listarAlunos } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { erroDocumento, erroTelefone, mascaraDocumento, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { lerValorEmCentavos } from "@/lib/formato";
 import { TRATAMENTOS } from "@/lib/pagador";
@@ -23,13 +24,15 @@ export async function salvarInstituicao(id: number | null, _: EstadoForm, dados:
   const valorMensal = lerValorEmCentavos(valorDigitado);
   if (!nome) return { erro: "Informe o nome da instituição." };
   if (valorDigitado && valorMensal == null) return { erro: "Valor mensal inválido." };
+  const erroDados = erroDocumento(texto(dados, "documento"), "CNPJ/CPF") ?? erroTelefone(texto(dados, "telefone"));
+  if (erroDados) return { erro: erroDados };
 
   const valores = {
     nome,
-    documento: texto(dados, "documento"),
+    documento: mascaraDocumento(texto(dados, "documento")) || null,
     contato: texto(dados, "contato"),
     email: texto(dados, "email")?.toLowerCase() ?? null,
-    telefone: texto(dados, "telefone"),
+    telefone: mascaraTelefone(texto(dados, "telefone")) || null,
     endereco: texto(dados, "endereco"),
     valorMensalCentavos: valorMensal,
     tratamento: TRATAMENTOS.find((t) => t === dados.get("tratamento")) ?? "de",

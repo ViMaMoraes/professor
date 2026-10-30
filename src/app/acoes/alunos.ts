@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarAluno, buscarInstituicao, usuarioEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { erroTelefone, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
 import { notificarAlunos } from "@/lib/push";
@@ -25,6 +26,8 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
 
   if (!nome) return { erro: "Informe o nome do aluno." };
   if (valorDigitado && mensalidade == null) return { erro: "Valor da mensalidade inválido." };
+  const erroFone = erroTelefone(texto(dados, "telefone"));
+  if (erroFone) return { erro: erroFone };
   // o usuário é o login do aluno, então precisa ser único no site inteiro
   if (usuario && usuario.length < 3) return { erro: "O usuário precisa ter pelo menos 3 caracteres." };
   if (usuario && (await usuarioEmUso(usuario, id ?? undefined))) {
@@ -41,7 +44,7 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   const valores = {
     nome,
     email,
-    telefone: texto(dados, "telefone"),
+    telefone: mascaraTelefone(texto(dados, "telefone")) || null,
     responsavel: texto(dados, "responsavel"),
     dataNascimento: data("dataNascimento"),
     instrumento: texto(dados, "instrumento"),
