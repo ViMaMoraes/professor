@@ -19,6 +19,8 @@ export const professores = sqliteTable("professores", {
   rg: text("rg"),
   chavePix: text("chave_pix"),
   diaVencimento: integer("dia_vencimento").notNull().default(10), // dia padrão das mensalidades (1 a 28)
+  duracaoAula: integer("duracao_aula").notNull().default(60), // minutos, padrão dos horários
+  lembreteMinutos: integer("lembrete_minutos").notNull().default(120), // aviso ao aluno antes da aula; 0 = desligado
   assinatura: text("assinatura"), // imagem PNG (data URL) que vai no recibo
   // administração da plataforma
   master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
@@ -79,6 +81,7 @@ export const alunos = sqliteTable("alunos", {
   dataNascimento: text("data_nascimento"), // AAAA-MM-DD
   instrumento: text("instrumento"),
   nivel: text("nivel"),
+  // antigos (um dia e horário só): os horários agora ficam na tabela `horarios`
   diaAula: text("dia_aula"),
   horario: text("horario"),
   mensalidadeCentavos: integer("mensalidade_centavos"),
@@ -183,6 +186,66 @@ export const pushInscricoes = sqliteTable("push_inscricoes", {
   criadoEm: criadoEm(),
 });
 
+/** Horários fixos de aula do aluno (pode ter mais de um por semana). */
+export const horarios = sqliteTable(
+  "horarios",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    diaSemana: integer("dia_semana").notNull(), // 0 = domingo ... 6 = sábado
+    hora: text("hora"), // HH:MM; vazio = horário a definir
+    duracaoMin: integer("duracao_min"), // vazio = duração padrão do professor
+  },
+  (t) => [index("horarios_aluno").on(t.alunoId)],
+);
+
+/** Aula fixa que não vai acontecer num dia: desmarcada pelo professor ou o aluno avisou que não vai. */
+export const aulasDesmarcadas = sqliteTable(
+  "aulas_desmarcadas",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    data: text("data").notNull(), // AAAA-MM-DD
+    hora: text("hora").notNull(), // HH:MM do horário fixo desmarcado
+    por: text("por", { enum: ["professor", "aluno"] }).notNull(),
+    motivo: text("motivo"),
+    criadoEm: criadoEm(),
+  },
+  (t) => [uniqueIndex("desmarcada_aluno_data_hora").on(t.alunoId, t.data, t.hora)],
+);
+
+/**
+ * Reposição de aula: só existe quando o professor concede (sempre ele decide).
+ * Sem data = a marcar; com data e hora = agendada (entra na agenda, na chamada e nos lembretes).
+ */
+export const reposicoes = sqliteTable(
+  "reposicoes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    motivo: text("motivo"), // ex.: "Aula de 13/11 desmarcada pelo professor"
+    data: text("data"),
+    hora: text("hora"),
+    duracaoMin: integer("duracao_min"),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("reposicoes_professor").on(t.professorId)],
+);
+
+/** Lembretes já enviados (aula de tal aluno em tal dia e hora), para não avisar duas vezes. */
+export const lembretesEnviados = sqliteTable("lembretes_enviados", {
+  chave: text("chave").primaryKey(),
+  criadoEm: criadoEm(),
+});
+
 /** Diário de aulas: o conteúdo passado para cada aluno (e o que estudar em casa). */
 export const diario = sqliteTable(
   "diario",
@@ -243,6 +306,9 @@ export type Material = typeof materiais.$inferSelect;
 export type Instituicao = typeof instituicoes.$inferSelect;
 export type Aviso = typeof avisos.$inferSelect;
 export type Pagamento = typeof pagamentos.$inferSelect;
+export type Horario = typeof horarios.$inferSelect;
+export type AulaDesmarcada = typeof aulasDesmarcadas.$inferSelect;
+export type Reposicao = typeof reposicoes.$inferSelect;
 export type RegistroDiario = typeof diario.$inferSelect;
 export type StatusPresenca = Presenca["status"];
 export type TipoDrive = Material["tipoDrive"];

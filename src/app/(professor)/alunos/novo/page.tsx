@@ -15,7 +15,7 @@ export default async function PaginaNovoAluno() {
     <>
       <Voltar href="/alunos">Voltar para alunos</Voltar>
       <Cabecalho titulo="Novo aluno" />
-      <FormAluno instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} diaPadrao={professor.diaVencimento} />
+      <FormAluno instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} diaPadrao={professor.diaVencimento} duracaoPadrao={professor.duracaoAula} />
     </>
   );
 }

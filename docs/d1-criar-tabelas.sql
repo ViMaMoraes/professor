@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `assinatura` text,
   `trocar_senha` integer DEFAULT false NOT NULL,
   `dia_vencimento` integer DEFAULT 10 NOT NULL,
+  `duracao_aula` integer DEFAULT 60 NOT NULL,
+  `lembrete_minutos` integer DEFAULT 120 NOT NULL,
   `vencimento_avisado` text,
   `master` integer DEFAULT false NOT NULL,
   `ativo` integer DEFAULT true NOT NULL,
@@ -135,6 +137,49 @@ CREATE TABLE IF NOT EXISTS `push_inscricoes` (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `push_inscricoes_endpoint_unique` ON `push_inscricoes` (`endpoint`);
 
+CREATE TABLE IF NOT EXISTS `horarios` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `dia_semana` integer NOT NULL,
+  `hora` text,
+  `duracao_min` integer,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS `horarios_aluno` ON `horarios` (`aluno_id`);
+
+CREATE TABLE IF NOT EXISTS `aulas_desmarcadas` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `data` text NOT NULL,
+  `hora` text NOT NULL,
+  `por` text NOT NULL,
+  `motivo` text,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE UNIQUE INDEX IF NOT EXISTS `desmarcada_aluno_data_hora` ON `aulas_desmarcadas` (`aluno_id`, `data`, `hora`);
+
+CREATE TABLE IF NOT EXISTS `reposicoes` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `motivo` text,
+  `data` text,
+  `hora` text,
+  `duracao_min` integer,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS `reposicoes_professor` ON `reposicoes` (`professor_id`);
+
+CREATE TABLE IF NOT EXISTS `lembretes_enviados` (
+  `chave` text PRIMARY KEY NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS `pagamentos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `professor_id` integer NOT NULL,
@@ -209,4 +254,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0005_usuario_assinatura_avisos.sql'),
   ('0006_senha_provisoria_aviso_vencimento.sql'),
   ('0007_diario_mensagem_aluno.sql'),
-  ('0008_financeiro.sql');
+  ('0008_financeiro.sql'),
+  ('0009_agenda_reposicoes.sql');

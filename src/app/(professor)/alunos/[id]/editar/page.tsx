@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, listarInstituicoes } from "@/lib/consultas";
+import { buscarAluno, horariosDoAluno, listarInstituicoes } from "@/lib/consultas";
 
 import { FormAluno } from "../../form-aluno";
 
@@ -28,6 +28,8 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["
       <FormAluno
         aluno={dados}
         diaPadrao={professor.diaVencimento}
+        duracaoPadrao={professor.duracaoAula}
+        horarios={await horariosDoAluno(aluno.id)}
         instituicoes={(await listarInstituicoes(professor.id, { situacao: "todas" })).map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
       />
     </>

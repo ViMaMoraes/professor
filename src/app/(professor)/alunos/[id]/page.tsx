@@ -7,20 +7,25 @@ import { alternarSituacao, excluirAluno } from "@/app/acoes/alunos";
 import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo, Voltar } from "@/components/ui";
+import { agoraBrasilia, resumoHorarios, somarDiasAgenda } from "@/lib/agenda";
 import { exigirProfessor } from "@/lib/auth";
 import { enderecoSite } from "@/lib/endereco";
 import {
+  agendaDoPeriodo,
   buscarAluno,
   buscarInstituicao,
   diarioDoAluno,
   frequenciaDoAluno,
+  horariosDoAluno,
   materiaisDoAluno,
   presencasDoAluno,
   recibosDoAluno,
+  reposicoesPendentes,
 } from "@/lib/consultas";
 import { dataBR, hojeISO, moeda, numeroRecibo } from "@/lib/formato";
 
 import { CompartilharAcesso } from "./compartilhar-acesso";
+import { AulasAluno } from "./aulas-aluno";
 import { DiarioAluno } from "./diario-aluno";
 import { MensagemAluno } from "./mensagem-aluno";
 
@@ -37,13 +42,17 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
   const id = Number((await params).id);
   const aluno = await buscarAluno(professor.id, id);
   if (!aluno) notFound();
-  const [presencas, frequencia, recibos, materiais, instituicao, diario] = await Promise.all([
+  const hojeAgenda = agoraBrasilia().data;
+  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximas, pendentes] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
     recibosDoAluno(id),
     materiaisDoAluno(aluno),
     aluno.instituicaoId ? buscarInstituicao(professor.id, aluno.instituicaoId) : undefined,
     diarioDoAluno(id),
+    horariosDoAluno(id),
+    agendaDoPeriodo(professor, hojeAgenda, somarDiasAgenda(hojeAgenda, 13), { alunoId: id }),
+    reposicoesPendentes(professor.id, id),
   ]);
 
   return (
@@ -59,7 +68,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               {aluno.nome} {!aluno.ativo && <Selo>inativo</Selo>}
             </h1>
             <p className="text-sm text-suave">
-              {[aluno.instrumento ?? "Curso não informado", aluno.nivel, aluno.diaAula && `${aluno.diaAula} ${aluno.horario ?? ""}`]
+              {[aluno.instrumento ?? "Curso não informado", aluno.nivel, resumoHorarios(horarios)]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -133,6 +142,14 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
 
         <div className="min-w-0 space-y-6 lg:col-span-2">
           <DiarioAluno alunoId={aluno.id} registros={diario} hoje={hojeISO()} />
+          <AulasAluno
+            alunoId={aluno.id}
+            nome={aluno.nome}
+            proximas={proximas.slice(0, 6)}
+            pendentes={pendentes}
+            hoje={hojeAgenda}
+            duracaoPadrao={professor.duracaoAula}
+          />
           <Card>
             <CardTitulo
               icone={<CalendarCheck />}

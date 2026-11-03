@@ -32,9 +32,11 @@
   },
   // não apaga as variáveis criadas pelo painel da Cloudflare (ex.: VAPID_CONTATO) a cada deploy
   "keep_vars": true,
-  // todo dia às 8h17 (Brasília): aviso de vencimento dos professores ao master
+  // tarefas agendadas (veja worker.ts):
+  // - todo dia às 8h17 (Brasília): acessos perto de vencer, mensalidades e aulas do dia
+  // - a cada 15 minutos: lembrete da aula para os alunos
   "triggers": {
-    "crons": ["17 11 * * *"]
+    "crons": ["17 11 * * *", "*/15 * * * *"]
   },
   "observability": {
     "enabled": true

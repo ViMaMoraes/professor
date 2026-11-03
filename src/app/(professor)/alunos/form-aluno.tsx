@@ -4,16 +4,23 @@ import { Check } from "lucide-react";
 import { useState } from "react";
 
 import { salvarAluno } from "@/app/acoes/alunos";
+import { EditorHorarios } from "@/components/editor-horarios";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { SelectVencimento } from "@/components/select-vencimento";
 import { InputMascara } from "@/components/input-mascara";
 import { BotaoLink, Campo, Card, Input, Select, Textarea } from "@/components/ui";
-import { DIAS_SEMANA, INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
+import { INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
 import type { Aluno } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
 import { sugerirUsuario } from "@/lib/usuario";
 
-type Props = { aluno?: Omit<Aluno, "senhaHash">; instituicoes: { id: number; nome: string }[]; diaPadrao: number };
+type Props = {
+  aluno?: Omit<Aluno, "senhaHash">;
+  instituicoes: { id: number; nome: string }[];
+  diaPadrao: number;
+  horarios?: { diaSemana: number; hora: string | null; duracaoMin: number | null }[];
+  duracaoPadrao: number;
+};
 
 export function FormAluno(props: Props) {
   // muda a cada "cadastrar outro": recria o formulário vazio (inclusive a sugestão de usuário)
@@ -21,7 +28,7 @@ export function FormAluno(props: Props) {
   return <CamposAluno key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
 }
 
-function CamposAluno({ aluno, instituicoes, diaPadrao, limpar }: Props & { limpar: () => void }) {
+function CamposAluno({ aluno, instituicoes, diaPadrao, horarios, duracaoPadrao, limpar }: Props & { limpar: () => void }) {
   const [usuario, setUsuario] = useState(aluno?.usuario ?? "");
   // num aluno novo, o usuário vai sendo sugerido enquanto o nome é digitado (até ser editado à mão)
   const [mexeuNoUsuario, setMexeuNoUsuario] = useState(Boolean(aluno));
@@ -79,16 +86,8 @@ function CamposAluno({ aluno, instituicoes, diaPadrao, limpar }: Props & { limpa
               ))}
             </Select>
           </Campo>
-          <Campo rotulo="Dia da aula">
-            <Select name="diaAula" defaultValue={aluno?.diaAula ?? ""}>
-              <option value="">—</option>
-              {DIAS_SEMANA.map((d) => (
-                <option key={d}>{d}</option>
-              ))}
-            </Select>
-          </Campo>
-          <Campo rotulo="Horário">
-            <Input type="time" name="horario" defaultValue={aluno?.horario ?? ""} />
+          <Campo rotulo="Horários de aula" dica="Pode ter mais de um por semana. Aparecem na Agenda e geram o lembrete do aluno." className="sm:col-span-2 lg:col-span-3">
+            <EditorHorarios iniciais={horarios ?? []} duracaoPadrao={duracaoPadrao} />
           </Campo>
           <Campo rotulo="Mensalidade (R$)">
             <Input name="mensalidade" inputMode="decimal" placeholder="150,00" defaultValue={centavosParaCampo(aluno?.mensalidadeCentavos)} />

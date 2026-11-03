@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarAluno, buscarInstituicao, usuarioEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { DIAS_LONGOS, DURACOES, horaValida } from "@/lib/agenda";
 import { lerDiaVencimento } from "@/lib/financeiro";
 import { erroTelefone, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
@@ -38,6 +39,15 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   const instituicaoId = Number(dados.get("instituicaoId")) || null;
   if (instituicaoId && !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Instituição inválida." };
 
+  // horários de aula: uma linha por dia (dia, hora, duração)
+  const horas = dados.getAll("horarioHora").map(String);
+  const duracoes = dados.getAll("horarioDuracao").map(Number);
+  const horarios = dados
+    .getAll("horarioDia")
+    .map((dia, i) => ({ diaSemana: Number(dia), hora: horaValida(horas[i]) ? horas[i] : null, duracaoMin: DURACOES.includes(duracoes[i]) ? duracoes[i] : null }))
+    .filter((h) => Number.isInteger(h.diaSemana) && h.diaSemana >= 0 && h.diaSemana <= 6)
+    .slice(0, 14);
+
   const data = (campo: string) => {
     const valor = texto(dados, campo);
     return isoValido(valor) ? valor : null;
@@ -50,8 +60,9 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     dataNascimento: data("dataNascimento"),
     instrumento: texto(dados, "instrumento"),
     nivel: texto(dados, "nivel"),
-    diaAula: texto(dados, "diaAula"),
-    horario: texto(dados, "horario"),
+    // campos antigos, mantidos em dia com o primeiro horário
+    diaAula: horarios[0] ? DIAS_LONGOS[horarios[0].diaSemana] : null,
+    horario: horarios[0]?.hora ?? null,
     mensalidadeCentavos: mensalidade,
     diaVencimento: lerDiaVencimento(dados.get("diaVencimento")),
     dataInicio: data("dataInicio"),
@@ -74,6 +85,11 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
       .returning({ id: schema.alunos.id });
     alunoId = novo.id;
   }
+  // troca os horários de uma vez (o D1 executa o batch junto)
+  await db.batch([
+    db.delete(schema.horarios).where(eq(schema.horarios.alunoId, alunoId!)),
+    ...(horarios.length ? [db.insert(schema.horarios).values(horarios.map((h) => ({ ...h, alunoId: alunoId! })))] : []),
+  ]);
   revalidatePath("/", "layout");
   // aluno novo: o formulário pergunta se quer cadastrar outro; editando, volta para a página dele
   if (!id) return { ok: `Aluno “${nome}” cadastrado!`, criado: true };

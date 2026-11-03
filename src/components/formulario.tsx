@@ -55,12 +55,17 @@ export function Formulario<E extends EstadoForm>({
    */
   cadastrarOutro?: { lista: string; limpar: () => void; pergunta?: string };
 }) {
-  const [estado, executar, enviando] = useActionState<E, FormData>(acao, null as Awaited<E>);
-  const [erroLocal, setErroLocal] = useState<string | null>(null);
   const { confirmar: perguntar, notificar } = useInterface();
+  // o aviso de sucesso sai assim que o servidor responde: se a página atualizar e este formulário sumir
+  // (ex.: o botão "Desmarcar" some depois que a aula é desmarcada), o aviso não se perde
+  const [estado, executar, enviando] = useActionState<E, FormData>(async (anterior, dados) => {
+    const resultado = await acao(anterior, dados);
+    if (resultado?.ok && !(resultado.criado && cadastrarOutro)) notificar(resultado.ok);
+    return resultado;
+  }, null as Awaited<E>);
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
   const router = useRouter();
 
-  // sucesso vira aviso no canto (o estado muda a cada envio)
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (!estado?.ok) return;
@@ -81,7 +86,6 @@ export function Formulario<E extends EstadoForm>({
       });
       return;
     }
-    notificar(estado.ok);
     if (limparAoEnviar) formRef.current?.reset();
     aoConcluir?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando chega um resultado novo

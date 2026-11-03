@@ -64,6 +64,13 @@
       "when": 1793719135484,
       "tag": "0008_financeiro",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793724833843,
+      "tag": "0009_agenda_reposicoes",
+      "breakpoints": true
     }
   ]
 }

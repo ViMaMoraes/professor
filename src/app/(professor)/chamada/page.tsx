@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { BotaoLink, Cabecalho, EsqueletoPagina, estiloBotao } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { DIAS_SEMANA } from "@/lib/constantes";
-import { listarAlunos, listarInstituicoes, presencasNaData } from "@/lib/consultas";
+import { agendaDoPeriodo, listarAlunos, listarInstituicoes, presencasNaData } from "@/lib/consultas";
 import { dataPorExtenso, hojeISO, isoValido, somarDias } from "@/lib/formato";
 
 import { FormChamada } from "./form-chamada";
@@ -41,15 +41,18 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
   const todos = params.todos === "1" || Boolean(instituicaoId);
   const diaSemana = DIAS_SEMANA[new Date(`${dia}T12:00:00Z`).getUTCDay()];
 
-  const [ativos, registros, instituicoes] = await Promise.all([
+  const [ativos, registros, instituicoes, agenda] = await Promise.all([
     listarAlunos(professor.id, { instituicaoId }),
     presencasNaData(professor.id, dia),
     listarInstituicoes(professor.id),
+    agendaDoPeriodo(professor, dia, dia),
   ]);
   const porAluno = new Map(registros.map((r) => [r.alunoId, r]));
-  // por padrão mostra quem tem aula nesse dia da semana ou já tem marcação na data
-  const alunos = (todos ? ativos : ativos.filter((a) => a.diaAula === diaSemana || porAluno.has(a.id))).sort((a, b) =>
-    (a.horario ?? "99").localeCompare(b.horario ?? "99"),
+  // aula do dia de cada aluno (fixa ou reposição); aula desmarcada pelo professor não entra
+  const aulaDo = new Map(agenda.filter((o) => o.desmarcada?.por !== "professor").map((o) => [o.alunoId, o]));
+  // por padrão mostra quem tem aula nesse dia (agenda) ou já tem marcação na data
+  const alunos = (todos ? ativos : ativos.filter((a) => aulaDo.has(a.id) || porAluno.has(a.id))).sort((a, b) =>
+    (aulaDo.get(a.id)?.hora ?? "99").localeCompare(aulaDo.get(b.id)?.hora ?? "99") || a.nome.localeCompare(b.nome),
   );
   const extra = (mostrarTodos: boolean) => `${mostrarTodos ? "&todos=1" : ""}${instituicaoId ? `&instituicao=${instituicaoId}` : ""}`;
   const link = (data: string, mostrarTodos = todos) => `/chamada?data=${data}${extra(mostrarTodos)}`;
@@ -87,7 +90,14 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
         alunos={alunos.map((a) => ({
           id: a.id,
           nome: a.nome,
-          detalhe: [a.instrumento, a.horario].filter(Boolean).join(" · "),
+          detalhe: [
+            a.instrumento,
+            aulaDo.get(a.id)?.hora,
+            aulaDo.get(a.id)?.tipo === "reposicao" && "reposição",
+            aulaDo.get(a.id)?.desmarcada?.por === "aluno" && "avisou que não vem",
+          ]
+            .filter(Boolean)
+            .join(" · "),
           status: porAluno.get(a.id)?.status ?? "",
           observacao: porAluno.get(a.id)?.observacao ?? "",
         }))}

@@ -57,6 +57,14 @@ async function main() {
     )
     .returning();
 
+  // agenda: o horário de cada aluno (a Ana tem aula duas vezes por semana) e uma reposição a marcar
+  const DIA = { Segunda: 1, Terça: 2, Quarta: 3, Quinta: 4, Sábado: 6 } as const;
+  await db.insert(schema.horarios).values([
+    ...alunos.map((a) => ({ alunoId: a.id, diaSemana: DIA[a.diaAula as keyof typeof DIA], hora: a.horario })),
+    { alunoId: alunos[0].id, diaSemana: 3, hora: "18:00" },
+  ]);
+  await db.insert(schema.reposicoes).values({ professorId: professor.id, alunoId: alunos[1].id, motivo: "Aula desmarcada pelo professor (feriado)" });
+
   // quatro segundas-feiras anteriores
   const diaDaSemana = new Date(`${hoje}T12:00:00Z`).getUTCDay();
   const segunda = somarDias(hoje, -((diaDaSemana + 6) % 7));
@@ -123,6 +131,7 @@ async function main() {
       })),
     )
     .returning();
+  await db.insert(schema.horarios).values(daEscola.map((a) => ({ alunoId: a.id, diaSemana: 2, hora: "14:00", duracaoMin: 50 })));
   for (let s = 1; s <= 3; s++) {
     const terca = somarDias(segunda, 1 - 7 * s);
     await db.insert(schema.presencas).values([

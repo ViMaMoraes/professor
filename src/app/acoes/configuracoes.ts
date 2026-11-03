@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { exigirProfessor } from "@/lib/auth";
 import { emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { DURACOES, LEMBRETES } from "@/lib/agenda";
 import { DIA_VENCIMENTO_PADRAO, lerDiaVencimento } from "@/lib/financeiro";
 import { erroDocumento, erroTelefone, mascaraDocumento, mascaraRg, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
@@ -52,6 +53,8 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
       rg: mascaraRg(texto(dados, "rg")) || null,
       diaVencimento: lerDiaVencimento(dados.get("diaVencimento")) ?? DIA_VENCIMENTO_PADRAO,
       chavePix: texto(dados, "chavePix"),
+      duracaoAula: DURACOES.includes(Number(dados.get("duracaoAula"))) ? Number(dados.get("duracaoAula")) : 60,
+      lembreteMinutos: LEMBRETES.some(([m]) => m === Number(dados.get("lembreteMinutos"))) ? Number(dados.get("lembreteMinutos")) : 120,
       ...assinatura,
       ...(novaSenha ? { senhaHash: await bcrypt.hash(novaSenha, 10) } : {}),
     })

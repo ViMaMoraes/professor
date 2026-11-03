@@ -18,6 +18,13 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - página do aluno com histórico de aulas, recibos, materiais e frequência;
   - **diário de aulas:** em cada aula, registre o conteúdo passado e o que estudar em casa. Cada registro pode aparecer para o aluno (em "Minhas aulas") ou ficar como anotação só sua;
   - **mensagem para o aluno:** um recado que aparece em destaque quando ele entra (e chega como notificação quando muda).
+- **Agenda:**
+  - a semana dia a dia com as aulas fixas (cada aluno pode ter vários horários por semana, com duração), as reposições e as aulas desmarcadas;
+  - **desmarcar aula:** com motivo; "gerar reposição" já vem marcado (aula que o professor não deu). O aluno é avisado no celular;
+  - **reposição só quando o professor concede:** falta do aluno não gera reposição; dá para abrir exceção com "Dar reposição" (ex.: atestado). As reposições a marcar ficam no topo da Agenda e na página do aluno, e o aluno é avisado quando você agenda;
+  - **o aluno avisa que não vai** pelo app ("Não vou poder ir", até 2 horas antes): você recebe a notificação e decide se dá reposição;
+  - **lembrete da aula para o aluno** no celular (2 horas antes, ajustável nas Configurações) e **resumo das aulas do dia** para você de manhã;
+  - o Painel e a Chamada usam a agenda: reposições aparecem e aulas desmarcadas saem.
 - **Chamada:**
   - por data, já mostrando quem tem aula naquele dia da semana;
   - situações Presente, Falta, Falta justificada e Reposição, com anotação da aula;

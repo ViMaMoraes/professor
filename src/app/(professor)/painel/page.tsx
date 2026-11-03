@@ -4,11 +4,11 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 
 import { SeloPresenca } from "@/components/selos";
-import { BotaoLink, Card, CardTitulo, cn, Esqueleto } from "@/components/ui";
+import { BotaoLink, Card, CardTitulo, cn, Esqueleto, Selo } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { resumoCobranca } from "@/lib/cobranca";
 import { DIAS_SEMANA } from "@/lib/constantes";
-import { listarAlunos, listarRecibos, presencasNaData, recebidoPorMes, resumoPainel } from "@/lib/consultas";
+import { agendaDoPeriodo, listarRecibos, presencasNaData, recebidoPorMes, resumoPainel } from "@/lib/consultas";
 import { dataBR, hojeISO, MESES, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
 
 export const metadata: Metadata = { title: "Painel" };
@@ -25,17 +25,16 @@ async function Painel() {
   const professor = await exigirProfessor();
   const hoje = hojeISO();
   const diaSemana = DIAS_SEMANA[new Date(`${hoje}T12:00:00Z`).getUTCDay()];
-  const [resumo, porMes, recibos, alunos, chamadasHoje, cobranca] = await Promise.all([
+  const [resumo, porMes, recibos, agendaHoje, chamadasHoje, cobranca] = await Promise.all([
     resumoPainel(professor.id, hoje),
     recebidoPorMes(professor.id, hoje),
     listarRecibos(professor.id),
-    listarAlunos(professor.id),
+    agendaDoPeriodo(professor, hoje, hoje),
     presencasNaData(professor.id, hoje),
     resumoCobranca(professor.id, hoje, professor.diaVencimento),
   ]);
-  const aulasHoje = alunos
-    .filter((a) => a.diaAula === diaSemana)
-    .sort((a, b) => (a.horario ?? "").localeCompare(b.horario ?? ""));
+  // aulas de hoje pela agenda (fixas e reposições); desmarcadas pelo professor não entram
+  const aulasHoje = agendaHoje.filter((o) => o.desmarcada?.por !== "professor");
   const statusHoje = new Map(chamadasHoje.map((p) => [p.alunoId, p.status]));
   const maiorMes = Math.max(...porMes.map((m) => m.total), 1);
 
@@ -124,14 +123,20 @@ async function Painel() {
           ) : (
             <ul className="divide-y divide-borda">
               {aulasHoje.map((a) => {
-                const status = statusHoje.get(a.id);
+                const status = statusHoje.get(a.alunoId);
                 return (
-                  <li key={a.id} className="flex items-center gap-3 px-5 py-3 text-sm">
-                    <span className="w-12 font-mono text-xs text-suave">{a.horario ?? "—"}</span>
-                    <Link href={`/alunos/${a.id}`} className="min-w-0 flex-1 truncate font-medium hover:text-marca-texto">
+                  <li key={a.chave} className="flex items-center gap-3 px-5 py-3 text-sm">
+                    <span className="w-12 font-mono text-xs text-suave">{a.hora ?? "—"}</span>
+                    <Link href={`/alunos/${a.alunoId}`} className="min-w-0 flex-1 truncate font-medium hover:text-marca-texto">
                       {a.nome}
                     </Link>
-                    {status ? <SeloPresenca status={status} /> : <span className="text-xs text-suave">{a.instrumento}</span>}
+                    {status ? (
+                      <SeloPresenca status={status} />
+                    ) : a.desmarcada ? (
+                      <Selo cor="amarelo">avisou que não vem</Selo>
+                    ) : a.tipo === "reposicao" ? (
+                      <Selo cor="azul">reposição</Selo>
+                    ) : null}
                   </li>
                 );
               })}

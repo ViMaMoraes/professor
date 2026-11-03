@@ -5,7 +5,8 @@ import { Suspense } from "react";
 
 import { BotaoLink, Botao, Cabecalho, Card, EsqueletoPagina, Input, Select, Selo, Tabela, Vazio } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
-import { listarAlunos, listarInstituicoes } from "@/lib/consultas";
+import { resumoHorarios } from "@/lib/agenda";
+import { horariosPorAluno, listarAlunos, listarInstituicoes } from "@/lib/consultas";
 import { moeda } from "@/lib/formato";
 
 export const metadata: Metadata = { title: "Alunos" };
@@ -31,9 +32,10 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
   const busca = typeof params.q === "string" ? params.q.trim() : "";
   const situacao = typeof params.situacao === "string" ? params.situacao : "ativos";
   const instituicaoId = Number(params.instituicao) || undefined;
-  const [alunos, instituicoes] = await Promise.all([
+  const [alunos, instituicoes, horarios] = await Promise.all([
     listarAlunos(professor.id, { busca, situacao, instituicaoId }),
     listarInstituicoes(professor.id, { situacao: "todas" }),
+    horariosPorAluno(professor.id),
   ]);
   const nomeInstituicao = new Map(instituicoes.map(({ instituicao: i }) => [i.id, i.nome]));
 
@@ -100,7 +102,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
                     {a.instrumento ?? "—"}
                     {a.nivel && <span className="text-xs text-suave"> · {a.nivel}</span>}
                   </td>
-                  <td className="whitespace-nowrap">{a.diaAula ? `${a.diaAula} ${a.horario ?? ""}` : "—"}</td>
+                  <td className="whitespace-nowrap">{resumoHorarios(horarios.get(a.id) ?? []) || "—"}</td>
                   <td className="whitespace-nowrap">{moeda(a.mensalidadeCentavos)}</td>
                   <td>
                     {a.usuario ? (

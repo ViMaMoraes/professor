@@ -13,19 +13,25 @@ import site from "./.open-next/worker.js";
 
 const app = site as Site;
 
+// igual ao primeiro item de triggers.crons no wrangler.jsonc (8h17 em Brasília)
+const CRON_DIARIO = "17 11 * * *";
+
 const worker = {
   fetch: (pedido: Request, env: Ambiente, ctx: Contexto) => app.fetch(pedido, env, ctx),
 
-  /** Uma vez por dia: avisa o master dos acessos perto de vencer e cada professor das mensalidades do dia. */
-  async scheduled(_evento: unknown, env: Ambiente, ctx: Contexto) {
+  /**
+   * Tarefas agendadas (triggers.crons no wrangler.jsonc):
+   * - todo dia de manhã: acessos perto de vencer (master), mensalidades e aulas do dia (cada professor);
+   * - a cada 15 minutos: lembrete da aula para os alunos.
+   */
+  async scheduled(evento: { cron?: string }, env: Ambiente, ctx: Contexto) {
+    const tarefa = evento.cron === CRON_DIARIO ? "vencimentos" : "lembretes";
     // a tarefa roda dentro do próprio site (mesmo banco e código), protegida pelo SESSION_SECRET
-    const pedido = new Request("https://tarefas.interno/api/tarefas/vencimentos", {
+    const pedido = new Request(`https://tarefas.interno/api/tarefas/${tarefa}`, {
       method: "POST",
       headers: { "x-tarefa": env.SESSION_SECRET ?? "" },
     });
-    ctx.waitUntil(
-      app.fetch(pedido, env, ctx).then(async (resposta) => console.log("[tarefas] vencimentos", resposta.status, await resposta.text())),
-    );
+    ctx.waitUntil(app.fetch(pedido, env, ctx).then(async (resposta) => console.log(`[tarefas] ${tarefa}`, resposta.status, await resposta.text())));
   },
 };
 

@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, asc, desc, eq, exists, gte, inArray, like, lte, or, sql, sum } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gte, inArray, isNull, like, lte, or, sql, sum } from "drizzle-orm";
 
+import { montarAgenda } from "./agenda";
 import { getDb, schema } from "./db";
 import { foraDaCobranca, montarFinanceiro, type Lancamento, type Pagador } from "./financeiro";
 
@@ -429,4 +430,82 @@ export async function buscarPagamento(professorId: number, id: number) {
   const db = await getDb();
   const { pagamentos } = schema;
   return db.query.pagamentos.findFirst({ where: and(eq(pagamentos.id, id), eq(pagamentos.professorId, professorId)) });
+}
+
+/** Agenda (aulas fixas, desmarcadas e reposições agendadas) entre duas datas; opcionalmente de um aluno só. */
+export async function agendaDoPeriodo(
+  professor: { id: number; duracaoAula: number },
+  de: string,
+  ate: string,
+  filtro: { alunoId?: number } = {},
+) {
+  const db = await getDb();
+  const { horarios, aulasDesmarcadas, reposicoes: rep } = schema;
+  const doAluno = filtro.alunoId ? [eq(alunos.id, filtro.alunoId)] : [];
+  const [listaHorarios, desmarcadas, agendadas] = await Promise.all([
+    db
+      .select({
+        alunoId: alunos.id,
+        nome: alunos.nome,
+        diaSemana: horarios.diaSemana,
+        hora: horarios.hora,
+        duracaoMin: horarios.duracaoMin,
+        inicio: alunos.dataInicio,
+      })
+      .from(horarios)
+      .innerJoin(alunos, eq(alunos.id, horarios.alunoId))
+      .where(and(eq(alunos.professorId, professor.id), eq(alunos.ativo, true), ...doAluno)),
+    db
+      .select()
+      .from(aulasDesmarcadas)
+      .where(
+        and(
+          eq(aulasDesmarcadas.professorId, professor.id),
+          gte(aulasDesmarcadas.data, de),
+          lte(aulasDesmarcadas.data, ate),
+          ...(filtro.alunoId ? [eq(aulasDesmarcadas.alunoId, filtro.alunoId)] : []),
+        ),
+      ),
+    db
+      .select({ id: rep.id, alunoId: rep.alunoId, nome: alunos.nome, data: rep.data, hora: rep.hora, duracaoMin: rep.duracaoMin, motivo: rep.motivo })
+      .from(rep)
+      .innerJoin(alunos, eq(alunos.id, rep.alunoId))
+      .where(and(eq(rep.professorId, professor.id), gte(rep.data, de), lte(rep.data, ate), ...doAluno)),
+  ]);
+  return montarAgenda({
+    horarios: listaHorarios,
+    desmarcadas,
+    reposicoes: agendadas.map((r) => ({ ...r, data: r.data! })),
+    de,
+    ate,
+    duracaoPadrao: professor.duracaoAula,
+  });
+}
+
+export async function horariosDoAluno(alunoId: number) {
+  const db = await getDb();
+  return db.select().from(schema.horarios).where(eq(schema.horarios.alunoId, alunoId)).orderBy(asc(schema.horarios.diaSemana), asc(schema.horarios.hora));
+}
+
+/** Horários de todos os alunos do professor, por aluno (para listas). */
+export async function horariosPorAluno(professorId: number) {
+  const db = await getDb();
+  const linhas = await db
+    .select({ alunoId: schema.horarios.alunoId, diaSemana: schema.horarios.diaSemana, hora: schema.horarios.hora })
+    .from(schema.horarios)
+    .innerJoin(alunos, eq(alunos.id, schema.horarios.alunoId))
+    .where(eq(alunos.professorId, professorId));
+  return Map.groupBy(linhas, (h) => h.alunoId);
+}
+
+/** Reposições concedidas e ainda sem data (a marcar). */
+export async function reposicoesPendentes(professorId: number, alunoId?: number) {
+  const db = await getDb();
+  const { reposicoes: rep } = schema;
+  return db
+    .select({ id: rep.id, alunoId: rep.alunoId, nome: alunos.nome, motivo: rep.motivo, criadoEm: rep.criadoEm })
+    .from(rep)
+    .innerJoin(alunos, eq(alunos.id, rep.alunoId))
+    .where(and(eq(rep.professorId, professorId), isNull(rep.data), ...(alunoId ? [eq(rep.alunoId, alunoId)] : [])))
+    .orderBy(asc(rep.criadoEm));
 }

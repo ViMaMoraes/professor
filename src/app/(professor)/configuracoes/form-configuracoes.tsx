@@ -6,8 +6,9 @@ import { salvarConfiguracoes } from "@/app/acoes/configuracoes";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { InputMascara } from "@/components/input-mascara";
 import { SelectVencimento } from "@/components/select-vencimento";
+import { DURACOES, LEMBRETES } from "@/lib/agenda";
 import { CampoAssinatura } from "@/components/campo-assinatura";
-import { Campo, Card, Input } from "@/components/ui";
+import { Campo, Card, Input, Select } from "@/components/ui";
 import type { Professor } from "@/lib/db/schema";
 
 export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor, "senhaHash"> }) {
@@ -39,6 +40,24 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
           </Campo>
           <Campo rotulo="Chave Pix" dica="Vai na mensagem de cobrança do Financeiro.">
             <Input name="chavePix" defaultValue={p.chavePix ?? ""} placeholder="CPF, e-mail, telefone ou chave aleatória" />
+          </Campo>
+          <Campo rotulo="Duração padrão da aula" dica="Usada nos horários e reposições sem duração própria.">
+            <Select name="duracaoAula" defaultValue={p.duracaoAula}>
+              {DURACOES.map((d) => (
+                <option key={d} value={d}>
+                  {d} minutos
+                </option>
+              ))}
+            </Select>
+          </Campo>
+          <Campo rotulo="Lembrete da aula para o aluno" dica="Notificação no celular do aluno antes de cada aula.">
+            <Select name="lembreteMinutos" defaultValue={p.lembreteMinutos}>
+              {LEMBRETES.map(([min, nome]) => (
+                <option key={min} value={min}>
+                  {nome}
+                </option>
+              ))}
+            </Select>
           </Campo>
           <Campo rotulo="Vencimento das mensalidades" dica="Dia padrão; dá para mudar no cadastro de cada aluno ou instituição.">
             <SelectVencimento name="diaVencimento" valor={p.diaVencimento} />
