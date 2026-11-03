@@ -450,7 +450,8 @@ export async function agendaDoPeriodo(
         diaSemana: horarios.diaSemana,
         hora: horarios.hora,
         duracaoMin: horarios.duracaoMin,
-        inicio: alunos.dataInicio,
+        // sem "início das aulas", vale a data do cadastro (o calendário não mostra aulas antes do aluno existir)
+        inicio: sql<string | null>`coalesce(${alunos.dataInicio}, substr(${alunos.criadoEm}, 1, 10))`,
       })
       .from(horarios)
       .innerJoin(alunos, eq(alunos.id, horarios.alunoId))

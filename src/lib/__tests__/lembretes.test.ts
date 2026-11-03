@@ -36,9 +36,9 @@ beforeAll(async () => {
   const [ana, bruno, carla] = await db
     .insert(schema.alunos)
     .values([
-      { professorId: p.id, nome: "Ana Souza" },
-      { professorId: p.id, nome: "Bruno Lima" },
-      { professorId: p.id, nome: "Carla Sem App" },
+      { professorId: p.id, nome: "Ana Souza", dataInicio: "2026-01-01" },
+      { professorId: p.id, nome: "Bruno Lima", dataInicio: "2026-01-01" },
+      { professorId: p.id, nome: "Carla Sem App", dataInicio: "2026-01-01" },
     ])
     .returning();
   // segunda 09/11/2026: Ana 18:00 e Bruno 18:00 (desmarcada); Carla 18:00 sem aparelho
