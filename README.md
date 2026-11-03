@@ -67,6 +67,12 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - **Baixar** baixa direto; documentos do Google vêm em PDF;
   - **download em lote:** marque vários e baixe tudo num **ZIP** (arquivos separados) ou num **PDF único** (páginas em ordem alfabética). O site avisa quais arquivos não puderam entrar.
 - **Avisos:** mande um aviso para todos os alunos, para os de uma instituição ou para alunos escolhidos. Ele aparece na área do aluno e chega como **notificação** no celular de quem ativou. Material novo também gera notificação.
+- **Vídeos:**
+  - vídeos do **YouTube** (pode ser "não listado") ou de arquivos do **Google Drive**, assistidos **dentro do site**: os atalhos dos players que levariam para fora ficam bloqueados e, no fim de um vídeo do YouTube, aparece a tela do site com "assistir de novo" e "próximo vídeo";
+  - organizados em **módulos** montados pelo professor (nome, descrição e ordem; vídeos ordenados dentro de cada módulo);
+  - liberação igual aos materiais: todos os alunos ou alunos escolhidos (com filtro por instituição); vídeo novo avisa no celular;
+  - **quem assistiu:** "visto por X de Y" em cada vídeo e, na página dele, quem viu (quando e quantas vezes) e quem ainda não viu;
+  - na área do aluno, a aba **Vídeos** com os módulos, "✓ visto" e "anterior/próximo".
 - **Configurações:** dados que saem no recibo (CPF, RG, endereço, cidade) e a **assinatura**, desenhada na tela (dedo ou mouse) ou enviada como imagem. Com ela, o recibo já sai assinado.
 - **Avisos e confirmações** do site aparecem em janelas e mensagens próprias, sem os alertas padrão do navegador.
 

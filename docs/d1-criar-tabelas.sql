@@ -137,6 +137,53 @@ CREATE TABLE IF NOT EXISTS `push_inscricoes` (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `push_inscricoes_endpoint_unique` ON `push_inscricoes` (`endpoint`);
 
+CREATE TABLE IF NOT EXISTS `modulos` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `nome` text NOT NULL,
+  `descricao` text,
+  `ordem` integer DEFAULT 0 NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS `modulos_professor` ON `modulos` (`professor_id`);
+
+CREATE TABLE IF NOT EXISTS `videos` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `modulo_id` integer,
+  `titulo` text NOT NULL,
+  `descricao` text,
+  `origem` text NOT NULL,
+  `link` text NOT NULL,
+  `origem_id` text NOT NULL,
+  `ordem` integer DEFAULT 0 NOT NULL,
+  `para_todos` integer DEFAULT true NOT NULL,
+  `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`modulo_id`) REFERENCES `modulos`(`id`) ON UPDATE no action ON DELETE set null
+);
+CREATE INDEX IF NOT EXISTS `videos_professor` ON `videos` (`professor_id`);
+
+CREATE TABLE IF NOT EXISTS `videos_alunos` (
+  `video_id` integer NOT NULL,
+  `aluno_id` integer NOT NULL,
+  PRIMARY KEY (`video_id`, `aluno_id`),
+  FOREIGN KEY (`video_id`) REFERENCES `videos`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
+CREATE TABLE IF NOT EXISTS `visualizacoes` (
+  `video_id` integer NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `primeira_vez` text NOT NULL,
+  `ultima_vez` text NOT NULL,
+  `vezes` integer DEFAULT 1 NOT NULL,
+  PRIMARY KEY (`video_id`, `aluno_id`),
+  FOREIGN KEY (`video_id`) REFERENCES `videos`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
+);
+
 CREATE TABLE IF NOT EXISTS `horarios` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   `aluno_id` integer NOT NULL,
@@ -255,4 +302,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0006_senha_provisoria_aviso_vencimento.sql'),
   ('0007_diario_mensagem_aluno.sql'),
   ('0008_financeiro.sql'),
-  ('0009_agenda_reposicoes.sql');
+  ('0009_agenda_reposicoes.sql'),
+  ('0010_videos.sql');

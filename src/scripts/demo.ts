@@ -202,6 +202,21 @@ async function main() {
     }
   }
 
+  // vídeos (links de exemplo): um módulo com dois vídeos do YouTube e um do Drive sem módulo
+  const [modulo] = await db.insert(schema.modulos).values({ professorId: professor.id, nome: "Módulo 1 – Primeiros passos", ordem: 1 }).returning();
+  await db.insert(schema.videos).values([
+    { professorId: professor.id, moduloId: modulo.id, ordem: 1, titulo: "Postura e afinação", origem: "youtube", link: "https://youtu.be/dQw4w9WgXcQ", origemId: "dQw4w9WgXcQ" },
+    { professorId: professor.id, moduloId: modulo.id, ordem: 2, titulo: "Primeira escala", origem: "youtube", link: "https://youtu.be/9bZkp7q19f0", origemId: "9bZkp7q19f0" },
+    {
+      professorId: professor.id,
+      ordem: 1,
+      titulo: "Gravação do recital",
+      origem: "drive",
+      link: "https://drive.google.com/file/d/1ExemploRecital000000000000000/view",
+      origemId: "1ExemploRecital000000000000000",
+    },
+  ]);
+
   // uma segunda professora (cliente), com um aluno, para ver que um professor não enxerga os dados do outro
   const [outra] = await db
     .insert(schema.professores)

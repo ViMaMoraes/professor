@@ -318,3 +318,66 @@ describe("financeiro", () => {
     for (const a of [paga, deve, daEscola]) await db.delete(schema.alunos).where(eq(schema.alunos.id, a.id));
   });
 });
+
+describe("vídeos", () => {
+  it("acesso por aluno, quem assistiu e módulos na ordem do professor", async () => {
+    const db = await getDb();
+    const [m2, m1] = await db
+      .insert(schema.modulos)
+      .values([
+        { professorId: prof, nome: "Módulo 2", ordem: 2 },
+        { professorId: prof, nome: "Módulo 1", ordem: 1 },
+      ])
+      .returning();
+    const base = { professorId: prof, origem: "youtube" as const, link: "https://youtu.be/dQw4w9WgXcQ", origemId: "dQw4w9WgXcQ" };
+    const [todos, soAna, solto] = await db
+      .insert(schema.videos)
+      .values([
+        { ...base, titulo: "Para todos", moduloId: m1.id, ordem: 1 },
+        { ...base, titulo: "Só da Ana", moduloId: m2.id, ordem: 1, paraTodos: false },
+        { ...base, titulo: "Sem módulo", ordem: 1 },
+      ])
+      .returning();
+    await db.insert(schema.videosAlunos).values({ videoId: soAna.id, alunoId: ana.id });
+    const agora = new Date().toISOString();
+    await db.insert(schema.visualizacoes).values({ videoId: todos.id, alunoId: ana.id, primeiraVez: agora, ultimaVez: agora, vezes: 3 });
+    // vídeo de outro professor não aparece para os alunos deste
+    const [terceiro] = await db.insert(schema.professores).values({ nome: "T", email: "t-video@x.com", senhaHash: "x" }).returning();
+    await db.insert(schema.videos).values({ ...base, professorId: terceiro.id, titulo: "Do outro" });
+
+    const daAna = await consultas.videosDoAluno(ana);
+    expect(daAna.videos.map((v) => [v.titulo, v.visto])).toEqual([
+      ["Para todos", true],
+      ["Só da Ana", false],
+      ["Sem módulo", false],
+    ]);
+    expect((await consultas.videosDoAluno(bruno)).videos.map((v) => v.titulo)).toEqual(["Para todos", "Sem módulo"]);
+    const { agruparPorModulo } = await import("../video");
+    expect(agruparPorModulo(daAna.videos, daAna.modulos).map((g) => [g.modulo?.nome ?? "Outros", g.videos.map((v) => v.titulo)])).toEqual([
+      ["Módulo 1", ["Para todos"]],
+      ["Módulo 2", ["Só da Ana"]],
+      ["Outros", ["Sem módulo"]],
+    ]);
+
+    const lista = await consultas.listarVideos(prof);
+    expect(lista.map((l) => [l.video.titulo, l.vistos, l.publico])).toEqual([
+      ["Para todos", 1, 2],
+      ["Só da Ana", 0, 1],
+      ["Sem módulo", 0, 2],
+    ]);
+    const detalhe = await consultas.buscarVideo(prof, todos.id);
+    expect(detalhe!.assistiu.map((a) => [a.nome, a.visualizacao?.vezes ?? 0])).toEqual([
+      ["Ana", 3],
+      ["Bruno", 0],
+    ]);
+    expect(await consultas.buscarVideo(terceiro.id, todos.id)).toBeUndefined();
+
+    // excluir o módulo manda os vídeos para "Outros vídeos"
+    await db.delete(schema.modulos).where(eq(schema.modulos.id, m1.id));
+    expect((await db.query.videos.findFirst({ where: eq(schema.videos.id, todos.id) }))?.moduloId).toBeNull();
+
+    await db.delete(schema.professores).where(eq(schema.professores.id, terceiro.id));
+    for (const v of [todos, soAna, solto]) await db.delete(schema.videos).where(eq(schema.videos.id, v.id));
+    await db.delete(schema.modulos).where(eq(schema.modulos.id, m2.id));
+  });
+});

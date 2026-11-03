@@ -5,14 +5,19 @@ import { BancoDesatualizado } from "@/components/banco-desatualizado";
 import { CaixaUsuario } from "@/components/caixa-usuario";
 import { Logo } from "@/components/logo";
 import { exigirAlunoComProfessor } from "@/lib/auth";
+import { videosDoAluno } from "@/lib/consultas";
 import { migracoesPendentes } from "@/lib/db";
 import { chavePublicaVapid } from "@/lib/push";
+
+import { AbasPortal } from "./abas-portal";
 
 export default async function LayoutPortal({ children }: LayoutProps<"/portal">) {
   const pendentes = await migracoesPendentes();
   if (pendentes.length) return <BancoDesatualizado pendentes={pendentes} paraAluno />;
   // checa o login antes de qualquer coisa: visitante sem sessão recebe redirecionamento direto
   const { aluno, professor } = await exigirAlunoComProfessor();
+  // a aba Vídeos só aparece quando há vídeo liberado para o aluno
+  const temVideos = (await videosDoAluno(aluno)).videos.length > 0;
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-borda bg-superficie/80 backdrop-blur">
@@ -40,6 +45,7 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
             </div>
           </div>
         </div>
+        {temVideos && <AbasPortal />}
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </>

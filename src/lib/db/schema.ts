@@ -174,6 +174,69 @@ export const materiaisAlunos = sqliteTable(
   (t) => [primaryKey({ columns: [t.materialId, t.alunoId] })],
 );
 
+/** Módulos de vídeo (ex.: "Módulo 1 – Iniciante"), na ordem que o professor montar. */
+export const modulos = sqliteTable(
+  "modulos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    nome: text("nome").notNull(),
+    descricao: text("descricao"),
+    ordem: integer("ordem").notNull().default(0),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("modulos_professor").on(t.professorId)],
+);
+
+/** Vídeo do Google Drive ou do YouTube, assistido dentro do site. */
+export const videos = sqliteTable(
+  "videos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    moduloId: integer("modulo_id").references(() => modulos.id, { onDelete: "set null" }), // vazio = "Outros vídeos"
+    titulo: text("titulo").notNull(),
+    descricao: text("descricao"),
+    origem: text("origem", { enum: ["drive", "youtube"] }).notNull(),
+    link: text("link").notNull(), // como o professor colou
+    origemId: text("origem_id").notNull(), // id do arquivo no Drive ou do vídeo no YouTube
+    ordem: integer("ordem").notNull().default(0), // dentro do módulo
+    paraTodos: integer("para_todos", { mode: "boolean" }).notNull().default(true),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("videos_professor").on(t.professorId)],
+);
+
+export const videosAlunos = sqliteTable(
+  "videos_alunos",
+  {
+    videoId: integer("video_id")
+      .notNull()
+      .references(() => videos.id, { onDelete: "cascade" }),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.videoId, t.alunoId] })],
+);
+
+/** Quem assistiu (abriu o vídeo no site): primeira e última vez e quantas vezes. */
+export const visualizacoes = sqliteTable(
+  "visualizacoes",
+  {
+    videoId: integer("video_id")
+      .notNull()
+      .references(() => videos.id, { onDelete: "cascade" }),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    primeiraVez: text("primeira_vez").notNull(),
+    ultimaVez: text("ultima_vez").notNull(),
+    vezes: integer("vezes").notNull().default(1),
+  },
+  (t) => [primaryKey({ columns: [t.videoId, t.alunoId] })],
+);
+
 /** Inscrições para notificações (um aluno pode ter vários aparelhos). */
 export const pushInscricoes = sqliteTable("push_inscricoes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -309,6 +372,8 @@ export type Pagamento = typeof pagamentos.$inferSelect;
 export type Horario = typeof horarios.$inferSelect;
 export type AulaDesmarcada = typeof aulasDesmarcadas.$inferSelect;
 export type Reposicao = typeof reposicoes.$inferSelect;
+export type Modulo = typeof modulos.$inferSelect;
+export type Video = typeof videos.$inferSelect;
 export type RegistroDiario = typeof diario.$inferSelect;
 export type StatusPresenca = Presenca["status"];
 export type TipoDrive = Material["tipoDrive"];

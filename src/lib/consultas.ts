@@ -521,3 +521,91 @@ export async function reposicoesDoAluno(professorId: number, alunoId: number) {
     .where(and(eq(rep.professorId, professorId), eq(rep.alunoId, alunoId)))
     .orderBy(sql`${rep.data} is not null`, desc(rep.data), desc(rep.hora), desc(rep.id));
 }
+
+// ---- vídeos ----
+
+export async function listarModulos(professorId: number) {
+  const db = await getDb();
+  return db.select().from(schema.modulos).where(eq(schema.modulos.professorId, professorId)).orderBy(asc(schema.modulos.ordem), asc(schema.modulos.id));
+}
+
+/** Quem pode ver cada vídeo do professor (ids de alunos ativos), para contar "visto por X de Y". */
+async function acessoAosVideos(professorId: number) {
+  const db = await getDb();
+  const { videos, videosAlunos, visualizacoes } = schema;
+  const [lista, ativos, liberados, vistas] = await Promise.all([
+    db.select().from(videos).where(eq(videos.professorId, professorId)).orderBy(asc(videos.ordem), asc(videos.id)),
+    db.select({ id: alunos.id, nome: alunos.nome }).from(alunos).where(and(eq(alunos.professorId, professorId), eq(alunos.ativo, true))).orderBy(asc(alunos.nome)),
+    db
+      .select({ videoId: videosAlunos.videoId, alunoId: videosAlunos.alunoId })
+      .from(videosAlunos)
+      .innerJoin(videos, eq(videos.id, videosAlunos.videoId))
+      .where(eq(videos.professorId, professorId)),
+    db
+      .select({ videoId: visualizacoes.videoId, alunoId: visualizacoes.alunoId, primeiraVez: visualizacoes.primeiraVez, ultimaVez: visualizacoes.ultimaVez, vezes: visualizacoes.vezes })
+      .from(visualizacoes)
+      .innerJoin(videos, eq(videos.id, visualizacoes.videoId))
+      .where(eq(videos.professorId, professorId)),
+  ]);
+  const liberadosPor = Map.groupBy(liberados, (l) => l.videoId);
+  const vistasPor = Map.groupBy(vistas, (v) => v.videoId);
+  const publico = (v: (typeof lista)[number]) => {
+    if (v.paraTodos) return ativos;
+    const ids = new Set((liberadosPor.get(v.id) ?? []).map((l) => l.alunoId));
+    return ativos.filter((a) => ids.has(a.id));
+  };
+  return { lista, publico, vistasPor, liberadosPor };
+}
+
+/** Vídeos do professor com "visto por X de Y" (só alunos ativos que podem ver). */
+export async function listarVideos(professorId: number) {
+  const { lista, publico, vistasPor } = await acessoAosVideos(professorId);
+  return lista.map((v) => {
+    const quem = publico(v);
+    const viram = new Set((vistasPor.get(v.id) ?? []).map((x) => x.alunoId));
+    return { video: v, publico: quem.length, vistos: quem.filter((a) => viram.has(a.id)).length };
+  });
+}
+
+/** Um vídeo do professor, com os alunos liberados (para editar) e quem assistiu ou não. */
+export async function buscarVideo(professorId: number, id: number) {
+  const { lista, publico, vistasPor, liberadosPor } = await acessoAosVideos(professorId);
+  const video = lista.find((v) => v.id === id);
+  if (!video) return undefined;
+  const vistas = new Map((vistasPor.get(id) ?? []).map((x) => [x.alunoId, x]));
+  return {
+    video,
+    alunoIds: (liberadosPor.get(id) ?? []).map((l) => l.alunoId),
+    assistiu: publico(video).map((a) => ({ ...a, visualizacao: vistas.get(a.id) ?? null })),
+  };
+}
+
+/** Vídeos que o aluno pode ver (para todos ou liberados para ele), com o que ele já assistiu. */
+export async function videosDoAluno(aluno: AlunoDono) {
+  const db = await getDb();
+  const { videos, videosAlunos, visualizacoes } = schema;
+  const [lista, vistas, mods] = await Promise.all([
+    db
+      .select()
+      .from(videos)
+      .where(
+        and(
+          eq(videos.professorId, aluno.professorId),
+          or(
+            eq(videos.paraTodos, true),
+            exists(
+              db
+                .select({ um: sql`1` })
+                .from(videosAlunos)
+                .where(and(eq(videosAlunos.videoId, videos.id), eq(videosAlunos.alunoId, aluno.id))),
+            ),
+          ),
+        ),
+      )
+      .orderBy(asc(videos.ordem), asc(videos.id)),
+    db.select({ videoId: visualizacoes.videoId }).from(visualizacoes).where(eq(visualizacoes.alunoId, aluno.id)),
+    listarModulos(aluno.professorId),
+  ]);
+  const vistos = new Set(vistas.map((v) => v.videoId));
+  return { videos: lista.map((v) => ({ ...v, visto: vistos.has(v.id) })), modulos: mods };
+}
