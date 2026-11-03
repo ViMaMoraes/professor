@@ -37,6 +37,10 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - o mês fica pago pelo **recibo** (com o campo "Mês de referência", ex.: outubro pago em novembro) ou pelo botão **Marcar pago**, sem recibo (valor, data e forma). Pagamento parcial mostra quanto falta;
   - um pagamento marcado pode virar recibo depois ("Gerar recibo", sem contar duas vezes) ou ser desfeito;
   - dia de vencimento padrão nas Configurações, ajustável no cadastro de cada aluno ou instituição.
+  - **Cobrar:** abre o WhatsApp do aluno (ou do responsável/contato da instituição) com um lembrete educado pronto, com valor, vencimento e a chave Pix das Configurações;
+  - aviso dos **meses anteriores em aberto** (até 3 meses) e lista **"Fora da cobrança"** (quem está sem valor cadastrado, com atalho para preencher);
+  - no **Painel**, cartão com as mensalidades atrasadas e as que vencem nos próximos 3 dias;
+  - **notificação no celular** (ative no fim da tela Financeiro): no dia em que uma mensalidade vence e no dia seguinte, se ficou em atraso.
 - **Recibos:**
   - texto no modelo: *"Eu, Nome, CPF: ..., RG: ..., residente na Rua ... - Cidade/UF, recebi da Igreja X a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino."*, com local, data e **assinatura**;
   - o "referente a" vem do cadastro do aluno ou da instituição (campo *Descrição do pagamento*) e pode ser editado na hora;

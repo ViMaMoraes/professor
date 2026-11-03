@@ -3,7 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, exists, gte, inArray, like, lte, or, sql, sum } from "drizzle-orm";
 
 import { getDb, schema } from "./db";
-import { montarFinanceiro, type Lancamento, type Pagador } from "./financeiro";
+import { foraDaCobranca, montarFinanceiro, type Lancamento, type Pagador } from "./financeiro";
 
 const { professores, alunos, instituicoes, presencas, recibos, materiais, materiaisAlunos } = schema;
 
@@ -382,6 +382,7 @@ export async function financeiroDoMes(professorId: number, mes: string, hoje: st
       valorCentavos: a.mensalidadeCentavos,
       diaVencimento: a.diaVencimento,
       telefone: a.telefone,
+      contato: a.responsavel,
       ativo: a.ativo,
       pagoPorInstituicao: Boolean(a.instituicaoId),
       desde: a.dataInicio ?? a.criadoEm?.slice(0, 10) ?? null,
@@ -393,6 +394,7 @@ export async function financeiroDoMes(professorId: number, mes: string, hoje: st
       valorCentavos: i.valorMensalCentavos,
       diaVencimento: i.diaVencimento,
       telefone: i.telefone,
+      contato: i.contato,
       ativo: i.ativo,
       desde: i.criadoEm.slice(0, 10),
     })),
@@ -418,7 +420,9 @@ export async function financeiroDoMes(professorId: number, mes: string, hoje: st
       formaPagamento: p.formaPagamento,
     })),
   ];
-  return montarFinanceiro(pagadores, lancamentos, mes, hoje, diaPadrao);
+  const linhas = montarFinanceiro(pagadores, lancamentos, mes, hoje, diaPadrao);
+  const fora = foraDaCobranca(pagadores, mes, new Set(linhas.map((l) => `${l.pagador.tipo}-${l.pagador.id}`)));
+  return { linhas, fora };
 }
 
 export async function buscarPagamento(professorId: number, id: number) {

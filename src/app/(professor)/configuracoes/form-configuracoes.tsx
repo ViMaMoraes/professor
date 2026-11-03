@@ -37,6 +37,9 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
           <Campo rotulo="Cidade/UF" dica="A cidade (sem a UF) vai na linha da data do recibo.">
             <Input name="cidade" placeholder="Salto/SP" defaultValue={p.cidade ?? ""} />
           </Campo>
+          <Campo rotulo="Chave Pix" dica="Vai na mensagem de cobrança do Financeiro.">
+            <Input name="chavePix" defaultValue={p.chavePix ?? ""} placeholder="CPF, e-mail, telefone ou chave aleatória" />
+          </Campo>
           <Campo rotulo="Vencimento das mensalidades" dica="Dia padrão; dá para mudar no cadastro de cada aluno ou instituição.">
             <SelectVencimento name="diaVencimento" valor={p.diaVencimento} />
           </Campo>

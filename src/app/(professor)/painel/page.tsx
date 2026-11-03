@@ -1,11 +1,12 @@
-import { CircleCheckBig, CloudDownload, ReceiptText, Users, Wallet } from "lucide-react";
+import { ChevronRight, CircleCheckBig, CloudDownload, ReceiptText, Users, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 
 import { SeloPresenca } from "@/components/selos";
-import { BotaoLink, Card, CardTitulo, Esqueleto } from "@/components/ui";
+import { BotaoLink, Card, CardTitulo, cn, Esqueleto } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
+import { resumoCobranca } from "@/lib/cobranca";
 import { DIAS_SEMANA } from "@/lib/constantes";
 import { listarAlunos, listarRecibos, presencasNaData, recebidoPorMes, resumoPainel } from "@/lib/consultas";
 import { dataBR, hojeISO, MESES, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
@@ -24,12 +25,13 @@ async function Painel() {
   const professor = await exigirProfessor();
   const hoje = hojeISO();
   const diaSemana = DIAS_SEMANA[new Date(`${hoje}T12:00:00Z`).getUTCDay()];
-  const [resumo, porMes, recibos, alunos, chamadasHoje] = await Promise.all([
+  const [resumo, porMes, recibos, alunos, chamadasHoje, cobranca] = await Promise.all([
     resumoPainel(professor.id, hoje),
     recebidoPorMes(professor.id, hoje),
     listarRecibos(professor.id),
     listarAlunos(professor.id),
     presencasNaData(professor.id, hoje),
+    resumoCobranca(professor.id, hoje, professor.diaVencimento),
   ]);
   const aulasHoje = alunos
     .filter((a) => a.diaAula === diaSemana)
@@ -55,6 +57,36 @@ async function Painel() {
           </BotaoLink>
         </div>
       </div>
+
+      {(cobranca.atrasados.length > 0 || cobranca.vencendo.length > 0) && (
+        <Link
+          href="/financeiro?filtro=aberto"
+          className="mb-6 flex items-center gap-4 rounded-2xl border border-borda bg-superficie p-4 shadow-xs transition-colors hover:bg-fundo"
+        >
+          <span
+            className={cn(
+              "rounded-xl p-2.5",
+              cobranca.atrasados.length ? "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400" : "bg-marca-suave text-marca-texto",
+            )}
+          >
+            <Wallet className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-medium">Cobrança</p>
+            <p className="text-suave">
+              {[
+                cobranca.atrasados.length &&
+                  `${cobranca.atrasados.length} ${cobranca.atrasados.length === 1 ? "mensalidade atrasada" : "mensalidades atrasadas"} (${moeda(cobranca.totalAtrasado)})`,
+                cobranca.vencendo.length &&
+                  `${cobranca.vencendo.length} ${cobranca.vencendo.length === 1 ? "vence" : "vencem"} nos próximos 3 dias (${moeda(cobranca.totalVencendo)})`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          <ChevronRight className="size-4 shrink-0 text-suave" />
+        </Link>
+      )}
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Indicador titulo="Alunos ativos" valor={resumo.alunosAtivos} icone={<Users />} href="/alunos" />

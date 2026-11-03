@@ -14,6 +14,8 @@ export type Pagador = {
   valorCentavos: number | null;
   diaVencimento: number | null;
   telefone: string | null;
+  /** Com quem falar na cobrança: responsável do aluno ou contato da instituição. */
+  contato?: string | null;
   ativo: boolean;
   /** Aluno de instituição é cobrado pela instituição, não separado. */
   pagoPorInstituicao?: boolean;
@@ -77,6 +79,24 @@ const diasEntre = (de: string, ate: string) => Math.round((Date.parse(`${ate}T12
 export function cobradoNoMes(p: Pagador, mes: string) {
   if (!p.ativo || !p.valorCentavos || p.valorCentavos <= 0 || p.pagoPorInstituicao) return false;
   return !p.desde || p.desde.slice(0, 7) <= mes;
+}
+
+export type MotivoFora = "sem-valor" | "ainda-nao-comecou";
+
+/**
+ * Ativos que NÃO entram na cobrança do mês e por quê (para não sumirem sem explicação).
+ * Aluno de instituição fica de fora de propósito (é cobrado pela instituição) e não entra aqui.
+ */
+export function foraDaCobranca(pagadores: Pagador[], mes: string, jaListados: Set<string>) {
+  const fora: { pagador: Pagador; motivo: MotivoFora }[] = [];
+  for (const p of pagadores) {
+    if (!p.ativo || p.pagoPorInstituicao || jaListados.has(`${p.tipo}-${p.id}`)) continue;
+    if (!p.valorCentavos || p.valorCentavos <= 0) fora.push({ pagador: p, motivo: "sem-valor" });
+    else if (p.desde && p.desde.slice(0, 7) > mes) fora.push({ pagador: p, motivo: "ainda-nao-comecou" });
+  }
+  // instituições primeiro, depois alunos, em ordem alfabética
+  const peso = (t: TipoPagador) => (t === "instituicao" ? 0 : 1);
+  return fora.sort((a, b) => peso(a.pagador.tipo) - peso(b.pagador.tipo) || a.pagador.nome.localeCompare(b.pagador.nome));
 }
 
 const ORDEM: Record<Situacao, number> = { atrasado: 0, parcial: 1, "a-vencer": 2, pago: 3 };

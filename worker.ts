@@ -16,7 +16,7 @@ const app = site as Site;
 const worker = {
   fetch: (pedido: Request, env: Ambiente, ctx: Contexto) => app.fetch(pedido, env, ctx),
 
-  /** Uma vez por dia: avisa o master dos professores com acesso perto de vencer. */
+  /** Uma vez por dia: avisa o master dos acessos perto de vencer e cada professor das mensalidades do dia. */
   async scheduled(_evento: unknown, env: Ambiente, ctx: Contexto) {
     // a tarefa roda dentro do próprio site (mesmo banco e código), protegida pelo SESSION_SECRET
     const pedido = new Request("https://tarefas.interno/api/tarefas/vencimentos", {

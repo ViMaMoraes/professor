@@ -295,7 +295,8 @@ describe("financeiro", () => {
       .insert(schema.pagamentos)
       .values({ professorId: terceiro.id, alunoId: alunoDele.id, referencia: "2026-11", valorCentavos: 99900, dataPagamento: "2026-11-04" });
 
-    const novembro = await consultas.financeiroDoMes(prof, "2026-11", "2026-11-12", 10);
+    const [semValor] = await db.insert(schema.instituicoes).values({ professorId: prof, nome: "Projeto Sem Valor" }).returning();
+    const { linhas: novembro, fora } = await consultas.financeiroDoMes(prof, "2026-11", "2026-11-12", 10);
     const resumo = novembro.map((l) => [l.pagador.nome, l.situacao, l.pagoCentavos, l.lancamentos.map((x) => x.origem).join("+")]);
     expect(resumo).toEqual([
       ["Deve Ainda", "atrasado", 0, ""],
@@ -303,9 +304,14 @@ describe("financeiro", () => {
       ["Paga Tudo", "pago", 15000, "manual"],
     ]);
     expect(novembro.some((l) => l.pagador.id === daEscola.id && l.pagador.tipo === "aluno")).toBe(false);
-    const outubro = await consultas.financeiroDoMes(prof, "2026-10", "2026-11-12", 10);
+    // quem não é cobrado aparece em "fora da cobrança", com o motivo (aluno de instituição não entra)
+    expect(fora.filter((f) => ["Projeto Sem Valor", "Da Escola"].includes(f.pagador.nome)).map((f) => [f.pagador.nome, f.motivo])).toEqual([
+      ["Projeto Sem Valor", "sem-valor"],
+    ]);
+    await db.delete(schema.instituicoes).where(eq(schema.instituicoes.id, semValor.id));
+    const { linhas: outubro } = await consultas.financeiroDoMes(prof, "2026-10", "2026-11-12", 10);
     expect(outubro.find((l) => l.pagador.nome === "Paga Tudo")).toMatchObject({ situacao: "atrasado", pagoCentavos: 10000, faltaCentavos: 5000 });
-    expect((await consultas.financeiroDoMes(terceiro.id, "2026-11", "2026-11-12", 10)).map((l) => l.pagador.nome)).toEqual(["Aluno Dele"]);
+    expect((await consultas.financeiroDoMes(terceiro.id, "2026-11", "2026-11-12", 10)).linhas.map((l) => l.pagador.nome)).toEqual(["Aluno Dele"]);
     await db.delete(schema.professores).where(eq(schema.professores.id, terceiro.id));
 
     await db.delete(schema.instituicoes).where(eq(schema.instituicoes.id, escola.id));

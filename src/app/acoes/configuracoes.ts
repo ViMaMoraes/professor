@@ -51,6 +51,7 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
       cidade: texto(dados, "cidade"),
       rg: mascaraRg(texto(dados, "rg")) || null,
       diaVencimento: lerDiaVencimento(dados.get("diaVencimento")) ?? DIA_VENCIMENTO_PADRAO,
+      chavePix: texto(dados, "chavePix"),
       ...assinatura,
       ...(novaSenha ? { senhaHash: await bcrypt.hash(novaSenha, 10) } : {}),
     })

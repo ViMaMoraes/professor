@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { valorPorExtenso, numeroPorExtenso } from "../extenso";
 import { centavosParaCampo, dataBR, dataPorExtenso, isoValido, lerValorEmCentavos, moeda, somarDias } from "../formato";
-import { linkWhatsapp } from "../mensagens";
+import { linkWhatsapp, mensagemCobranca } from "../mensagens";
 import { pagadorDoRecibo, referenteA } from "../pagador";
 import { linhaDataRecibo, textoRecibo } from "../recibo-pdf";
 import { normalizarUsuario, sugerirUsuario } from "../usuario";
@@ -152,5 +152,26 @@ describe("usuário do aluno", () => {
   it("normaliza o que foi digitado", () => {
     expect(normalizarUsuario("  Ana Souza ")).toBe("ana.souza");
     expect(normalizarUsuario("JOÃO#1")).toBe("joao1");
+  });
+});
+
+describe("mensagem de cobrança", () => {
+  const base = { nome: "Bruno Lima", tipo: "aluno" as const, mes: "novembro de 2026", faltaCentavos: 20000, parcial: false, vencimento: "2026-11-05" };
+  it("a vencer, com Pix e assinatura", () => {
+    expect(mensagemCobranca({ ...base, atrasado: false, chavePix: "11999990000", professor: "Marcus" })).toBe(
+      "Olá, Bruno! Tudo bem? Passando para lembrar que a mensalidade de novembro de 2026 (R$ 200,00) vence em 05/11/2026." +
+        "\n\nChave Pix: 11999990000\n\nObrigado!\nMarcus",
+    );
+  });
+  it("atrasada, falando com o responsável, e parcial", () => {
+    const m = mensagemCobranca({ ...base, contato: "Marina Lima", parcial: true, faltaCentavos: 5000, atrasado: true });
+    expect(m).toContain("Olá, Marina!");
+    expect(m).toContain("lembrar que ainda falta R$ 50,00 da mensalidade de novembro de 2026 de Bruno, que venceu em 05/11/2026.");
+    expect(m).toContain("pode desconsiderar");
+  });
+  it("instituição com contato", () => {
+    expect(mensagemCobranca({ ...base, tipo: "instituicao", nome: "Igreja Central", contato: "Sílvia", atrasado: false })).toContain(
+      "Olá, Sílvia! Tudo bem? Passando para lembrar que a mensalidade de novembro de 2026 da Igreja Central (R$ 200,00) vence em",
+    );
   });
 });
