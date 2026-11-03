@@ -31,6 +31,12 @@ Feito com **Next.js 16** (App Router, Server Actions), **React 19**, **Tailwind 
   - cadastro de escolas, igrejas, projetos ou famílias que pagam por vários alunos (CNPJ/CPF, contato, valor mensal);
   - o recibo pode sair no nome da instituição (sem listar os alunos);
   - a chamada continua por aluno: filtro por instituição na chamada e no histórico, frequência de cada aluno na página da instituição e planilha só dos alunos dela.
+- **Financeiro:**
+  - mês a mês, quem já pagou e quem está em aberto: totais de previsto, recebido, a vencer e atrasado;
+  - entram os alunos particulares com mensalidade e as instituições com valor mensal (aluno de instituição é cobrado pela instituição);
+  - o mês fica pago pelo **recibo** (com o campo "Mês de referência", ex.: outubro pago em novembro) ou pelo botão **Marcar pago**, sem recibo (valor, data e forma). Pagamento parcial mostra quanto falta;
+  - um pagamento marcado pode virar recibo depois ("Gerar recibo", sem contar duas vezes) ou ser desfeito;
+  - dia de vencimento padrão nas Configurações, ajustável no cadastro de cada aluno ou instituição.
 - **Recibos:**
   - texto no modelo: *"Eu, Nome, CPF: ..., RG: ..., residente na Rua ... - Cidade/UF, recebi da Igreja X a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino."*, com local, data e **assinatura**;
   - o "referente a" vem do cadastro do aluno ou da instituição (campo *Descrição do pagamento*) e pode ser editado na hora;

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarAluno, buscarInstituicao, usuarioEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { lerDiaVencimento } from "@/lib/financeiro";
 import { erroTelefone, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
@@ -52,6 +53,7 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     diaAula: texto(dados, "diaAula"),
     horario: texto(dados, "horario"),
     mensalidadeCentavos: mensalidade,
+    diaVencimento: lerDiaVencimento(dados.get("diaVencimento")),
     dataInicio: data("dataInicio"),
     observacoes: texto(dados, "observacoes"),
     descricaoRecibo: texto(dados, "descricaoRecibo"),

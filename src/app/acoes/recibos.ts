@@ -8,6 +8,7 @@ import { exigirProfessor } from "@/lib/auth";
 import { buscarAluno, buscarInstituicao, buscarRecibo } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
+import { mesValido } from "@/lib/financeiro";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
 
 /** Cria (id = null) ou edita um recibo. Na edição o número continua o mesmo. */
@@ -32,6 +33,9 @@ export async function salvarRecibo(id: number | null, _: EstadoForm, dados: Form
   if (!valor) return { erro: "Informe um valor válido." };
   if (!isoValido(dataPagamento)) return { erro: "Informe a data do pagamento." };
   if (!referente) return { erro: "Informe a que se refere o pagamento." };
+  // mês que o pagamento quita (aparece no Financeiro); sem ele, vale o mês da data do pagamento
+  const mes = dados.get("referencia");
+  const referencia = mesValido(mes) ? mes : dataPagamento.slice(0, 7);
 
   const valores = {
     alunoId: alunoId || null,
@@ -39,6 +43,7 @@ export async function salvarRecibo(id: number | null, _: EstadoForm, dados: Form
     valorCentavos: valor,
     referente,
     dataPagamento,
+    referencia,
     formaPagamento: texto(dados, "formaPagamento"),
     observacoes: texto(dados, "observacoes"),
   };
@@ -61,6 +66,21 @@ export async function salvarRecibo(id: number | null, _: EstadoForm, dados: Form
       })
       .returning({ id: schema.recibos.id });
     reciboId = novo.id;
+
+    // recibo de um pagamento que estava só marcado no Financeiro: o recibo o substitui (não conta duas vezes)
+    const pagamentoId = Number(dados.get("pagamentoId"));
+    if (pagamentoId) {
+      const { pagamentos } = schema;
+      await db
+        .delete(pagamentos)
+        .where(
+          and(
+            eq(pagamentos.id, pagamentoId),
+            eq(pagamentos.professorId, professor.id),
+            alunoId ? eq(pagamentos.alunoId, alunoId) : eq(pagamentos.instituicaoId, instituicaoId),
+          ),
+        );
+    }
   }
 
   revalidatePath("/", "layout");

@@ -14,7 +14,7 @@ export default async function PaginaNovaInstituicao() {
     <>
       <Voltar href="/instituicoes">Voltar para instituições</Voltar>
       <Cabecalho titulo="Nova instituição" descricao="Escola, igreja, projeto social ou família que paga por vários alunos." />
-      <FormInstituicao alunos={await opcoesDeAlunos(professor.id)} />
+      <FormInstituicao alunos={await opcoesDeAlunos(professor.id)} diaPadrao={professor.diaVencimento} />
     </>
   );
 }

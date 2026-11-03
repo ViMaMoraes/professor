@@ -116,6 +116,7 @@ describe("texto do recibo", () => {
     referente: "às aulas de violino",
     formaPagamento: "Pix",
     dataPagamento: "2026-03-10",
+    referencia: "2026-03",
     observacoes: null,
     criadoEm: "2026-03-10",
   };

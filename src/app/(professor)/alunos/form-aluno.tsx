@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { salvarAluno } from "@/app/acoes/alunos";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { SelectVencimento } from "@/components/select-vencimento";
 import { InputMascara } from "@/components/input-mascara";
 import { BotaoLink, Campo, Card, Input, Select, Textarea } from "@/components/ui";
 import { DIAS_SEMANA, INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
@@ -12,7 +13,7 @@ import type { Aluno } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
 import { sugerirUsuario } from "@/lib/usuario";
 
-type Props = { aluno?: Omit<Aluno, "senhaHash">; instituicoes: { id: number; nome: string }[] };
+type Props = { aluno?: Omit<Aluno, "senhaHash">; instituicoes: { id: number; nome: string }[]; diaPadrao: number };
 
 export function FormAluno(props: Props) {
   // muda a cada "cadastrar outro": recria o formulário vazio (inclusive a sugestão de usuário)
@@ -20,7 +21,7 @@ export function FormAluno(props: Props) {
   return <CamposAluno key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
 }
 
-function CamposAluno({ aluno, instituicoes, limpar }: Props & { limpar: () => void }) {
+function CamposAluno({ aluno, instituicoes, diaPadrao, limpar }: Props & { limpar: () => void }) {
   const [usuario, setUsuario] = useState(aluno?.usuario ?? "");
   // num aluno novo, o usuário vai sendo sugerido enquanto o nome é digitado (até ser editado à mão)
   const [mexeuNoUsuario, setMexeuNoUsuario] = useState(Boolean(aluno));
@@ -91,6 +92,9 @@ function CamposAluno({ aluno, instituicoes, limpar }: Props & { limpar: () => vo
           </Campo>
           <Campo rotulo="Mensalidade (R$)">
             <Input name="mensalidade" inputMode="decimal" placeholder="150,00" defaultValue={centavosParaCampo(aluno?.mensalidadeCentavos)} />
+          </Campo>
+          <Campo rotulo="Vencimento" dica="Dia do mês em que a mensalidade vence (Financeiro).">
+            <SelectVencimento name="diaVencimento" valor={aluno?.diaVencimento} padrao={diaPadrao} />
           </Campo>
           <Campo rotulo="Início das aulas">
             <Input type="date" name="dataInicio" defaultValue={aluno?.dataInicio ?? ""} />

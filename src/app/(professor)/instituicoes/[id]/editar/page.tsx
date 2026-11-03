@@ -15,7 +15,7 @@ export default async function PaginaEditarInstituicao(props: PageProps<"/institu
     <>
       <Voltar href={`/instituicoes/${instituicao.id}`}>{`Voltar para ${instituicao.nome}`}</Voltar>
       <Cabecalho titulo={`Editar ${instituicao.nome}`} />
-      <FormInstituicao instituicao={instituicao} alunos={await opcoesDeAlunos(professor.id, instituicao.id)} />
+      <FormInstituicao instituicao={instituicao} alunos={await opcoesDeAlunos(professor.id, instituicao.id)} diaPadrao={professor.diaVencimento} />
     </>
   );
 }

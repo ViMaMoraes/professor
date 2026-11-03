@@ -267,3 +267,48 @@ describe("diário de aulas", () => {
     expect(await consultas.diarioDoAluno(temp.id)).toEqual([]);
   });
 });
+
+describe("financeiro", () => {
+  it("junta recibos e pagamentos marcados do mês, por professor", async () => {
+    const db = await getDb();
+    const [escola] = await db.insert(schema.instituicoes).values({ professorId: prof, nome: "Escola Fin", valorMensalCentavos: 60000 }).returning();
+    const [paga, deve, daEscola] = await db
+      .insert(schema.alunos)
+      .values([
+        { professorId: prof, nome: "Paga Tudo", mensalidadeCentavos: 15000, dataInicio: "2026-01-01" },
+        { professorId: prof, nome: "Deve Ainda", mensalidadeCentavos: 20000, dataInicio: "2026-01-01", diaVencimento: 5 },
+        { professorId: prof, nome: "Da Escola", mensalidadeCentavos: 10000, instituicaoId: escola.id, dataInicio: "2026-01-01" },
+      ])
+      .returning();
+    await db.insert(schema.recibos).values([
+      // recibo de outubro pago em novembro: conta para outubro
+      { professorId: prof, numero: 900, alunoId: paga.id, valorCentavos: 10000, referente: "x", dataPagamento: "2026-11-02", referencia: "2026-10" },
+      { professorId: prof, numero: 901, instituicaoId: escola.id, valorCentavos: 60000, referente: "x", dataPagamento: "2026-11-03", referencia: "2026-11" },
+    ]);
+    await db.insert(schema.pagamentos).values([
+      { professorId: prof, alunoId: paga.id, referencia: "2026-11", valorCentavos: 15000, dataPagamento: "2026-11-04", formaPagamento: "Pix" },
+    ]);
+    // pagamento de outro professor não aparece
+    const [terceiro] = await db.insert(schema.professores).values({ nome: "Terceiro", email: "terceiro@x.com", senhaHash: "x" }).returning();
+    const [alunoDele] = await db.insert(schema.alunos).values({ professorId: terceiro.id, nome: "Aluno Dele", mensalidadeCentavos: 99900 }).returning();
+    await db
+      .insert(schema.pagamentos)
+      .values({ professorId: terceiro.id, alunoId: alunoDele.id, referencia: "2026-11", valorCentavos: 99900, dataPagamento: "2026-11-04" });
+
+    const novembro = await consultas.financeiroDoMes(prof, "2026-11", "2026-11-12", 10);
+    const resumo = novembro.map((l) => [l.pagador.nome, l.situacao, l.pagoCentavos, l.lancamentos.map((x) => x.origem).join("+")]);
+    expect(resumo).toEqual([
+      ["Deve Ainda", "atrasado", 0, ""],
+      ["Escola Fin", "pago", 60000, "recibo"],
+      ["Paga Tudo", "pago", 15000, "manual"],
+    ]);
+    expect(novembro.some((l) => l.pagador.id === daEscola.id && l.pagador.tipo === "aluno")).toBe(false);
+    const outubro = await consultas.financeiroDoMes(prof, "2026-10", "2026-11-12", 10);
+    expect(outubro.find((l) => l.pagador.nome === "Paga Tudo")).toMatchObject({ situacao: "atrasado", pagoCentavos: 10000, faltaCentavos: 5000 });
+    expect((await consultas.financeiroDoMes(terceiro.id, "2026-11", "2026-11-12", 10)).map((l) => l.pagador.nome)).toEqual(["Aluno Dele"]);
+    await db.delete(schema.professores).where(eq(schema.professores.id, terceiro.id));
+
+    await db.delete(schema.instituicoes).where(eq(schema.instituicoes.id, escola.id));
+    for (const a of [paga, deve, daEscola]) await db.delete(schema.alunos).where(eq(schema.alunos.id, a.id));
+  });
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Building2, CircleCheckBig, CloudDownload, Crown, LayoutDashboard, Menu, ReceiptText, Settings, Users, X } from "lucide-react";
+import { Bell, Building2, CircleCheckBig, CloudDownload, Crown, LayoutDashboard, Menu, ReceiptText, Settings, Users, Wallet, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
@@ -13,6 +13,7 @@ const ITENS = [
   { href: "/alunos", nome: "Alunos", icone: Users },
   { href: "/instituicoes", nome: "Instituições", icone: Building2 },
   { href: "/chamada", nome: "Chamada", icone: CircleCheckBig },
+  { href: "/financeiro", nome: "Financeiro", icone: Wallet },
   { href: "/recibos", nome: "Recibos", icone: ReceiptText },
   { href: "/materiais", nome: "Downloads", icone: CloudDownload },
   { href: "/avisos", nome: "Avisos", icone: Bell },

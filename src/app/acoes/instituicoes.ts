@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarInstituicao, listarAlunos } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
+import { lerDiaVencimento } from "@/lib/financeiro";
 import { erroDocumento, erroTelefone, mascaraDocumento, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { lerValorEmCentavos } from "@/lib/formato";
@@ -35,6 +36,7 @@ export async function salvarInstituicao(id: number | null, _: EstadoForm, dados:
     telefone: mascaraTelefone(texto(dados, "telefone")) || null,
     endereco: texto(dados, "endereco"),
     valorMensalCentavos: valorMensal,
+    diaVencimento: lerDiaVencimento(dados.get("diaVencimento")),
     tratamento: TRATAMENTOS.find((t) => t === dados.get("tratamento")) ?? "de",
     descricaoRecibo: texto(dados, "descricaoRecibo"),
     observacoes: texto(dados, "observacoes"),

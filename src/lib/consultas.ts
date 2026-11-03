@@ -3,6 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, exists, gte, inArray, like, lte, or, sql, sum } from "drizzle-orm";
 
 import { getDb, schema } from "./db";
+import { montarFinanceiro, type Lancamento, type Pagador } from "./financeiro";
 
 const { professores, alunos, instituicoes, presencas, recibos, materiais, materiaisAlunos } = schema;
 
@@ -354,4 +355,74 @@ export async function diarioDoAluno(alunoId: number, { soVisiveis = false, limit
     .where(and(...condicoes))
     .orderBy(desc(diario.data), desc(diario.id))
     .limit(limite);
+}
+
+/** Financeiro do mês: cada aluno particular/instituição com o que deve, o que pagou e a situação. */
+export async function financeiroDoMes(professorId: number, mes: string, hoje: string, diaPadrao: number) {
+  const db = await getDb();
+  const { pagamentos } = schema;
+  const [listaAlunos, listaInstituicoes, recibosDoMes, pagamentosDoMes] = await Promise.all([
+    db.select().from(alunos).where(eq(alunos.professorId, professorId)),
+    db.select().from(instituicoes).where(eq(instituicoes.professorId, professorId)),
+    db
+      .select()
+      .from(recibos)
+      .where(and(eq(recibos.professorId, professorId), eq(recibos.referencia, mes))),
+    db
+      .select()
+      .from(pagamentos)
+      .where(and(eq(pagamentos.professorId, professorId), eq(pagamentos.referencia, mes))),
+  ]);
+
+  const pagadores: Pagador[] = [
+    ...listaAlunos.map((a) => ({
+      tipo: "aluno" as const,
+      id: a.id,
+      nome: a.nome,
+      valorCentavos: a.mensalidadeCentavos,
+      diaVencimento: a.diaVencimento,
+      telefone: a.telefone,
+      ativo: a.ativo,
+      pagoPorInstituicao: Boolean(a.instituicaoId),
+      desde: a.dataInicio ?? a.criadoEm?.slice(0, 10) ?? null,
+    })),
+    ...listaInstituicoes.map((i) => ({
+      tipo: "instituicao" as const,
+      id: i.id,
+      nome: i.nome,
+      valorCentavos: i.valorMensalCentavos,
+      diaVencimento: i.diaVencimento,
+      telefone: i.telefone,
+      ativo: i.ativo,
+      desde: i.criadoEm.slice(0, 10),
+    })),
+  ];
+  const lancamentos: Lancamento[] = [
+    ...recibosDoMes.map((r) => ({
+      origem: "recibo" as const,
+      id: r.id,
+      tipo: r.instituicaoId ? ("instituicao" as const) : ("aluno" as const),
+      pagadorId: (r.instituicaoId ?? r.alunoId)!,
+      valorCentavos: r.valorCentavos,
+      dataPagamento: r.dataPagamento,
+      formaPagamento: r.formaPagamento,
+      numero: r.numero,
+    })),
+    ...pagamentosDoMes.map((p) => ({
+      origem: "manual" as const,
+      id: p.id,
+      tipo: p.instituicaoId ? ("instituicao" as const) : ("aluno" as const),
+      pagadorId: (p.instituicaoId ?? p.alunoId)!,
+      valorCentavos: p.valorCentavos,
+      dataPagamento: p.dataPagamento,
+      formaPagamento: p.formaPagamento,
+    })),
+  ];
+  return montarFinanceiro(pagadores, lancamentos, mes, hoje, diaPadrao);
+}
+
+export async function buscarPagamento(professorId: number, id: number) {
+  const db = await getDb();
+  const { pagamentos } = schema;
+  return db.query.pagamentos.findFirst({ where: and(eq(pagamentos.id, id), eq(pagamentos.professorId, professorId)) });
 }

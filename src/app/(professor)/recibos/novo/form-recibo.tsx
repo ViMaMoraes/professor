@@ -7,6 +7,7 @@ import { salvarRecibo } from "@/app/acoes/recibos";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { BotaoLink, Campo, Card, cn, Input, Select } from "@/components/ui";
 import { FORMAS_PAGAMENTO } from "@/lib/constantes";
+import { nomeMes, somarMeses } from "@/lib/financeiro";
 import { centavosParaCampo } from "@/lib/formato";
 
 // "descricao" vem do cadastro do aluno/instituição (ex.: "às aulas de violino")
@@ -22,6 +23,16 @@ export type ReciboEditavel = {
   referente: string;
   formaPagamento: string | null;
   observacoes: string | null;
+  referencia: string | null;
+};
+
+/** Vindo do Financeiro ("Gerar recibo"): mês, valor e, se era um pagamento marcado, os dados dele. */
+export type ReciboPreenchido = {
+  referencia?: string;
+  valorCentavos?: number;
+  dataPagamento?: string;
+  formaPagamento?: string | null;
+  pagamentoId?: number;
 };
 
 export function FormRecibo({
@@ -32,6 +43,7 @@ export function FormRecibo({
   hoje,
   referentePadrao,
   recibo,
+  preenchido,
 }: {
   alunos: Opcao[];
   instituicoes: Opcao[];
@@ -40,6 +52,7 @@ export function FormRecibo({
   hoje: string;
   referentePadrao: string;
   recibo?: ReciboEditavel;
+  preenchido?: ReciboPreenchido;
 }) {
   // editando: começa com o pagador do recibo
   const alunoIni = recibo ? (recibo.alunoId ?? undefined) : alunoInicial;
@@ -49,7 +62,12 @@ export function FormRecibo({
   const [instituicaoId, setInstituicaoId] = useState(instituicaoIni ? String(instituicaoIni) : "");
   const achar = (lista: Opcao[], id: string | number | undefined) => lista.find((o) => String(o.id) === String(id));
   const inicial = instituicaoIni ? achar(instituicoes, instituicaoIni) : achar(alunos, alunoIni);
-  const [valor, setValor] = useState(() => centavosParaCampo(recibo ? recibo.valorCentavos : inicial?.mensalidade));
+  const [valor, setValor] = useState(() =>
+    centavosParaCampo(recibo ? recibo.valorCentavos : (preenchido?.valorCentavos ?? inicial?.mensalidade)),
+  );
+  // mês que o pagamento quita: os 12 anteriores e os 2 próximos (e o do recibo, se for mais antigo)
+  const referencia = recibo?.referencia ?? preenchido?.referencia ?? hoje.slice(0, 7);
+  const meses = [...new Set([...Array.from({ length: 15 }, (_, i) => somarMeses(hoje.slice(0, 7), 2 - i)), referencia])].sort().reverse();
   const [referente, setReferente] = useState(() => recibo?.referente || inicial?.descricao || referentePadrao);
 
   /** Ao escolher aluno/instituição, traz o valor e a descrição do cadastro. */
@@ -67,6 +85,7 @@ export function FormRecibo({
 
   return (
     <Formulario acao={salvarRecibo.bind(null, recibo?.id ?? null)}>
+      {preenchido?.pagamentoId && <input type="hidden" name="pagamentoId" value={preenchido.pagamentoId} />}
       <input type="hidden" name="tipo" value={tipo} />
       <Card className="grid gap-4 p-5 sm:grid-cols-4">
         <fieldset className="sm:col-span-4">
@@ -148,20 +167,29 @@ export function FormRecibo({
           <Input name="valor" inputMode="decimal" required placeholder="150,00" value={valor} onChange={(e) => setValor(e.target.value)} />
         </Campo>
         <Campo rotulo="Data do pagamento *">
-          <Input type="date" name="dataPagamento" required defaultValue={recibo?.dataPagamento ?? hoje} />
+          <Input type="date" name="dataPagamento" required defaultValue={recibo?.dataPagamento ?? preenchido?.dataPagamento ?? hoje} />
+        </Campo>
+        <Campo rotulo="Mês de referência" dica="O mês que este pagamento quita (Financeiro).">
+          <Select name="referencia" defaultValue={referencia}>
+            {meses.map((m) => (
+              <option key={m} value={m}>
+                {nomeMes(m)}
+              </option>
+            ))}
+          </Select>
         </Campo>
         <Campo rotulo="Referente *" dica="Ex.: “às aulas de violino” (sai: “…referente às aulas de violino.”)" className="sm:col-span-3">
           <Input name="referente" required value={referente} onChange={(e) => setReferente(e.target.value)} />
         </Campo>
         <Campo rotulo="Forma de pagamento">
-          <Select name="formaPagamento" defaultValue={recibo ? (recibo.formaPagamento ?? "") : "Pix"}>
+          <Select name="formaPagamento" defaultValue={recibo ? (recibo.formaPagamento ?? "") : (preenchido?.formaPagamento ?? "Pix")}>
             {recibo && <option value="">—</option>}
             {FORMAS_PAGAMENTO.map((f) => (
               <option key={f}>{f}</option>
             ))}
           </Select>
         </Campo>
-        <Campo rotulo="Observações" dica="Opcional. Aparece no recibo." className="sm:col-span-4">
+        <Campo rotulo="Observações" dica="Opcional. Aparece no recibo." className="sm:col-span-3">
           <Input name="observacoes" defaultValue={recibo?.observacoes ?? ""} />
         </Campo>
         <div className="flex gap-2 sm:col-span-4">

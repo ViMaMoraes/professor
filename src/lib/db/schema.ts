@@ -18,6 +18,7 @@ export const professores = sqliteTable("professores", {
   cidade: text("cidade"),
   rg: text("rg"),
   chavePix: text("chave_pix"),
+  diaVencimento: integer("dia_vencimento").notNull().default(10), // dia padrão das mensalidades (1 a 28)
   assinatura: text("assinatura"), // imagem PNG (data URL) que vai no recibo
   // administração da plataforma
   master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
@@ -50,6 +51,7 @@ export const instituicoes = sqliteTable(
     telefone: text("telefone"),
     endereco: text("endereco"),
     valorMensalCentavos: integer("valor_mensal_centavos"),
+    diaVencimento: integer("dia_vencimento"), // vazio = dia padrão do professor
     // texto do recibo: "recebi {tratamento} {nome} ... referente {descricaoRecibo}"
     tratamento: text("tratamento"), // "da", "do" ou "de"
     descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
@@ -80,6 +82,7 @@ export const alunos = sqliteTable("alunos", {
   diaAula: text("dia_aula"),
   horario: text("horario"),
   mensalidadeCentavos: integer("mensalidade_centavos"),
+  diaVencimento: integer("dia_vencimento"), // vazio = dia padrão do professor
   dataInicio: text("data_inicio"),
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   observacoes: text("observacoes"),
@@ -113,10 +116,33 @@ export const recibos = sqliteTable(
     referente: text("referente").notNull(),
     formaPagamento: text("forma_pagamento"),
     dataPagamento: text("data_pagamento").notNull(),
+    referencia: text("referencia"), // mês pago, AAAA-MM (ex.: outubro pago em novembro)
     observacoes: text("observacoes"),
     criadoEm: criadoEm(),
   },
   (t) => [uniqueIndex("recibos_professor_numero").on(t.professorId, t.numero)],
+);
+
+/**
+ * Pagamento marcado à mão no Financeiro (sem recibo). Junto com os recibos, diz se o mês está pago.
+ * Ao gerar o recibo de um pagamento marcado, o recibo o substitui (o pagamento é apagado).
+ */
+export const pagamentos = sqliteTable(
+  "pagamentos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    // de um aluno OU de uma instituição, como o recibo
+    alunoId: integer("aluno_id").references(() => alunos.id, { onDelete: "cascade" }),
+    instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "cascade" }),
+    referencia: text("referencia").notNull(), // mês pago, AAAA-MM
+    valorCentavos: integer("valor_centavos").notNull(),
+    dataPagamento: text("data_pagamento").notNull(),
+    formaPagamento: text("forma_pagamento"),
+    observacao: text("observacao"),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index("pagamentos_professor_referencia").on(t.professorId, t.referencia)],
 );
 
 export const materiais = sqliteTable("materiais", {
@@ -216,6 +242,7 @@ export type Recibo = typeof recibos.$inferSelect;
 export type Material = typeof materiais.$inferSelect;
 export type Instituicao = typeof instituicoes.$inferSelect;
 export type Aviso = typeof avisos.$inferSelect;
+export type Pagamento = typeof pagamentos.$inferSelect;
 export type RegistroDiario = typeof diario.$inferSelect;
 export type StatusPresenca = Presenca["status"];
 export type TipoDrive = Material["tipoDrive"];

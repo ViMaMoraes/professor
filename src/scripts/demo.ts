@@ -90,6 +90,7 @@ async function main() {
         referente: `às aulas de ${aluno.instrumento!.toLowerCase()}`,
         formaPagamento: "Pix",
         dataPagamento: data,
+        referencia: data.slice(0, 7),
       });
     }
   }
@@ -137,6 +138,16 @@ async function main() {
     referente: "às aulas de flauta",
     formaPagamento: "Transferência",
     dataPagamento: hoje,
+    referencia: hoje.slice(0, 7),
+  });
+  // financeiro: o Diego pagou o mês em dinheiro, sem recibo (pagamento marcado à mão)
+  await db.insert(schema.pagamentos).values({
+    professorId: professor.id,
+    alunoId: alunos[3].id,
+    referencia: hoje.slice(0, 7),
+    valorCentavos: alunos[3].mensalidadeCentavos!,
+    dataPagamento: hoje,
+    formaPagamento: "Dinheiro",
   });
 
   // links de exemplo (IDs fictícios): troque pelos links reais do seu Drive

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { salvarInstituicao } from "@/app/acoes/instituicoes";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
+import { SelectVencimento } from "@/components/select-vencimento";
 import { InputMascara } from "@/components/input-mascara";
 import { BotaoLink, Campo, Card, cn, Input, Select, Textarea } from "@/components/ui";
 import type { Instituicao } from "@/lib/db/schema";
@@ -12,7 +13,7 @@ import { centavosParaCampo } from "@/lib/formato";
 
 type AlunoOpcao = { id: number; nome: string; instrumento: string | null; outraInstituicao: string | null; marcado: boolean };
 
-type Props = { instituicao?: Instituicao; alunos: AlunoOpcao[] };
+type Props = { instituicao?: Instituicao; alunos: AlunoOpcao[]; diaPadrao: number };
 
 export function FormInstituicao(props: Props) {
   // muda a cada "cadastrar outra": recria o formulário vazio
@@ -20,7 +21,7 @@ export function FormInstituicao(props: Props) {
   return <CamposInstituicao key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
 }
 
-function CamposInstituicao({ instituicao, alunos, limpar }: Props & { limpar: () => void }) {
+function CamposInstituicao({ instituicao, alunos, diaPadrao, limpar }: Props & { limpar: () => void }) {
   const [filtro, setFiltro] = useState("");
   const acao = salvarInstituicao.bind(null, instituicao?.id ?? null);
 
@@ -55,6 +56,9 @@ function CamposInstituicao({ instituicao, alunos, limpar }: Props & { limpar: ()
               placeholder="1.200,00"
               defaultValue={centavosParaCampo(instituicao?.valorMensalCentavos)}
             />
+          </Campo>
+          <Campo rotulo="Vencimento" dica="Dia do mês em que o pagamento vence (Financeiro).">
+            <SelectVencimento name="diaVencimento" valor={instituicao?.diaVencimento} padrao={diaPadrao} />
           </Campo>
           <Campo rotulo="Tratamento no recibo" dica="“recebi da Igreja…”, “recebi do Colégio…”">
             <Select name="tratamento" defaultValue={instituicao?.tratamento ?? "da"}>

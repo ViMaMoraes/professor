@@ -27,6 +27,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["
       <Cabecalho titulo={`Editar ${aluno.nome}`} />
       <FormAluno
         aluno={dados}
+        diaPadrao={professor.diaVencimento}
         instituicoes={(await listarInstituicoes(professor.id, { situacao: "todas" })).map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
       />
     </>
