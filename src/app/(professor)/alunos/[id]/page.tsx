@@ -20,7 +20,7 @@ import {
   materiaisDoAluno,
   presencasDoAluno,
   recibosDoAluno,
-  reposicoesPendentes,
+  reposicoesDoAluno,
 } from "@/lib/consultas";
 import { dataBR, hojeISO, moeda, numeroRecibo } from "@/lib/formato";
 
@@ -43,7 +43,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
   const aluno = await buscarAluno(professor.id, id);
   if (!aluno) notFound();
   const hojeAgenda = agoraBrasilia().data;
-  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximas, pendentes] = await Promise.all([
+  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximas, todasReposicoes] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
     recibosDoAluno(id),
@@ -52,7 +52,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
     diarioDoAluno(id),
     horariosDoAluno(id),
     agendaDoPeriodo(professor, hojeAgenda, somarDiasAgenda(hojeAgenda, 13), { alunoId: id }),
-    reposicoesPendentes(professor.id, id),
+    reposicoesDoAluno(professor.id, id),
   ]);
 
   return (
@@ -146,7 +146,8 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
             alunoId={aluno.id}
             nome={aluno.nome}
             proximas={proximas.slice(0, 6)}
-            pendentes={pendentes}
+            pendentes={todasReposicoes.filter((r) => !r.data)}
+            historico={todasReposicoes}
             hoje={hojeAgenda}
             duracaoPadrao={professor.duracaoAula}
           />

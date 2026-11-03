@@ -9,6 +9,7 @@ import { DIAS_CURTOS, diaDaSemana, type Ocorrencia } from "@/lib/agenda";
 import { dataBR } from "@/lib/formato";
 
 type Pendente = { id: number; motivo: string | null };
+type ReposicaoHistorico = { id: number; data: string | null; hora: string | null; motivo: string | null };
 
 /** Próximas aulas do aluno e reposições (a marcar e agendadas), na página do aluno. */
 export function AulasAluno({
@@ -16,6 +17,7 @@ export function AulasAluno({
   nome,
   proximas,
   pendentes,
+  historico,
   hoje,
   duracaoPadrao,
 }: {
@@ -23,9 +25,14 @@ export function AulasAluno({
   nome: string;
   proximas: Ocorrencia[];
   pendentes: Pendente[];
+  /** todas as reposições do aluno (para o histórico) */
+  historico: ReposicaoHistorico[];
   hoje: string;
   duracaoPadrao: number;
 }) {
+  const comData = historico.filter((r) => r.data);
+  const feitas = comData.filter((r) => r.data! < hoje).length;
+  const marcadas = comData.length - feitas;
   const curto = (o: Ocorrencia) => `${DIAS_CURTOS[diaDaSemana(o.data)]} ${dataBR(o.data).slice(0, 5)}${o.hora ? ` ${o.hora}` : ""}`;
   return (
     <Card>
@@ -76,6 +83,40 @@ export function AulasAluno({
             </li>
           ))}
         </ul>
+      )}
+      {historico.length > 0 && (
+        <details className="group border-t border-borda">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-sm">
+            <span>
+              <span className="font-medium">Reposições:</span>{" "}
+              <span className="text-suave">
+                {[
+                  pendentes.length && `${pendentes.length} a marcar`,
+                  marcadas && `${marcadas} ${marcadas === 1 ? "marcada" : "marcadas"}`,
+                  feitas && `${feitas} ${feitas === 1 ? "feita" : "feitas"}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </span>
+            <span className="text-xs text-marca-texto group-open:hidden">ver histórico</span>
+          </summary>
+          <ul className="divide-y divide-borda border-t border-borda">
+            {historico.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-sm">
+                <span className="w-28 font-mono text-xs">{r.data ? `${dataBR(r.data).slice(0, 5)} ${r.hora ?? ""}` : "—"}</span>
+                <span className="min-w-0 flex-1 truncate text-suave">{r.motivo ?? "Reposição"}</span>
+                {!r.data ? (
+                  <Selo cor="azul">a marcar</Selo>
+                ) : r.data < hoje ? (
+                  <Selo cor="verde">feita</Selo>
+                ) : (
+                  <Selo>marcada</Selo>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
       <div className="border-t border-borda px-5 py-3">
         <BotaoConceder alunoId={alunoId} nome={nome} rotulo="Dar reposição" />

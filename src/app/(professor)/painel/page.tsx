@@ -1,41 +1,54 @@
-import { ChevronRight, CircleCheckBig, CloudDownload, ReceiptText, Users, Wallet } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheckBig, CloudDownload, ReceiptText, Users, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, cn, Esqueleto, Selo } from "@/components/ui";
+import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, somarDiasAgenda } from "@/lib/agenda";
 import { exigirProfessor } from "@/lib/auth";
 import { resumoCobranca } from "@/lib/cobranca";
 import { DIAS_SEMANA } from "@/lib/constantes";
 import { agendaDoPeriodo, listarRecibos, presencasNaData, recebidoPorMes, resumoPainel } from "@/lib/consultas";
-import { dataBR, hojeISO, MESES, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
+import { dataBR, hojeISO, isoValido, MESES, moeda, numeroRecibo, primeiroNome } from "@/lib/formato";
 
 export const metadata: Metadata = { title: "Painel" };
 
-export default function PaginaPainel() {
+export default function PaginaPainel(props: PageProps<"/painel">) {
   return (
     <Suspense fallback={<EsqueletoPainel />}>
-      <Painel />
+      <Painel searchParams={props.searchParams} />
     </Suspense>
   );
 }
 
-async function Painel() {
+async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["searchParams"] }) {
   const professor = await exigirProfessor();
   const hoje = hojeISO();
   const diaSemana = DIAS_SEMANA[new Date(`${hoje}T12:00:00Z`).getUTCDay()];
-  const [resumo, porMes, recibos, agendaHoje, chamadasHoje, cobranca] = await Promise.all([
+  // cartão de aulas: hoje (em Brasília) ou o dia escolhido nas setas (?dia=AAAA-MM-DD)
+  const { dia: diaParam } = await searchParams;
+  const hojeAulas = agoraBrasilia().data;
+  const dia = typeof diaParam === "string" && isoValido(diaParam) ? diaParam : hojeAulas;
+  const [resumo, porMes, recibos, agendaDia, chamadasDia, cobranca] = await Promise.all([
     resumoPainel(professor.id, hoje),
     recebidoPorMes(professor.id, hoje),
     listarRecibos(professor.id),
-    agendaDoPeriodo(professor, hoje, hoje),
-    presencasNaData(professor.id, hoje),
+    agendaDoPeriodo(professor, dia, dia),
+    presencasNaData(professor.id, dia),
     resumoCobranca(professor.id, hoje, professor.diaVencimento),
   ]);
-  // aulas de hoje pela agenda (fixas e reposições); desmarcadas pelo professor não entram
-  const aulasHoje = agendaHoje.filter((o) => o.desmarcada?.por !== "professor");
-  const statusHoje = new Map(chamadasHoje.map((p) => [p.alunoId, p.status]));
+  // aulas do dia pela agenda (fixas e reposições); desmarcadas pelo professor não entram
+  const aulasHoje = agendaDia.filter((o) => o.desmarcada?.por !== "professor");
+  const tituloAulas =
+    dia === hojeAulas
+      ? "Aulas de hoje"
+      : dia === somarDiasAgenda(hojeAulas, 1)
+        ? "Aulas de amanhã"
+        : dia === somarDiasAgenda(hojeAulas, -1)
+          ? "Aulas de ontem"
+          : `Aulas de ${DIAS_LONGOS[diaDaSemana(dia)].toLowerCase()}, ${dataBR(dia).slice(0, 5)}`;
+  const statusHoje = new Map(chamadasDia.map((p) => [p.alunoId, p.status]));
   const maiorMes = Math.max(...porMes.map((m) => m.total), 1);
 
   return (
@@ -117,9 +130,31 @@ async function Painel() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardTitulo icone={<CircleCheckBig />}>Aulas de hoje</CardTitulo>
+          <CardTitulo
+            icone={<CircleCheckBig />}
+            acao={
+              <span className="flex items-center gap-0.5">
+                <Link href={`/painel?dia=${somarDiasAgenda(dia, -1)}`} className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto" aria-label="Dia anterior">
+                  <ChevronLeft className="size-4" />
+                </Link>
+                {dia !== hojeAulas && (
+                  <Link href="/painel" className="rounded-lg px-2 py-1 text-xs text-marca-texto hover:bg-fundo">
+                    hoje
+                  </Link>
+                )}
+                <Link href={`/painel?dia=${somarDiasAgenda(dia, 1)}`} className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto" aria-label="Próximo dia">
+                  <ChevronRight className="size-4" />
+                </Link>
+                <Link href={`/agenda?semana=${dia}`} className="ml-1 rounded-lg px-2 py-1 text-xs text-marca-texto hover:bg-fundo">
+                  Agenda
+                </Link>
+              </span>
+            }
+          >
+            {tituloAulas}
+          </CardTitulo>
           {aulasHoje.length === 0 ? (
-            <p className="p-5 text-sm text-suave">Nenhum aluno com aula marcada para {diaSemana.toLowerCase()}.</p>
+            <p className="p-5 text-sm text-suave">Nenhuma aula neste dia.</p>
           ) : (
             <ul className="divide-y divide-borda">
               {aulasHoje.map((a) => {

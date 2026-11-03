@@ -509,3 +509,14 @@ export async function reposicoesPendentes(professorId: number, alunoId?: number)
     .where(and(eq(rep.professorId, professorId), isNull(rep.data), ...(alunoId ? [eq(rep.alunoId, alunoId)] : [])))
     .orderBy(asc(rep.criadoEm));
 }
+
+/** Todas as reposições do aluno (a marcar primeiro, depois as datas mais recentes). */
+export async function reposicoesDoAluno(professorId: number, alunoId: number) {
+  const db = await getDb();
+  const { reposicoes: rep } = schema;
+  return db
+    .select()
+    .from(rep)
+    .where(and(eq(rep.professorId, professorId), eq(rep.alunoId, alunoId)))
+    .orderBy(sql`${rep.data} is not null`, desc(rep.data), desc(rep.hora), desc(rep.id));
+}
