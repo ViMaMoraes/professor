@@ -112,6 +112,15 @@ O site pode ser instalado na tela de início do celular, como um app:
 
 **Atualizações:** quando uma versão nova é publicada, quem está com o site ou o app aberto vê o aviso "Nova versão disponível" com o botão **Atualizar** (o site confere ao abrir, ao voltar para o app e a cada 15 minutos). Assim ninguém fica preso numa versão antiga em cache.
 
+**Vídeos do Drive no player do site:** com a chave `GOOGLE_API_KEY`, o vídeo do Drive toca no player do próprio site (pausar, avançar, tela cheia, sem botão de baixar nem de abrir no Drive). Sem ela, usa o player do Drive, que no celular fica ruim. Para criar (grátis):
+
+1. Entre em [console.cloud.google.com](https://console.cloud.google.com) com sua conta Google e crie um projeto (ex.: "Portal de Aulas").
+2. Em *APIs e serviços → Biblioteca*, procure **Google Drive API** e clique em **Ativar**.
+3. Em *APIs e serviços → Credenciais → Criar credenciais → Chave de API*. Depois, em *Restringir chave*, escolha **Google Drive API** em "Restrições de API" e salve.
+4. Cadastre a chave na Cloudflare como secret: `npx wrangler secret put GOOGLE_API_KEY` (ou no painel, *Settings → Variables and Secrets*, tipo **Secret**).
+
+O vídeo precisa estar compartilhado como "Qualquer pessoa com o link".
+
 As notificações precisam de uma chave (VAPID), gerada uma vez:
 
 ```bash
@@ -246,6 +255,7 @@ Variáveis de ambiente opcionais:
 | `VAPID_PRIVATE_KEY` | chave das notificações (gerada com `npm run vapid`) |
 | `VAPID_CONTATO` | contato para os serviços de push (ex.: `mailto:voce@email.com`) |
 | `NEXT_PUBLIC_NOME_APP` | nome do site (padrão: "Portal de Aulas") |
+| `GOOGLE_API_KEY` | chave da API do Google Drive: vídeos do Drive tocam no player do próprio site (veja *Vídeos do Drive*) |
 | `ENDERECO_SITE` | endereço oficial usado nos links enviados aos alunos e professores (ex.: `https://professor.mmoraes.com.br`; fica no `wrangler.jsonc`) |
 | `DATA_DIR` | outra pasta para o banco |
 | `DATABASE_URL` / `DATABASE_AUTH_TOKEN` | banco libSQL remoto (ex.: [Turso](https://turso.tech)) em vez do arquivo local |
