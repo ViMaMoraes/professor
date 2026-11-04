@@ -105,7 +105,12 @@ export function PlayerVideo({
     >
       {usarNativo && (
         <video
-          ref={nativo}
+          ref={(el) => {
+            nativo.current = el;
+            // o erro pode ter acontecido antes de a página terminar de carregar (resposta muito rápida):
+            // nesse caso o onError não chega a rodar, então confere aqui
+            if (el?.error) queueMicrotask(() => setSemNativo(true));
+          }}
           src={arquivo!}
           poster={capa}
           title={titulo}
