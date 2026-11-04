@@ -97,12 +97,19 @@ export function PlayerVideo({
     }
   }
 
+  // o player do Drive põe uma barra própria no topo e empurra o vídeo para baixo: sem essa altura a mais,
+  // o pedaço de baixo do vídeo (e os controles) ficariam cortados
+  const barraDrive = origem === "drive" && !usarNativo ? 64 : 0;
+
   return (
     <div
       className="relative mx-auto overflow-hidden rounded-2xl bg-black"
       // ocupa a largura toda, mas nunca mais que 80% da altura da tela (assim os controles sempre aparecem)
-      style={{ aspectRatio: proporcao, width: `min(100%, calc(80svh * ${proporcao.toFixed(4)}))` }}
+      style={{ width: `min(100%, calc((80svh - ${barraDrive}px) * ${proporcao.toFixed(4)}))` }}
     >
+      {/* a altura vem destes espaçadores: a barra do player do Drive (se houver) + o vídeo no formato dele */}
+      {barraDrive > 0 && <div style={{ height: barraDrive }} aria-hidden />}
+      <div style={{ aspectRatio: proporcao }} aria-hidden />
       {usarNativo && (
         <video
           ref={(el) => {
