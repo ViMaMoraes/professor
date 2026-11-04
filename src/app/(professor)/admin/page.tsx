@@ -9,7 +9,7 @@ import { BotaoLink, Cabecalho, Card, Selo, Tabela } from "@/components/ui";
 import { contaLiberada, exigirMaster } from "@/lib/auth";
 import { listarProfessores } from "@/lib/consultas";
 import { dataBR, hojeISO } from "@/lib/formato";
-import { limiteDeAlunos, PLANOS, planoValido } from "@/lib/planos";
+import { limiteDeAlunos, nomeDoPlano } from "@/lib/planos";
 import { chavePublicaVapid } from "@/lib/push";
 import { DIAS_AVISO_VENCIMENTO, diasAte, textoVencimento } from "@/lib/vencimentos";
 
@@ -91,7 +91,7 @@ export default async function PaginaAdmin() {
                       {p.trocarSenha && " · senha provisória (ainda não entrou)"}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap">{p.master ? "—" : PLANOS[planoValido(p.plano) ? p.plano : "completo"].nome}</td>
+                  <td className="whitespace-nowrap">{p.master ? "—" : nomeDoPlano(p.plano)}</td>
                   <td className="tabular-nums whitespace-nowrap">
                     {limite == null ? alunosAtivos : `${alunosAtivos} de ${limite}`}
                     {limite != null && alunosAtivos >= limite && (

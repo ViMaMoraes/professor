@@ -84,7 +84,7 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
 - **Administração:**
   - criar a conta de cada professor cliente (nome, e-mail, **plano** e data de validade). O site gera uma **senha provisória** e mostra os dados de acesso com botões para copiar ou enviar por WhatsApp; no primeiro login o professor é obrigado a criar a própria senha;
   - **gerar nova senha** provisória para quem esqueceu a dele;
-  - **planos:** Iniciante (R$ 39,90/mês, até **5 alunos ativos**), Completo (R$ 69,90/mês) e Anual (R$ 699,90/ano), os dois últimos com alunos ilimitados. No Iniciante, o professor não consegue cadastrar nem reativar um 6º aluno (aluno inativo não conta) e vê "3 de 5 alunos ativos" na tela de Alunos. A tabela mostra o plano e quem está no limite. Mudou de plano? É só editar a conta. O master não tem limite. Os nomes, preços e limites ficam em `src/lib/planos.ts`;
+  - **planos:** **Plus**, até **5 alunos ativos**, e **Premium**, alunos ilimitados. O tempo de acesso continua sendo a data "Acesso até". No Plus, o professor não consegue cadastrar nem reativar um 6º aluno (aluno inativo não conta) e vê "3 de 5 alunos ativos" na tela de Alunos. A tabela mostra o plano e quem está no limite. Mudou de plano? É só editar a conta. O master não tem limite. Os nomes e o limite ficam em `src/lib/planos.ts`;
   - bloquear ou liberar contas;
   - renovar a data de acesso;
   - excluir a conta (apaga todos os dados daquele professor).

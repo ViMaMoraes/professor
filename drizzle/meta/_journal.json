@@ -85,6 +85,13 @@
       "when": 1793805504385,
       "tag": "0011_planos",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793806378770,
+      "tag": "0012_planos_plus_premium",
+      "breakpoints": true
     }
   ]
 }

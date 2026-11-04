@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 
 import { contarAlunosAtivos } from "@/lib/consultas";
-import { limiteDeAlunos, PLANOS, planoValido, textoLimiteAtingido } from "@/lib/planos";
+import { limiteDeAlunos, nomeDoPlano, textoLimiteAtingido } from "@/lib/planos";
 
 /**
  * Quanto do plano o professor já usa ("3 de 5 alunos ativos"). Só aparece em plano com limite;
@@ -12,7 +12,7 @@ export async function UsoDoPlano({ professor }: { professor: { id: number; plano
   if (limite == null) return null;
   const ativos = await contarAlunosAtivos(professor.id);
   const cheio = ativos >= limite;
-  const nome = PLANOS[planoValido(professor.plano) ? professor.plano : "completo"].nome;
+  const nome = nomeDoPlano(professor.plano);
   return (
     <div
       className={

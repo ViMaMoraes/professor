@@ -26,7 +26,7 @@ export const professores = sqliteTable("professores", {
   master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true), // conta liberada
   acessoAte: text("acesso_ate"), // AAAA-MM-DD; vazio = sem data de validade
-  plano: text("plano").notNull().default("completo"), // iniciante (até 5 alunos ativos), completo ou anual; ver src/lib/planos.ts
+  plano: text("plano").notNull().default("premium"), // plus (até 5 alunos ativos) ou premium (ilimitado); ver src/lib/planos.ts
   trocarSenha: integer("trocar_senha", { mode: "boolean" }).notNull().default(false), // senha provisória: troca no próximo login
   vencimentoAvisado: text("vencimento_avisado"), // acessoAte que já gerou o aviso de vencimento para o master
   criadoEm: text("criado_em").$defaultFn(() => new Date().toISOString().slice(0, 10)),

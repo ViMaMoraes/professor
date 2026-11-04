@@ -1313,7 +1313,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'completo'"
+          "default": "'premium'"
         },
         "trocar_senha": {
           "name": "trocar_senha",

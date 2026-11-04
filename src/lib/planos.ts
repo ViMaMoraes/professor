@@ -1,20 +1,24 @@
 /**
- * Planos de assinatura dos professores clientes. O plano define o limite de alunos ATIVOS
- * (aluno inativo não conta). O master não tem limite.
+ * Planos dos professores clientes. O plano define só o limite de alunos ATIVOS (aluno inativo não conta);
+ * o tempo de acesso é controlado pela data "Acesso até" na Administração. O master não tem limite.
  */
 
-export type Plano = "iniciante" | "completo" | "anual";
+export type Plano = "plus" | "premium";
 
-export const PLANOS: Record<Plano, { nome: string; preco: string; limiteAlunos: number | null }> = {
-  iniciante: { nome: "Iniciante", preco: "R$ 39,90/mês", limiteAlunos: 5 },
-  completo: { nome: "Completo", preco: "R$ 69,90/mês", limiteAlunos: null },
-  anual: { nome: "Anual", preco: "R$ 699,90/ano", limiteAlunos: null },
+export const PLANOS: Record<Plano, { nome: string; limiteAlunos: number | null }> = {
+  plus: { nome: "Plus", limiteAlunos: 5 },
+  premium: { nome: "Premium", limiteAlunos: null },
 };
 
-export const PLANO_PADRAO: Plano = "completo";
+export const PLANO_PADRAO: Plano = "premium";
 
 export function planoValido(valor: unknown): valor is Plano {
-  return typeof valor === "string" && valor in PLANOS;
+  return typeof valor === "string" && Object.hasOwn(PLANOS, valor);
+}
+
+/** Nome do plano para mostrar na tela (valor desconhecido vale como o padrão). */
+export function nomeDoPlano(plano: string) {
+  return PLANOS[planoValido(plano) ? plano : PLANO_PADRAO].nome;
 }
 
 /** Limite de alunos ativos do professor (null = ilimitado). */
@@ -31,6 +35,5 @@ export function cabeMaisUmAluno(professor: { plano: string; master: boolean }, a
 
 /** Mensagem para quem chegou no limite do plano. */
 export function textoLimiteAtingido(professor: { plano: string }, limite: number) {
-  const nome = PLANOS[planoValido(professor.plano) ? professor.plano : PLANO_PADRAO].nome;
-  return `Seu plano ${nome} permite até ${limite} alunos ativos. Para cadastrar ou reativar outro aluno, desative um aluno que não tem mais aula ou mude para o plano Completo (alunos ilimitados).`;
+  return `Seu plano ${nomeDoPlano(professor.plano)} permite até ${limite} alunos ativos. Para cadastrar ou reativar outro aluno, desative um aluno que não tem mais aula ou mude para o plano Premium (alunos ilimitados).`;
 }

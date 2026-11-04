@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `master` integer DEFAULT false NOT NULL,
   `ativo` integer DEFAULT true NOT NULL,
   `acesso_ate` text,
-  `plano` text DEFAULT 'completo' NOT NULL,
+  `plano` text DEFAULT 'premium' NOT NULL,
   `criado_em` text
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `professores_email_unique` ON `professores` (`email`);
@@ -305,4 +305,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0008_financeiro.sql'),
   ('0009_agenda_reposicoes.sql'),
   ('0010_videos.sql'),
-  ('0011_planos.sql');
+  ('0011_planos.sql'),
+  ('0012_planos_plus_premium.sql');
