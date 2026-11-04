@@ -26,7 +26,7 @@ function mensagemDoCampo(campo: HTMLInputElement | HTMLSelectElement | HTMLTextA
 /**
  * Form ligado a uma Server Action, com mensagens no estilo do site.
  * - valida os campos obrigatórios sem os balões padrão do navegador (destaca o campo e mostra o motivo);
- * - erros aparecem no topo do formulário; sucesso aparece como aviso no canto da tela;
+ * - erros aparecem no topo do formulário e também como aviso na tela; sucesso aparece como aviso na tela;
  * - envia via onSubmit (e não via prop `action`) para o React não limpar os campos quando há erro.
  */
 export function Formulario<E extends EstadoForm>({
@@ -61,6 +61,8 @@ export function Formulario<E extends EstadoForm>({
   const [estado, executar, enviando] = useActionState<E, FormData>(async (anterior, dados) => {
     const resultado = await acao(anterior, dados);
     if (resultado?.ok && !(resultado.criado && cadastrarOutro)) notificar(resultado.ok);
+    // o erro fica no topo do formulário, que pode estar fora da tela (formulário longo): avisa também na tela
+    if (resultado?.erro) notificar(resultado.erro, "erro");
     return resultado;
   }, null as Awaited<E>);
   const [erroLocal, setErroLocal] = useState<string | null>(null);

@@ -98,7 +98,14 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   ]);
   revalidatePath("/", "layout");
   // aluno novo: o formulário pergunta se quer cadastrar outro; editando, volta para a página dele
-  if (!id) return { ok: `Aluno “${nome}” cadastrado!`, criado: true };
+  if (!id) {
+    // preencheu a última vaga do plano: avisa já, em vez de perguntar "cadastrar outro?"
+    const limite = limiteDeAlunos(professor);
+    if (limite != null && !cabeMaisUmAluno(professor, await contarAlunosAtivos(professor.id))) {
+      return { ok: `Aluno “${nome}” cadastrado! Você chegou ao limite de ${limite} alunos ativos do seu plano.` };
+    }
+    return { ok: `Aluno “${nome}” cadastrado!`, criado: true };
+  }
   redirect(`/alunos/${alunoId}`);
 }
 
