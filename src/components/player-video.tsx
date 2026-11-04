@@ -25,7 +25,7 @@ export function PlayerVideo({
 }: {
   origem: "drive" | "youtube";
   url: string;
-  /** vídeo do Drive tocado pelo player do próprio site (precisa da chave do Google); sem ele, usa o player do Drive */
+  /** vídeo do Drive tocado pelo player do próprio site; se não carregar, usa o player do Drive */
   arquivo?: string | null;
   capa?: string;
   titulo: string;
@@ -97,9 +97,9 @@ export function PlayerVideo({
     }
   }
 
-  // o player do Drive põe uma barra própria no topo e empurra o vídeo para baixo: sem essa altura a mais,
-  // o pedaço de baixo do vídeo (e os controles) ficariam cortados
-  const barraDrive = origem === "drive" && !usarNativo ? 64 : 0;
+  // o player do Drive (só quando o do site não carrega) põe a barra de tempo no topo e, no celular,
+  // empilha os botões e o play/pausa embaixo do vídeo: sem essa altura a mais, eles ficariam cortados
+  const barraDrive = origem === "drive" && !usarNativo ? 150 : 0;
 
   return (
     <div

@@ -112,7 +112,7 @@ O site pode ser instalado na tela de início do celular, como um app:
 
 **Atualizações:** quando uma versão nova é publicada, quem está com o site ou o app aberto vê o aviso "Nova versão disponível" com o botão **Atualizar** (o site confere ao abrir, ao voltar para o app e a cada 15 minutos). Assim ninguém fica preso numa versão antiga em cache.
 
-**Vídeos do Drive no player do site:** com a chave `GOOGLE_API_KEY`, o vídeo do Drive toca no player do próprio site (pausar, avançar, tela cheia, sem botão de baixar nem de abrir no Drive). Sem ela, usa o player do Drive, que no celular fica ruim. Para criar (grátis):
+**Vídeos do Drive no player do site:** o vídeo do Drive toca no player do próprio site (pausar, avançar, tela cheia, sem botão de baixar nem de abrir no Drive). Sem chave, o site usa o endereço público de download do Drive; com a chave `GOOGLE_API_KEY` usa a API oficial, mais estável para vídeos grandes ou muito assistidos. Se o vídeo não carregar (ex.: não está público), cai para o player do Drive. Para criar a chave (grátis, opcional):
 
 1. Entre em [console.cloud.google.com](https://console.cloud.google.com) com sua conta Google e crie um projeto (ex.: "Portal de Aulas").
 2. Em *APIs e serviços → Biblioteca*, procure **Google Drive API** e clique em **Ativar**.
@@ -255,7 +255,7 @@ Variáveis de ambiente opcionais:
 | `VAPID_PRIVATE_KEY` | chave das notificações (gerada com `npm run vapid`) |
 | `VAPID_CONTATO` | contato para os serviços de push (ex.: `mailto:voce@email.com`) |
 | `NEXT_PUBLIC_NOME_APP` | nome do site (padrão: "Portal de Aulas") |
-| `GOOGLE_API_KEY` | chave da API do Google Drive: vídeos do Drive tocam no player do próprio site (veja *Vídeos do Drive*) |
+| `GOOGLE_API_KEY` | opcional: chave da API do Google Drive, mais estável para os vídeos do Drive no player do site (veja *Vídeos do Drive*) |
 | `ENDERECO_SITE` | endereço oficial usado nos links enviados aos alunos e professores (ex.: `https://professor.mmoraes.com.br`; fica no `wrangler.jsonc`) |
 | `DATA_DIR` | outra pasta para o banco |
 | `DATABASE_URL` / `DATABASE_AUTH_TOKEN` | banco libSQL remoto (ex.: [Turso](https://turso.tech)) em vez do arquivo local |

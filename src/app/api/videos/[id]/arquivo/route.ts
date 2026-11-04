@@ -10,7 +10,6 @@ export async function GET(request: Request, ctx: RouteContext<"/api/videos/[id]/
   const chave = chaveGoogle();
   const usuario = await usuarioAtual();
   if (!usuario) return new Response(null, { status: 401 });
-  if (!chave) return new Response(null, { status: 404 });
   const id = Number((await ctx.params).id);
 
   let video: { origem: string; origemId: string; link: string } | undefined;

@@ -12,7 +12,6 @@ import { exigirProfessor } from "@/lib/auth";
 import { buscarVideo, listarModulos } from "@/lib/consultas";
 import { dataBR } from "@/lib/formato";
 import { ehShorts, urlCapa, urlPlayer } from "@/lib/video";
-import { chaveGoogle } from "@/lib/video-drive";
 
 export const metadata: Metadata = { title: "Vídeo" };
 
@@ -64,7 +63,7 @@ export default async function PaginaVideo(props: PageProps<"/videos/[id]">) {
           <PlayerVideo
             origem={video.origem}
             url={urlPlayer(video)}
-            arquivo={video.origem === "drive" && chaveGoogle() ? `/api/videos/${video.id}/arquivo` : null}
+            arquivo={video.origem === "drive" ? `/api/videos/${video.id}/arquivo` : null}
             capa={urlCapa(video)}
             vertical={ehShorts(video)}
             titulo={video.titulo}
