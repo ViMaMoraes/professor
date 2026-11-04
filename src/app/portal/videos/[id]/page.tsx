@@ -10,6 +10,7 @@ import { BotaoLink, Card, cn, Voltar } from "@/components/ui";
 import { exigirAlunoComProfessor } from "@/lib/auth";
 import { videosDoAluno } from "@/lib/consultas";
 import { agruparPorModulo, urlCapa, urlPlayer } from "@/lib/video";
+import { chaveGoogle } from "@/lib/video-drive";
 
 export const metadata: Metadata = { title: "Vídeo" };
 
@@ -37,6 +38,8 @@ export default async function PaginaVideoAluno(props: PageProps<"/portal/videos/
           <PlayerVideo
             origem={video.origem}
             url={urlPlayer(video)}
+            arquivo={video.origem === "drive" && chaveGoogle() ? `/api/videos/${video.id}/arquivo` : null}
+            capa={urlCapa(video)}
             titulo={video.titulo}
             proximo={proximo ? { href: `/portal/videos/${proximo.id}`, titulo: `Próximo: ${proximo.titulo}` } : null}
             aoAbrir={registrarVisualizacao.bind(null, video.id)}

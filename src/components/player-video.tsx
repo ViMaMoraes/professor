@@ -16,19 +16,28 @@ const nada = () => () => {};
 export function PlayerVideo({
   origem,
   url,
+  arquivo,
+  capa,
   titulo,
   proximo,
   aoAbrir,
 }: {
   origem: "drive" | "youtube";
   url: string;
+  /** vídeo do Drive tocado pelo player do próprio site (precisa da chave do Google); sem ele, usa o player do Drive */
+  arquivo?: string | null;
+  capa?: string;
   titulo: string;
   proximo?: { href: string; titulo: string } | null;
   /** chamado uma vez quando o player abre (ex.: registrar que o aluno assistiu) */
   aoAbrir?: () => void;
 }) {
   const quadro = useRef<HTMLIFrameElement>(null);
+  const nativo = useRef<HTMLVideoElement>(null);
   const [terminou, setTerminou] = useState(false);
+  // se o Google não entregar o arquivo (ex.: sem compartilhamento público), cai para o player do Drive
+  const [semNativo, setSemNativo] = useState(false);
+  const usarNativo = origem === "drive" && Boolean(arquivo) && !semNativo;
   // endereço do site (o YouTube só manda os eventos do player para ele); no servidor ainda não existe
   const origemSite = useSyncExternalStore(nada, () => window.location.origin, () => null);
 
@@ -60,9 +69,39 @@ export function PlayerVideo({
 
   const src = origem === "youtube" ? (origemSite ? `${url}&enablejsapi=1&origin=${encodeURIComponent(origemSite)}` : null) : url;
 
+  function deNovo() {
+    setTerminou(false);
+    if (usarNativo && nativo.current) {
+      nativo.current.currentTime = 0;
+      void nativo.current.play();
+    } else {
+      comando("seekTo", [0, true]);
+      comando("playVideo");
+    }
+  }
+
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
-      {src && (
+      {usarNativo && (
+        <video
+          ref={nativo}
+          src={arquivo!}
+          poster={capa}
+          title={titulo}
+          controls
+          playsInline
+          preload="metadata"
+          // sem botão de baixar nem "abrir em outro lugar" no menu do player
+          controlsList="nodownload noremoteplayback"
+          disableRemotePlayback
+          onContextMenu={(e) => e.preventDefault()}
+          onError={() => setSemNativo(true)}
+          onEnded={() => setTerminou(true)}
+          onPlay={() => setTerminou(false)}
+          className="absolute inset-0 size-full"
+        />
+      )}
+      {!usarNativo && src && (
         <iframe
           ref={quadro}
           src={src}
@@ -75,7 +114,7 @@ export function PlayerVideo({
         />
       )}
       {/* camadas que impedem sair do site pelos atalhos dos players */}
-      {origem === "drive" && <div className="absolute top-0 right-0 h-16 w-20" aria-hidden />}
+      {origem === "drive" && !usarNativo && <div className="absolute top-0 right-0 h-16 w-20" aria-hidden />}
       {origem === "youtube" && <div className="absolute inset-x-0 top-0 h-16" aria-hidden />}
       {terminou && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/85 p-4 text-center text-white">
@@ -83,11 +122,7 @@ export function PlayerVideo({
           <div className="flex flex-wrap justify-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                setTerminou(false);
-                comando("seekTo", [0, true]);
-                comando("playVideo");
-              }}
+              onClick={deNovo}
               className={estiloBotao({ variante: "secundario" }, "border-white/30 bg-white/10 text-white hover:bg-white/20")}
             >
               <RotateCcw /> Assistir de novo

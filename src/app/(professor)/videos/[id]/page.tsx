@@ -11,7 +11,8 @@ import { agoraBrasilia } from "@/lib/agenda";
 import { exigirProfessor } from "@/lib/auth";
 import { buscarVideo, listarModulos } from "@/lib/consultas";
 import { dataBR } from "@/lib/formato";
-import { urlPlayer } from "@/lib/video";
+import { urlCapa, urlPlayer } from "@/lib/video";
+import { chaveGoogle } from "@/lib/video-drive";
 
 export const metadata: Metadata = { title: "Vídeo" };
 
@@ -60,7 +61,13 @@ export default async function PaginaVideo(props: PageProps<"/videos/[id]">) {
 
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
-          <PlayerVideo origem={video.origem} url={urlPlayer(video)} titulo={video.titulo} />
+          <PlayerVideo
+            origem={video.origem}
+            url={urlPlayer(video)}
+            arquivo={video.origem === "drive" && chaveGoogle() ? `/api/videos/${video.id}/arquivo` : null}
+            capa={urlCapa(video)}
+            titulo={video.titulo}
+          />
           {video.descricao && <p className="text-sm whitespace-pre-line text-suave">{video.descricao}</p>}
         </div>
 
