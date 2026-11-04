@@ -92,6 +92,13 @@
       "when": 1793806378770,
       "tag": "0012_planos_plus_premium",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1793811076926,
+      "tag": "0013_usuario_por_professor",
+      "breakpoints": true
     }
   ]
 }

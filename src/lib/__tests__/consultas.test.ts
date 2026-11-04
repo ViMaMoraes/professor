@@ -111,13 +111,56 @@ describe("isolamento entre professores", () => {
     expect(await consultas.emailEmUso("ninguem@x.com")).toBe(false);
   });
 
-  it("usuário do aluno é único no site inteiro", async () => {
+  it("usuário do aluno é único por professor; outro professor pode repetir", async () => {
     const db = await getDb();
     await db.update(schema.alunos).set({ usuario: "ana.souza" }).where(eq(schema.alunos.id, ana.id));
-    expect(await consultas.usuarioEmUso("ana.souza")).toBe(true);
-    expect(await consultas.usuarioEmUso("ana.souza", ana.id)).toBe(false);
-    expect(await consultas.usuarioEmUso("outro.nome")).toBe(false);
+    expect((await consultas.alunoComUsuario(prof, "ana.souza"))?.id).toBe(ana.id);
+    expect(await consultas.alunoComUsuario(prof, "ana.souza", ana.id)).toBeNull();
+    expect(await consultas.alunoComUsuario(prof, "outro.nome")).toBeNull();
+    // o mesmo usuário em outro professor não conflita
+    expect(await consultas.alunoComUsuario(outro, "ana.souza")).toBeNull();
+    expect(await consultas.usuarioLivre(prof, "ana.souza")).toBe("ana.souza2");
+    expect(await consultas.usuarioLivre(outro, "ana.souza")).toBe("ana.souza");
     await db.update(schema.alunos).set({ usuario: null }).where(eq(schema.alunos.id, ana.id));
+  });
+
+  it("código do professor: gera um livre a partir do nome e encontra o professor por ele", async () => {
+    const db = await getDb();
+    await db.update(schema.professores).set({ codigo: "prof" }).where(eq(schema.professores.id, prof));
+    expect(await consultas.codigoEmUso("prof")).toBe(true);
+    expect(await consultas.codigoEmUso("prof", prof)).toBe(false);
+    expect(await consultas.codigoLivre("Prof")).toBe("prof2");
+    expect((await consultas.professorPorCodigo("prof"))?.id).toBe(prof);
+    // professor sem código ganha um na primeira vez
+    await db.update(schema.professores).set({ codigo: null }).where(eq(schema.professores.id, outro));
+    const comCodigo = await consultas.garantirCodigo({ id: outro, nome: "Outra", codigo: null });
+    expect(comCodigo.codigo).toBe("outra");
+    expect((await consultas.garantirCodigo({ id: outro, nome: "Outra", codigo: null })).codigo).toBe("outra");
+  });
+
+  it("login do aluno: com código procura no professor; sem código vale o usuário antigo ou o único do site", async () => {
+    const db = await getDb();
+    // Ana (prof) tem usuário antigo "nicolas"; Lucas (outro) ganhou "nicolas" depois da mudança
+    await db.update(schema.alunos).set({ usuario: "nicolas", usuarioGlobal: true }).where(eq(schema.alunos.id, ana.id));
+    await db.update(schema.alunos).set({ usuario: "nicolas", usuarioGlobal: false }).where(eq(schema.alunos.id, lucas.id));
+    const entrar = async (u: string, c: string) => {
+      const r = await consultas.alunoParaEntrar(u, c);
+      return "erro" in r ? r.erro : r.aluno.id;
+    };
+    expect(await entrar("nicolas", "prof")).toBe(ana.id);
+    expect(await entrar("nicolas", "outra")).toBe(lucas.id);
+    expect(await entrar("nicolas", "")).toBe(ana.id); // link antigo continua levando à Ana
+    expect(await entrar("nicolas", "naoexiste")).toMatch(/Código do professor não encontrado/);
+    // sem usuário antigo: único no site entra sem código; repetido pede o código
+    await db.update(schema.alunos).set({ usuarioGlobal: false }).where(eq(schema.alunos.id, ana.id));
+    expect(await entrar("nicolas", "")).toMatch(/código do professor/);
+    await db.update(schema.alunos).set({ usuario: null }).where(eq(schema.alunos.id, ana.id));
+    expect(await entrar("nicolas", "")).toBe(lucas.id);
+    expect(await entrar("ninguem", "")).toMatch(/não encontrado/);
+    // aluno inativo não entra
+    await db.update(schema.alunos).set({ ativo: false }).where(eq(schema.alunos.id, lucas.id));
+    expect(await entrar("nicolas", "outra")).toMatch(/não encontrado/);
+    await db.update(schema.alunos).set({ ativo: true, usuario: null }).where(eq(schema.alunos.id, lucas.id));
   });
 });
 

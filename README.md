@@ -94,7 +94,11 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
 
 ### Acesso aluno
 
-O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) **só com o usuário** criado pelo professor, sem senha. Na página de cada aluno, o cartão **Acesso do aluno** tem o link pessoal dele (`/aluno?u=usuario`, que já abre com o usuário preenchido) e botões para copiar o link, copiar uma mensagem pronta ou enviar pelo WhatsApp. O aluno vê:
+O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) com o **usuário** criado pelo professor e o **código do professor**, sem senha.
+
+- **Código do professor:** gerado a partir do nome (ex.: `marcus`) e editável em Configurações; aparece também na Administração.
+- **Usuário único por professor:** dois professores podem ter um aluno "nicolas". No cadastro, o site confere enquanto você digita e sugere uma variação livre ("nicolas2") se já for de outro aluno seu.
+- **Alunos antigos:** quem já tinha usuário antes dessa mudança continua entrando só com o usuário, e os links antigos (`/aluno?u=...`) continuam valendo. Sem código, o site também aceita o usuário quando só um aluno no site tem esse nome; se houver mais de um, pede o código. Na página de cada aluno, o cartão **Acesso do aluno** tem o link pessoal dele (`/aluno?p=codigo&u=usuario`, que já abre com o código e o usuário preenchidos) e botões para copiar o link, copiar uma mensagem pronta ou enviar pelo WhatsApp. O aluno vê:
 
 - os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;
 - a mensagem do professor para ele, em destaque;

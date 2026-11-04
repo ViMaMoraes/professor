@@ -8,14 +8,14 @@ import { BancoDesatualizado } from "@/components/banco-desatualizado";
 import { TelaAuth } from "@/components/tela-auth";
 import { migracoesPendentes } from "@/lib/db";
 import { NOME_APP } from "@/lib/marca";
-import { normalizarUsuario } from "@/lib/usuario";
+import { normalizarCodigo, normalizarUsuario } from "@/lib/usuario";
 
 import { FormLogin } from "./form-login";
 
 export const metadata: Metadata = { title: "Entrar" };
 
 export default async function PaginaLogin(props: PageProps<"/login">) {
-  const { acesso, usuario } = await props.searchParams;
+  const { acesso, usuario, professor } = await props.searchParams;
   await connection();
   const pendentes = await migracoesPendentes();
   if (pendentes.length) return <BancoDesatualizado pendentes={pendentes} paraAluno={acesso === "aluno"} />;
@@ -27,6 +27,7 @@ export default async function PaginaLogin(props: PageProps<"/login">) {
       <FormLogin
         inicial={acesso === "aluno" ? "aluno" : "professor"}
         usuarioInicial={typeof usuario === "string" ? normalizarUsuario(usuario) : undefined}
+        codigoInicial={typeof professor === "string" ? normalizarCodigo(professor) : undefined}
       />
     </TelaAuth>
   );

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, buscarInstituicao, contarAlunosAtivos, usuarioEmUso } from "@/lib/consultas";
+import { alunoComUsuario, buscarAluno, buscarInstituicao, contarAlunosAtivos, usuarioLivre } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { DIAS_LONGOS, DURACOES, horaValida } from "@/lib/agenda";
 import { lerDiaVencimento } from "@/lib/financeiro";
@@ -19,7 +19,8 @@ import { normalizarUsuario } from "@/lib/usuario";
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor();
   const db = await getDb();
-  if (id && !(await buscarAluno(professor.id, id))) return { erro: "Aluno não encontrado." };
+  const existente = id ? await buscarAluno(professor.id, id) : null;
+  if (id && !existente) return { erro: "Aluno não encontrado." };
 
   const nome = texto(dados, "nome");
   const email = texto(dados, "email")?.toLowerCase() ?? null;
@@ -36,11 +37,10 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   if (valorDigitado && mensalidade == null) return { erro: "Valor da mensalidade inválido." };
   const erroFone = erroTelefone(texto(dados, "telefone"));
   if (erroFone) return { erro: erroFone };
-  // o usuário é o login do aluno, então precisa ser único no site inteiro
+  // o usuário é o login do aluno: precisa ser único entre os alunos deste professor
   if (usuario && usuario.length < 3) return { erro: "O usuário precisa ter pelo menos 3 caracteres." };
-  if (usuario && (await usuarioEmUso(usuario, id ?? undefined))) {
-    return { erro: `O usuário “${usuario}” já está em uso. Tente outro, por exemplo “${usuario}${Math.floor(Math.random() * 90 + 10)}”.` };
-  }
+  const conflito = usuario ? await alunoComUsuario(professor.id, usuario, id ?? undefined) : null;
+  if (usuario && conflito) return { erro: textoUsuarioRepetido(usuario, conflito, await usuarioLivre(professor.id, usuario, id ?? undefined)) };
 
   const instituicaoId = Number(dados.get("instituicaoId")) || null;
   if (instituicaoId && !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Instituição inválida." };
@@ -76,6 +76,8 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     descricaoRecibo: texto(dados, "descricaoRecibo"),
     instituicaoId,
     usuario,
+    // usuário antigo (único no site) só continua valendo sem código enquanto não for trocado
+    usuarioGlobal: Boolean(existente?.usuarioGlobal && usuario && usuario === existente.usuario),
   };
 
   let alunoId = id;
@@ -107,6 +109,23 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     return { ok: `Aluno “${nome}” cadastrado!`, criado: true };
   }
   redirect(`/alunos/${alunoId}`);
+}
+
+const textoUsuarioRepetido = (usuario: string, aluno: { nome: string; ativo: boolean }, livre: string) =>
+  `O usuário “${usuario}” já é do seu aluno ${aluno.nome}${aluno.ativo ? "" : " (inativo)"}. Use outro, por exemplo “${livre}”.`;
+
+/**
+ * Confere o usuário enquanto o professor digita: livre ou de qual aluno dele já é, com uma sugestão livre.
+ * Só olha os alunos do próprio professor (de outros professores pode repetir).
+ */
+export async function conferirUsuario(texto: string, alunoId: number | null): Promise<{ livre: boolean; mensagem?: string; sugestao?: string }> {
+  const professor = await exigirProfessor();
+  const usuario = normalizarUsuario(texto);
+  if (usuario.length < 3) return { livre: false };
+  const conflito = await alunoComUsuario(professor.id, usuario, alunoId ?? undefined);
+  if (!conflito) return { livre: true };
+  const sugestao = await usuarioLivre(professor.id, usuario, alunoId ?? undefined);
+  return { livre: false, mensagem: textoUsuarioRepetido(usuario, conflito, sugestao), sugestao };
 }
 
 /** Limite do plano atingido? Devolve a mensagem de erro (ou null se ainda cabe mais um aluno ativo). */

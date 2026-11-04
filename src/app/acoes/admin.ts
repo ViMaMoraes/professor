@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirMaster } from "@/lib/auth";
-import { buscarProfessor, emailEmUso } from "@/lib/consultas";
+import { buscarProfessor, codigoLivre, emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido } from "@/lib/formato";
@@ -39,7 +39,7 @@ export async function criarProfessor(_: EstadoNovoProfessor, dados: FormData): P
   const db = await getDb();
   const [novo] = await db
     .insert(schema.professores)
-    .values({ nome, email, acessoAte, plano, senhaHash: await bcrypt.hash(senha, 10), trocarSenha: true, ativo: dados.get("ativo") === "on" })
+    .values({ nome, email, codigo: await codigoLivre(nome), acessoAte, plano, senhaHash: await bcrypt.hash(senha, 10), trocarSenha: true, ativo: dados.get("ativo") === "on" })
     .returning({ id: schema.professores.id });
   revalidatePath("/admin");
   return { ok: "Conta criada.", senha, id: novo.id, email, nome };

@@ -25,9 +25,11 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `ativo` integer DEFAULT true NOT NULL,
   `acesso_ate` text,
   `plano` text DEFAULT 'premium' NOT NULL,
+  `codigo` text,
   `criado_em` text
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `professores_email_unique` ON `professores` (`email`);
+CREATE UNIQUE INDEX IF NOT EXISTS `professores_codigo_unique` ON `professores` (`codigo`);
 
 CREATE TABLE IF NOT EXISTS `instituicoes` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -69,11 +71,12 @@ CREATE TABLE IF NOT EXISTS `alunos` (
   `observacoes` text,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
   `usuario` text,
+  `usuario_global` integer DEFAULT false NOT NULL,
   `descricao_recibo` text,
   `mensagem` text,
   `dia_vencimento` integer
 );
-CREATE UNIQUE INDEX IF NOT EXISTS `alunos_usuario_unique` ON `alunos` (`usuario`);
+CREATE UNIQUE INDEX IF NOT EXISTS `alunos_professor_usuario` ON `alunos` (`professor_id`,`usuario`);
 CREATE INDEX IF NOT EXISTS `alunos_professor` ON `alunos` (`professor_id`);
 
 CREATE TABLE IF NOT EXISTS `presencas` (
@@ -306,4 +309,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0009_agenda_reposicoes.sql'),
   ('0010_videos.sql'),
   ('0011_planos.sql'),
-  ('0012_planos_plus_premium.sql');
+  ('0012_planos_plus_premium.sql'),
+  ('0013_usuario_por_professor.sql');

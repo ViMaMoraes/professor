@@ -97,7 +97,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6">
-          {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} telefone={aluno.telefone} endereco={enderecoSite()} />}
+          {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} codigo={professor.codigo} telefone={aluno.telefone} endereco={enderecoSite()} />}
           {aluno.usuario && aluno.ativo && <MensagemAluno alunoId={aluno.id} mensagem={aluno.mensagem} />}
           <Card>
             <CardTitulo>Dados</CardTitulo>

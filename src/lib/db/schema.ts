@@ -10,6 +10,8 @@ export const professores = sqliteTable("professores", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   nome: text("nome").notNull(),
   email: text("email").notNull().unique(),
+  // código curto que identifica o professor no acesso do aluno (ex.: "marcus"); único no site
+  codigo: text("codigo").unique(),
   senhaHash: text("senha_hash").notNull(),
   // dados que aparecem no recibo
   documento: text("documento"),
@@ -65,15 +67,20 @@ export const instituicoes = sqliteTable(
   (t) => [index("instituicoes_professor").on(t.professorId)],
 );
 
-export const alunos = sqliteTable("alunos", {
+export const alunos = sqliteTable(
+  "alunos",
+  {
   id: integer("id").primaryKey({ autoIncrement: true }),
   professorId: professorId(),
   // instituição que paga por este aluno (opcional)
   instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "set null" }),
   nome: text("nome").notNull(),
   email: text("email"),
-  // login do aluno (só usuário, sem senha); vazio = sem acesso aos downloads
-  usuario: text("usuario").unique(),
+  // login do aluno (só usuário, sem senha); vazio = sem acesso aos downloads.
+  // Único por professor: no login, o código do professor diz de quem é o aluno.
+  usuario: text("usuario"),
+  // usuário criado quando ele ainda era único no site inteiro: continua entrando só com o usuário (sem código)
+  usuarioGlobal: integer("usuario_global", { mode: "boolean" }).notNull().default(false),
   senhaHash: text("senha_hash"), // não é mais usada (o aluno entra só com o usuário); mantida para não recriar a tabela
   descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
   mensagem: text("mensagem"), // recado do professor que aparece em destaque no acesso do aluno
@@ -91,7 +98,9 @@ export const alunos = sqliteTable("alunos", {
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   observacoes: text("observacoes"),
   criadoEm: criadoEm(),
-});
+  },
+  (t) => [uniqueIndex("alunos_professor_usuario").on(t.professorId, t.usuario)],
+);
 
 export const presencas = sqliteTable(
   "presencas",

@@ -65,6 +65,12 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
           <Campo rotulo="Telefone">
             <InputMascara mascara="telefone" name="telefone" defaultValue={p.telefone} />
           </Campo>
+          <Campo
+            rotulo="Código do professor"
+            dica="Identifica você no acesso do aluno e vai no link pessoal de cada um. Se trocar, mande o link de novo aos alunos que entraram depois desta mudança."
+          >
+            <Input name="codigo" defaultValue={p.codigo ?? ""} required minLength={3} maxLength={20} autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+          </Campo>
         </section>
         <section className="p-5">
           <h2 className="font-semibold">Assinatura</h2>

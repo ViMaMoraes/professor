@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
+import { garantirCodigo } from "./consultas";
 import { getDb, schema } from "./db";
 import type { Professor } from "./db/schema";
 import { hojeISO } from "./formato";
@@ -43,7 +44,8 @@ export async function exigirProfessor() {
   if (usuario.tipo !== "professor") redirect("/portal");
   // entrou com senha provisória: precisa criar a própria antes de usar o site
   if (usuario.professor.trocarSenha) redirect("/trocar-senha");
-  return usuario.professor;
+  // conta de antes do código do professor existir: gera um na primeira vez
+  return garantirCodigo(usuario.professor);
 }
 
 /** Só o master (administrador da plataforma). */

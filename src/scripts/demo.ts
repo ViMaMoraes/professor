@@ -19,6 +19,7 @@ async function main() {
       master: true,
       nome: "Professor Exemplo",
       email: "professor@exemplo.com",
+      codigo: "exemplo",
       senhaHash: await bcrypt.hash("professor", 10),
       documento: "123.456.789-00",
       rg: "12.345.678-9",
@@ -223,6 +224,7 @@ async function main() {
     .values({
       nome: "Marina Costa",
       email: "marina@exemplo.com",
+      codigo: "marina",
       senhaHash: await bcrypt.hash("professor", 10),
       acessoAte: somarDias(hoje, 30),
     })

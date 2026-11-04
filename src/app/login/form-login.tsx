@@ -9,8 +9,16 @@ import { Campo, cn, Input } from "@/components/ui";
 
 type Acesso = "professor" | "aluno";
 
-/** Login com duas abas: professor (e-mail e senha) e aluno (só usuário). */
-export function FormLogin({ inicial = "professor", usuarioInicial }: { inicial?: Acesso; usuarioInicial?: string }) {
+/** Login com duas abas: professor (e-mail e senha) e aluno (usuário e código do professor, sem senha). */
+export function FormLogin({
+  inicial = "professor",
+  usuarioInicial,
+  codigoInicial,
+}: {
+  inicial?: Acesso;
+  usuarioInicial?: string;
+  codigoInicial?: string;
+}) {
   const [acesso, setAcesso] = useState<Acesso>(inicial);
   return (
     <>
@@ -51,7 +59,7 @@ export function FormLogin({ inicial = "professor", usuarioInicial }: { inicial?:
         </Formulario>
       ) : (
         <Formulario key="aluno" acao={entrarAluno} className="flex flex-col gap-4">
-          {usuarioInicial && <p className="text-center text-sm text-suave">Confira seu usuário e toque em Entrar.</p>}
+          {usuarioInicial && <p className="text-center text-sm text-suave">Confira seus dados e toque em Entrar.</p>}
           <Campo rotulo="Usuário" dica="O usuário que seu professor te passou.">
             <Input
               name="usuario"
@@ -61,6 +69,20 @@ export function FormLogin({ inicial = "professor", usuarioInicial }: { inicial?:
               autoComplete="username"
               autoCapitalize="none"
               placeholder="ex.: julia.ramos"
+            />
+          </Campo>
+          <Campo
+            rotulo="Código do professor"
+            dica={codigoInicial ? "Já veio no link do seu professor." : "Vem no link que seu professor mandou. Se você sempre entrou só com o usuário, pode deixar em branco."}
+          >
+            <Input
+              name="codigo"
+              defaultValue={codigoInicial}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="ex.: marcus"
             />
           </Campo>
           <BotaoEnviar className="mt-2 w-full">

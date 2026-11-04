@@ -6,9 +6,10 @@ import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 
 import { contaLiberada, usuarioAtual } from "@/lib/auth";
+import { alunoParaEntrar, codigoLivre } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { explicarErroDeConfiguracao } from "@/lib/erros";
-import { normalizarUsuario } from "@/lib/usuario";
+import { normalizarCodigo, normalizarUsuario } from "@/lib/usuario";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { COOKIE_SESSAO, criarToken, opcoesCookie, type Sessao } from "@/lib/sessao";
 
@@ -42,14 +43,16 @@ async function fazerLogin(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
   return { erro: "E-mail ou senha inválidos." };
 }
 
-/** Acesso aluno: só o usuário, sem senha (leva direto para os downloads). */
+/** Acesso aluno: usuário e código do professor, sem senha (leva direto para o portal). Ver `alunoParaEntrar`. */
 export async function entrarAluno(estado: EstadoForm, dados: FormData): Promise<EstadoForm> {
   try {
     const usuario = normalizarUsuario(String(dados.get("usuario") ?? ""));
+    const codigo = normalizarCodigo(String(dados.get("codigo") ?? ""));
     if (!usuario) return { erro: "Digite seu usuário." };
     const db = await getDb();
-    const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.usuario, usuario) });
-    if (!aluno?.ativo) return { erro: "Usuário não encontrado. Confira com seu professor." };
+    const achado = await alunoParaEntrar(usuario, codigo);
+    if ("erro" in achado) return { erro: achado.erro };
+    const { aluno } = achado;
     const dono = await db.query.professores.findFirst({ where: eq(schema.professores.id, aluno.professorId) });
     if (!dono || !contaLiberada(dono)) return { erro: "O acesso está indisponível no momento. Fale com seu professor." };
     await iniciarSessao({ tipo: "aluno", id: aluno.id });
@@ -114,7 +117,7 @@ async function fazerCriarConta(_: EstadoForm, dados: FormData): Promise<EstadoFo
   const db = await getDb();
   const [professor] = await db
     .insert(schema.professores)
-    .values({ nome, email, senhaHash: await bcrypt.hash(senha, 10), master: true })
+    .values({ nome, email, codigo: await codigoLivre(nome), senhaHash: await bcrypt.hash(senha, 10), master: true })
     .returning();
   await iniciarSessao({ tipo: "professor", id: professor.id });
   redirect("/painel");

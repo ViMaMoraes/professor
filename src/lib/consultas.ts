@@ -5,6 +5,7 @@ import { and, asc, desc, eq, exists, gte, inArray, isNull, like, lte, or, sql, s
 import { montarAgenda } from "./agenda";
 import { getDb, schema } from "./db";
 import { foraDaCobranca, montarFinanceiro, type Lancamento, type Pagador } from "./financeiro";
+import { sugestoesDeCodigo } from "./usuario";
 
 const { professores, alunos, instituicoes, presencas, recibos, materiais, materiaisAlunos } = schema;
 
@@ -298,11 +299,86 @@ export async function emailEmUso(email: string, ignorar: { professorId?: number 
   return Boolean(professor && professor.id !== ignorar.professorId);
 }
 
-/** Usuário de aluno já usado? (é o login do aluno, único no site inteiro) */
-export async function usuarioEmUso(usuario: string, ignorarAlunoId?: number) {
+/**
+ * Aluno DESTE professor que já usa o usuário (ou null). O usuário é único por professor: alunos de
+ * professores diferentes podem ter o mesmo, porque o código do professor separa os dois no login.
+ */
+export async function alunoComUsuario(professorId: number, usuario: string, ignorarAlunoId?: number) {
   const db = await getDb();
-  const aluno = await db.query.alunos.findFirst({ where: eq(alunos.usuario, usuario) });
-  return Boolean(aluno && aluno.id !== ignorarAlunoId);
+  const aluno = await db.query.alunos.findFirst({
+    where: and(eq(alunos.professorId, professorId), eq(alunos.usuario, usuario)),
+    columns: { id: true, nome: true, ativo: true },
+  });
+  return aluno && aluno.id !== ignorarAlunoId ? aluno : null;
+}
+
+/** Primeira variação livre do usuário neste professor: "nicolas", "nicolas2", "nicolas3"... */
+export async function usuarioLivre(professorId: number, base: string, ignorarAlunoId?: number) {
+  for (let n = 1; n < 100; n++) {
+    const candidato = n === 1 ? base : `${base}${n}`;
+    if (!(await alunoComUsuario(professorId, candidato, ignorarAlunoId))) return candidato;
+  }
+  return `${base}${Date.now() % 10000}`;
+}
+
+/** Professor pelo código (o que o aluno digita no login ou vem no link). */
+export async function professorPorCodigo(codigo: string) {
+  const db = await getDb();
+  return (await db.query.professores.findFirst({ where: eq(professores.codigo, codigo) })) ?? null;
+}
+
+/** Código de professor já usado por outro professor? */
+export async function codigoEmUso(codigo: string, ignorarProfessorId?: number) {
+  const professor = await professorPorCodigo(codigo);
+  return Boolean(professor && professor.id !== ignorarProfessorId);
+}
+
+/** Primeiro código livre para o nome (marcus, marcusmoraes, mvmoraes, marcus2...). */
+export async function codigoLivre(nome: string) {
+  const opcoes = sugestoesDeCodigo(nome);
+  for (const c of opcoes) if (!(await codigoEmUso(c))) return c;
+  for (let n = 2; n < 1000; n++) if (!(await codigoEmUso(`${opcoes[0]}${n}`))) return `${opcoes[0]}${n}`;
+  return `${opcoes[0]}${Date.now() % 100000}`;
+}
+
+/** Professor sem código (conta de antes do código existir): gera e grava um agora. */
+export async function garantirCodigo<P extends { id: number; nome: string; codigo: string | null }>(
+  professor: P,
+): Promise<Omit<P, "codigo"> & { codigo: string }> {
+  if (professor.codigo) return { ...professor, codigo: professor.codigo };
+  const db = await getDb();
+  const codigo = await codigoLivre(professor.nome);
+  await db.update(professores).set({ codigo }).where(and(eq(professores.id, professor.id), isNull(professores.codigo)));
+  const atual = await db.query.professores.findFirst({ where: eq(professores.id, professor.id), columns: { codigo: true } });
+  return { ...professor, codigo: atual?.codigo ?? codigo };
+}
+
+/**
+ * Qual aluno está entrando. Com o código do professor, procura só entre os alunos dele.
+ * Sem o código (link antigo ou aluno que entrava só com o usuário):
+ * 1. aluno de usuário antigo (de quando o usuário era único no site) → ele;
+ * 2. senão, se só um aluno ativo no site tem esse usuário → ele;
+ * 3. mais de um → pede o código do professor.
+ */
+export async function alunoParaEntrar(usuario: string, codigo: string): Promise<{ aluno: typeof alunos.$inferSelect } | { erro: string }> {
+  const db = await getDb();
+  const naoEncontrado = { erro: "Usuário não encontrado. Confira com seu professor." };
+  if (codigo) {
+    const professor = await professorPorCodigo(codigo);
+    if (!professor) return { erro: "Código do professor não encontrado. Confira o link ou o código que seu professor te passou." };
+    const aluno = await db.query.alunos.findFirst({
+      where: and(eq(alunos.professorId, professor.id), eq(alunos.usuario, usuario), eq(alunos.ativo, true)),
+    });
+    return aluno ? { aluno } : naoEncontrado;
+  }
+  const antigo = await db.query.alunos.findFirst({
+    where: and(eq(alunos.usuario, usuario), eq(alunos.usuarioGlobal, true), eq(alunos.ativo, true)),
+  });
+  if (antigo) return { aluno: antigo };
+  const candidatos = await db.query.alunos.findMany({ where: and(eq(alunos.usuario, usuario), eq(alunos.ativo, true)), limit: 2 });
+  if (candidatos.length === 1) return { aluno: candidatos[0] };
+  if (candidatos.length > 1) return { erro: "Informe também o código do professor (ele vem no link que seu professor te mandou)." };
+  return naoEncontrado;
 }
 
 /** Avisos que o aluno recebeu: os "para todos" do professor dele e os enviados para ele. */

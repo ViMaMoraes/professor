@@ -5,7 +5,8 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { exigirProfessor } from "@/lib/auth";
-import { emailEmUso } from "@/lib/consultas";
+import { codigoEmUso, emailEmUso } from "@/lib/consultas";
+import { erroCodigo, normalizarCodigo } from "@/lib/usuario";
 import { getDb, schema } from "@/lib/db";
 import { DURACOES, LEMBRETES } from "@/lib/agenda";
 import { DIA_VENCIMENTO_PADRAO, lerDiaVencimento } from "@/lib/financeiro";
@@ -22,6 +23,11 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
   if (!nome || !email) return { erro: "Nome e e-mail são obrigatórios." };
 
   if (await emailEmUso(email, { professorId: professor.id })) return { erro: "Esse e-mail já está em uso." };
+
+  const codigo = normalizarCodigo(String(dados.get("codigo") ?? ""));
+  const erroDoCodigo = erroCodigo(codigo);
+  if (erroDoCodigo) return { erro: erroDoCodigo };
+  if (await codigoEmUso(codigo, professor.id)) return { erro: `O código “${codigo}” já é de outro professor. Escolha outro.` };
 
   if (novaSenha) {
     if (novaSenha.length < 6) return { erro: "A nova senha precisa ter pelo menos 6 caracteres." };
@@ -46,6 +52,7 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
     .set({
       nome,
       email,
+      codigo,
       documento: mascaraDocumento(texto(dados, "documento")) || null,
       telefone: mascaraTelefone(texto(dados, "telefone")) || null,
       endereco: texto(dados, "endereco"),

@@ -175,3 +175,16 @@ describe("mensagem de cobrança", () => {
     );
   });
 });
+
+describe("código do professor", () => {
+  it("normaliza e sugere a partir do nome", async () => {
+    const { normalizarCodigo, sugestoesDeCodigo, erroCodigo } = await import("../usuario");
+    expect(normalizarCodigo(" Márcus.Vinícius 2 ")).toBe("marcusvinicius2");
+    expect(sugestoesDeCodigo("Marcus Vinicius de Moraes")).toEqual(["marcus", "marcusmoraes", "mvmoraes"]);
+    expect(sugestoesDeCodigo("Ana")).toEqual(["ana"]);
+    expect(sugestoesDeCodigo("Li")).toEqual(["liprof"]);
+    expect(sugestoesDeCodigo("")).toEqual(["professor"]);
+    expect(erroCodigo("ab")).toBeTruthy();
+    expect(erroCodigo("abc")).toBeNull();
+  });
+});

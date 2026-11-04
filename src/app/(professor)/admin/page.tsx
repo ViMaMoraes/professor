@@ -88,6 +88,7 @@ export default async function PaginaAdmin() {
                     {p.id === master.id && <span className="ml-1 text-xs text-suave">(você)</span>}
                     <div className="text-xs text-suave">
                       {p.email}
+                      {p.codigo && ` · código ${p.codigo}`}
                       {p.trocarSenha && " · senha provisória (ainda não entrou)"}
                     </div>
                   </td>
