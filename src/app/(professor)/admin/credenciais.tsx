@@ -42,15 +42,16 @@ export function Credenciais({
   }
 
   const linha = (rotulo: string, valor: string, qual: string) => (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-borda px-3 py-2">
+    <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-borda px-3 py-2">
       <div className="min-w-0">
         <p className="text-xs text-suave">{rotulo}</p>
-        <p className="truncate font-mono text-sm">{valor}</p>
+        {/* quebra em vez de vazar: no celular o link e o e-mail longos não cabem numa linha */}
+        <p className="font-mono text-sm break-all">{valor}</p>
       </div>
       <button
         type="button"
         onClick={() => copiar(valor, qual)}
-        className="rounded-lg p-2 text-suave hover:bg-fundo hover:text-texto"
+        className="shrink-0 rounded-lg p-2 text-suave hover:bg-fundo hover:text-texto"
         aria-label={`Copiar ${rotulo.toLowerCase()}`}
       >
         {copiado === qual ? <Check className="size-4" /> : <Copy className="size-4" />}
@@ -71,10 +72,10 @@ export function Credenciais({
           </p>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {linha("E-mail", email, "email")}
         {linha("Senha provisória", senha, "senha")}
-        <div className="sm:col-span-2">{linha("Link de acesso", link, "link")}</div>
+        <div className="min-w-0 sm:col-span-2">{linha("Link de acesso", link, "link")}</div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
         <Botao type="button" onClick={() => copiar(mensagem, "mensagem")}>
