@@ -34,3 +34,12 @@ describe("links de vídeo", () => {
     expect(urlPlayer(drive)).toBe("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUv/preview?resourcekey=0-xyz");
   });
 });
+
+describe("formato", () => {
+  it("YouTube Shorts é em pé", async () => {
+    const { ehShorts } = await import("../video");
+    expect(ehShorts({ origem: "youtube", link: "https://youtube.com/shorts/dQw4w9WgXcQ" })).toBe(true);
+    expect(ehShorts({ origem: "youtube", link: "https://youtu.be/dQw4w9WgXcQ" })).toBe(false);
+    expect(ehShorts({ origem: "drive", link: "https://drive.google.com/file/d/x/view" })).toBe(false);
+  });
+});

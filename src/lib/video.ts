@@ -35,6 +35,9 @@ export function lerLinkVideo(texto: string | null | undefined): LinkVideo | null
 
 type VideoSalvo = { origem: "drive" | "youtube"; origemId: string; link: string };
 
+/** YouTube Shorts são sempre em pé. */
+export const ehShorts = (v: Pick<VideoSalvo, "origem" | "link">) => v.origem === "youtube" && /\/shorts\//.test(v.link);
+
 /** Endereço do player para o iframe (sem vídeos sugeridos no fim, no YouTube). */
 export function urlPlayer(v: VideoSalvo) {
   if (v.origem === "youtube") return `https://www.youtube-nocookie.com/embed/${v.origemId}?rel=0&modestbranding=1&playsinline=1`;

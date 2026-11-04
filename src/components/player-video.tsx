@@ -21,6 +21,7 @@ export function PlayerVideo({
   titulo,
   proximo,
   aoAbrir,
+  vertical = false,
 }: {
   origem: "drive" | "youtube";
   url: string;
@@ -31,6 +32,8 @@ export function PlayerVideo({
   proximo?: { href: string; titulo: string } | null;
   /** chamado uma vez quando o player abre (ex.: registrar que o aluno assistiu) */
   aoAbrir?: () => void;
+  /** já se sabe que o vídeo é em pé (ex.: YouTube Shorts) */
+  vertical?: boolean;
 }) {
   const quadro = useRef<HTMLIFrameElement>(null);
   const nativo = useRef<HTMLVideoElement>(null);
@@ -38,6 +41,20 @@ export function PlayerVideo({
   // se o Google não entregar o arquivo (ex.: sem compartilhamento público), cai para o player do Drive
   const [semNativo, setSemNativo] = useState(false);
   const usarNativo = origem === "drive" && Boolean(arquivo) && !semNativo;
+  // formato do vídeo (largura / altura): vídeo gravado em pé ganha um player em pé
+  const [proporcao, setProporcao] = useState(vertical ? 9 / 16 : 16 / 9);
+
+  // Drive: descobre o formato pela capa (a miniatura tem o mesmo formato do vídeo)
+  useEffect(() => {
+    if (origem !== "drive" || !capa) return;
+    const imagem = new Image();
+    imagem.referrerPolicy = "no-referrer";
+    imagem.onload = () => imagem.naturalWidth && imagem.naturalHeight && setProporcao(imagem.naturalWidth / imagem.naturalHeight);
+    imagem.src = capa;
+    return () => {
+      imagem.onload = null;
+    };
+  }, [origem, capa]);
   // endereço do site (o YouTube só manda os eventos do player para ele); no servidor ainda não existe
   const origemSite = useSyncExternalStore(nada, () => window.location.origin, () => null);
 
@@ -81,7 +98,11 @@ export function PlayerVideo({
   }
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
+    <div
+      className="relative mx-auto overflow-hidden rounded-2xl bg-black"
+      // ocupa a largura toda, mas nunca mais que 80% da altura da tela (assim os controles sempre aparecem)
+      style={{ aspectRatio: proporcao, width: `min(100%, calc(80svh * ${proporcao.toFixed(4)}))` }}
+    >
       {usarNativo && (
         <video
           ref={nativo}
@@ -96,6 +117,7 @@ export function PlayerVideo({
           disableRemotePlayback
           onContextMenu={(e) => e.preventDefault()}
           onError={() => setSemNativo(true)}
+          onLoadedMetadata={(e) => e.currentTarget.videoWidth && setProporcao(e.currentTarget.videoWidth / e.currentTarget.videoHeight)}
           onEnded={() => setTerminou(true)}
           onPlay={() => setTerminou(false)}
           className="absolute inset-0 size-full"
