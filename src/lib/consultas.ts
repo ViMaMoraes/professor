@@ -281,6 +281,16 @@ export async function listarProfessores() {
     .orderBy(desc(professores.master), asc(professores.nome));
 }
 
+/** Alunos ativos do professor (é o que conta no limite do plano). */
+export async function contarAlunosAtivos(professorId: number) {
+  const db = await getDb();
+  const [linha] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(alunos)
+    .where(and(eq(alunos.professorId, professorId), eq(alunos.ativo, true)));
+  return Number(linha?.n ?? 0);
+}
+
 /** E-mail de login de professor já usado? (o login do professor é único no site inteiro) */
 export async function emailEmUso(email: string, ignorar: { professorId?: number } = {}) {
   const db = await getDb();

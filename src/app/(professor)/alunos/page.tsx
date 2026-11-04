@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { BotaoLink, Botao, Cabecalho, Card, EsqueletoPagina, Input, Select, Selo, Tabela, Vazio } from "@/components/ui";
+import { UsoDoPlano } from "@/components/uso-do-plano";
 import { exigirProfessor } from "@/lib/auth";
 import { resumoHorarios } from "@/lib/agenda";
 import { horariosPorAluno, listarAlunos, listarInstituicoes } from "@/lib/consultas";
@@ -41,6 +42,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
 
   return (
     <>
+      <UsoDoPlano professor={professor} />
       <form className="mb-4 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-suave" />

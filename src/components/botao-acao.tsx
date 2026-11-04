@@ -42,8 +42,11 @@ export function BotaoAcao({
           return;
         }
         iniciar(async () => {
-          await acao();
-          if (sucesso) notificar(sucesso);
+          const resultado = await acao();
+          // a ação pode recusar (ex.: limite do plano) devolvendo { erro }
+          const erro = resultado && typeof resultado === "object" && "erro" in resultado ? resultado.erro : null;
+          if (typeof erro === "string" && erro) notificar(erro, "erro");
+          else if (sucesso) notificar(sucesso);
         });
       }}
     >

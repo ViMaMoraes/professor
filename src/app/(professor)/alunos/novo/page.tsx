@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Cabecalho, Voltar } from "@/components/ui";
+import { UsoDoPlano } from "@/components/uso-do-plano";
 import { exigirProfessor } from "@/lib/auth";
 import { listarInstituicoes } from "@/lib/consultas";
 
@@ -15,6 +16,7 @@ export default async function PaginaNovoAluno() {
     <>
       <Voltar href="/alunos">Voltar para alunos</Voltar>
       <Cabecalho titulo="Novo aluno" />
+      <UsoDoPlano professor={professor} />
       <FormAluno instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} diaPadrao={professor.diaVencimento} duracaoPadrao={professor.duracaoAula} />
     </>
   );

@@ -10,6 +10,7 @@ import { buscarProfessor, emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido } from "@/lib/formato";
+import { PLANO_PADRAO, planoValido } from "@/lib/planos";
 import { gerarSenha } from "@/lib/senha";
 
 export type EstadoNovoProfessor = { erro?: string; ok?: string; senha?: string; id?: number; email?: string; nome?: string } | null;
@@ -19,6 +20,7 @@ function lerDados(dados: FormData) {
     nome: texto(dados, "nome"),
     email: texto(dados, "email")?.toLowerCase() ?? null,
     acessoAte: texto(dados, "acessoAte"),
+    plano: planoValido(dados.get("plano")) ? (dados.get("plano") as string) : PLANO_PADRAO,
   };
 }
 
@@ -28,7 +30,7 @@ function lerDados(dados: FormData) {
  */
 export async function criarProfessor(_: EstadoNovoProfessor, dados: FormData): Promise<EstadoNovoProfessor> {
   await exigirMaster();
-  const { nome, email, acessoAte } = lerDados(dados);
+  const { nome, email, acessoAte, plano } = lerDados(dados);
   if (!nome || !email) return { erro: "Informe nome e e-mail." };
   if (acessoAte && !isoValido(acessoAte)) return { erro: "Data de validade inválida." };
   if (await emailEmUso(email)) return { erro: "Esse e-mail já está em uso no site." };
@@ -37,18 +39,18 @@ export async function criarProfessor(_: EstadoNovoProfessor, dados: FormData): P
   const db = await getDb();
   const [novo] = await db
     .insert(schema.professores)
-    .values({ nome, email, acessoAte, senhaHash: await bcrypt.hash(senha, 10), trocarSenha: true, ativo: dados.get("ativo") === "on" })
+    .values({ nome, email, acessoAte, plano, senhaHash: await bcrypt.hash(senha, 10), trocarSenha: true, ativo: dados.get("ativo") === "on" })
     .returning({ id: schema.professores.id });
   revalidatePath("/admin");
   return { ok: "Conta criada.", senha, id: novo.id, email, nome };
 }
 
-/** Atualiza nome, e-mail, validade e situação de um professor (só o master). */
+/** Atualiza nome, e-mail, plano, validade e situação de um professor (só o master). */
 export async function salvarProfessor(id: number, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const master = await exigirMaster();
   const existente = await buscarProfessor(id);
   if (!existente) return { erro: "Professor não encontrado." };
-  const { nome, email, acessoAte } = lerDados(dados);
+  const { nome, email, acessoAte, plano } = lerDados(dados);
   if (!nome || !email) return { erro: "Informe nome e e-mail." };
   if (acessoAte && !isoValido(acessoAte)) return { erro: "Data de validade inválida." };
   if (await emailEmUso(email, { professorId: id })) return { erro: "Esse e-mail já está em uso no site." };
@@ -60,6 +62,8 @@ export async function salvarProfessor(id: number, _: EstadoForm, dados: FormData
       nome,
       email,
       acessoAte: existente.master ? null : acessoAte,
+      // o plano só limita os clientes (o master não tem limite)
+      plano: existente.master ? existente.plano : plano,
       // o master não pode se bloquear
       ativo: existente.id === master.id ? true : dados.get("ativo") === "on",
     })

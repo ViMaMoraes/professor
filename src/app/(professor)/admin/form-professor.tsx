@@ -3,11 +3,12 @@
 import { Check, UserPlus } from "lucide-react";
 import { criarProfessor, salvarProfessor } from "@/app/acoes/admin";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
-import { BotaoLink, Campo, Card, Input } from "@/components/ui";
+import { BotaoLink, Campo, Card, Input, Select } from "@/components/ui";
+import { PLANO_PADRAO, PLANOS } from "@/lib/planos";
 
 import { Credenciais } from "./credenciais";
 
-type Dados = { id: number; nome: string; email: string; acessoAte: string | null; ativo: boolean; master: boolean };
+type Dados = { id: number; nome: string; email: string; acessoAte: string | null; plano: string; ativo: boolean; master: boolean };
 
 function Campos({ professor }: { professor?: Dados }) {
   return (
@@ -18,6 +19,17 @@ function Campos({ professor }: { professor?: Dados }) {
       <Campo rotulo="E-mail (login) *">
         <Input type="email" name="email" required defaultValue={professor?.email} />
       </Campo>
+      {!professor?.master && (
+        <Campo rotulo="Plano" dica="O Iniciante permite até 5 alunos ativos; o Completo e o Anual, ilimitados.">
+          <Select name="plano" defaultValue={professor?.plano ?? PLANO_PADRAO}>
+            {Object.entries(PLANOS).map(([valor, p]) => (
+              <option key={valor} value={valor}>
+                {p.nome} · {p.preco} · {p.limiteAlunos ? `até ${p.limiteAlunos} alunos` : "alunos ilimitados"}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+      )}
       {!professor?.master && (
         <Campo rotulo="Acesso até" dica="Data em que a assinatura vence. Em branco = sem limite.">
           <Input type="date" name="acessoAte" defaultValue={professor?.acessoAte ?? ""} />

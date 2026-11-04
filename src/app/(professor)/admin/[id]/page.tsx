@@ -16,8 +16,8 @@ export default async function PaginaEditarProfessor(props: PageProps<"/admin/[id
   const professor = await buscarProfessor(Number((await props.params).id));
   if (!professor) notFound();
   // só o que o formulário usa (nada de senha ou assinatura indo para o navegador)
-  const { id, nome, email, acessoAte, ativo, master: ehMaster } = professor;
-  const dados = { id, nome, email, acessoAte, ativo, master: ehMaster };
+  const { id, nome, email, acessoAte, plano, ativo, master: ehMaster } = professor;
+  const dados = { id, nome, email, acessoAte, plano, ativo, master: ehMaster };
 
   return (
     <>

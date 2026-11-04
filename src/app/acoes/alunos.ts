@@ -5,13 +5,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, buscarInstituicao, usuarioEmUso } from "@/lib/consultas";
+import { buscarAluno, buscarInstituicao, contarAlunosAtivos, usuarioEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { DIAS_LONGOS, DURACOES, horaValida } from "@/lib/agenda";
 import { lerDiaVencimento } from "@/lib/financeiro";
 import { erroTelefone, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
+import { cabeMaisUmAluno, limiteDeAlunos, textoLimiteAtingido } from "@/lib/planos";
 import { notificarAlunos } from "@/lib/push";
 import { normalizarUsuario } from "@/lib/usuario";
 
@@ -27,6 +28,11 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   const mensalidade = lerValorEmCentavos(valorDigitado);
 
   if (!nome) return { erro: "Informe o nome do aluno." };
+  // aluno novo entra ativo: respeita o limite do plano
+  if (!id) {
+    const erroLimite = await erroDoLimite(professor);
+    if (erroLimite) return { erro: erroLimite };
+  }
   if (valorDigitado && mensalidade == null) return { erro: "Valor da mensalidade inválido." };
   const erroFone = erroTelefone(texto(dados, "telefone"));
   if (erroFone) return { erro: erroFone };
@@ -96,12 +102,26 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   redirect(`/alunos/${alunoId}`);
 }
 
-export async function alternarSituacao(id: number) {
+/** Limite do plano atingido? Devolve a mensagem de erro (ou null se ainda cabe mais um aluno ativo). */
+async function erroDoLimite(professor: { id: number; plano: string; master: boolean }) {
+  const limite = limiteDeAlunos(professor);
+  if (limite == null || cabeMaisUmAluno(professor, await contarAlunosAtivos(professor.id))) return null;
+  return textoLimiteAtingido(professor, limite);
+}
+
+/** Ativa ou desativa o aluno. Reativar respeita o limite do plano. */
+export async function alternarSituacao(id: number): Promise<{ erro?: string }> {
   const professor = await exigirProfessor();
   const db = await getDb();
   const aluno = await buscarAluno(professor.id, id);
-  if (aluno) await db.update(schema.alunos).set({ ativo: !aluno.ativo }).where(eq(schema.alunos.id, id));
+  if (!aluno) return {};
+  if (!aluno.ativo) {
+    const erroLimite = await erroDoLimite(professor);
+    if (erroLimite) return { erro: erroLimite };
+  }
+  await db.update(schema.alunos).set({ ativo: !aluno.ativo }).where(eq(schema.alunos.id, id));
   revalidatePath("/", "layout");
+  return {};
 }
 
 export async function excluirAluno(id: number) {
