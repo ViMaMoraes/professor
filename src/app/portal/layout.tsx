@@ -16,7 +16,7 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
   if (pendentes.length) return <BancoDesatualizado pendentes={pendentes} paraAluno />;
   // checa o login antes de qualquer coisa: visitante sem sessão recebe redirecionamento direto
   const { aluno, professor } = await exigirAlunoComProfessor();
-  // a aba Vídeos só aparece quando há vídeo liberado para o aluno
+  // as abas aparecem sempre (Início e Presença); a de Vídeos só quando há vídeo liberado para o aluno
   const temVideos = (await videosDoAluno(aluno)).videos.length > 0;
   return (
     <>
@@ -45,7 +45,7 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
             </div>
           </div>
         </div>
-        {temVideos && <AbasPortal />}
+        <AbasPortal videos={temVideos} />
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
     </>

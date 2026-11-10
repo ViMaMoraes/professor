@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/components/ui";
 
-/** Abas da área do aluno: Início (downloads, aulas, avisos), Vídeos e Presença. */
-export function AbasPortal() {
+/** Abas da área do aluno: Início (downloads, aulas, avisos), Vídeos (se houver vídeo liberado) e Presença. */
+export function AbasPortal({ videos }: { videos: boolean }) {
   const caminho = usePathname();
   const abas = [
     { href: "/portal", nome: "Início", Icone: House, ativa: caminho === "/portal" },
-    { href: "/portal/videos", nome: "Vídeos", Icone: Clapperboard, ativa: caminho.startsWith("/portal/videos") },
+    ...(videos ? [{ href: "/portal/videos", nome: "Vídeos", Icone: Clapperboard, ativa: caminho.startsWith("/portal/videos") }] : []),
     { href: "/portal/presenca", nome: "Presença", Icone: CalendarCheck, ativa: caminho === "/portal/presenca" },
   ];
   return (
