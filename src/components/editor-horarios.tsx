@@ -11,13 +11,15 @@ type Linha = { chave: number; diaSemana: number; hora: string; duracaoMin: numbe
 // segunda primeiro, domingo por último
 const ORDEM_DIAS = [1, 2, 3, 4, 5, 6, 0];
 
-/** Horários fixos de aula do aluno (um por linha): dia, hora e duração. */
+/** Horários fixos de aula do aluno (um por linha): dia, hora e duração. `curso`: chave do curso dono destes horários (estúdio). */
 export function EditorHorarios({
   iniciais,
   duracaoPadrao,
+  curso,
 }: {
   iniciais: { diaSemana: number; hora: string | null; duracaoMin: number | null }[];
   duracaoPadrao: number;
+  curso?: string;
 }) {
   const [linhas, setLinhas] = useState<Linha[]>(() => iniciais.map((h, i) => ({ chave: i, ...h, hora: h.hora ?? "" })));
   const [proxima, setProxima] = useState(iniciais.length);
@@ -35,6 +37,7 @@ export function EditorHorarios({
       {linhas.length === 0 && <p className="text-sm text-suave">Sem horário fixo. Adicione os dias e horários das aulas deste aluno.</p>}
       {linhas.map((l) => (
         <div key={l.chave} className="flex flex-wrap items-center gap-2">
+          {curso !== undefined && <input type="hidden" name="horarioCurso" value={curso} />}
           <Select name="horarioDia" value={l.diaSemana} onChange={(e) => mudar(l.chave, { diaSemana: Number(e.target.value) })} className="w-36" aria-label="Dia">
             {ORDEM_DIAS.map((d) => (
               <option key={d} value={d}>

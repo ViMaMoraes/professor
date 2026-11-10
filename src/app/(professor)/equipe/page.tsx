@@ -82,7 +82,10 @@ export default async function PaginaEquipe() {
                         {m.trocarSenha && " · senha provisória (ainda não entrou)"}
                       </div>
                     </td>
-                    <td>{CARGOS[m.cargo].nome}</td>
+                    <td>
+                      {CARGOS[m.cargo].nome}
+                      {m.cursos && <div className="text-xs text-suave">{m.cursos}</div>}
+                    </td>
                     <td className="whitespace-nowrap tabular-nums">{m.todosAlunos ? "todos" : (alunosDe.get(m.id) ?? 0)}</td>
                     <td className="max-w-72 text-xs text-suave">
                       {modulos.length === LISTA_MODULOS.length ? "tudo" : modulos.map((x) => MODULOS[x]).join(", ") || "só o painel"}

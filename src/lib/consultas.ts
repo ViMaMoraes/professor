@@ -24,6 +24,18 @@ const idDa = (conta: Conta) => (typeof conta === "number" ? conta : conta.id);
 const membroDa = (conta: Conta) => (typeof conta === "number" ? null : (conta.escopoMembro ?? null));
 
 /**
+ * Para aulas (horário ou reposição com `cursos_aluno` no LEFT JOIN): a aula é deste membro da equipe?
+ * Com curso, vale o professor do curso; sem curso, vale o aluno ser dele (aluno_equipe). Nada = vê todas.
+ */
+function doCursoDoMembro(conta: Conta) {
+  const membroId = membroDa(conta);
+  if (membroId == null) return [];
+  return [
+    sql`(("cursos_aluno"."id" is not null and "cursos_aluno"."membro_id" = ${membroId}) or ("cursos_aluno"."id" is null and exists (select 1 from "aluno_equipe" ae where ae."aluno_id" = "alunos"."id" and ae."membro_id" = ${membroId})))`,
+  ];
+}
+
+/**
  * Condição "o aluno é deste membro da equipe" (aluno_equipe), ou nada quando ele vê todos.
  * Escrita à mão com o nome da tabela: vale em toda consulta que tenha `alunos` no FROM/JOIN.
  */
@@ -74,7 +86,7 @@ export async function presencasDoAluno(alunoId: number, limite = 50) {
 export async function chamadasParaOAluno(alunoId: number) {
   const db = await getDb();
   return db
-    .select({ data: presencas.data, status: presencas.status })
+    .select({ data: presencas.data, status: presencas.status, cursoId: presencas.cursoId })
     .from(presencas)
     .where(eq(presencas.alunoId, alunoId))
     .orderBy(desc(presencas.data))
@@ -228,7 +240,8 @@ export async function presencasNaData(conta: Conta, data: string) {
     .select({ presenca: presencas })
     .from(presencas)
     .innerJoin(alunos, eq(alunos.id, presencas.alunoId))
-    .where(and(eq(alunos.professorId, idDa(conta)), eq(presencas.data, data), ...doMembro(conta)))
+    .leftJoin(schema.cursosAluno, eq(schema.cursosAluno.id, presencas.cursoId))
+    .where(and(eq(alunos.professorId, idDa(conta)), eq(presencas.data, data), ...doCursoDoMembro(conta)))
     .then((linhas) => linhas.map((l) => l.presenca));
 }
 
@@ -241,13 +254,14 @@ export async function historicoPresencas(
 ) {
   const db = await getDb();
   return db
-    .select({ presenca: presencas, aluno: { id: alunos.id, nome: alunos.nome, instrumento: alunos.instrumento } })
+    .select({ presenca: presencas, aluno: { id: alunos.id, nome: alunos.nome, instrumento: alunos.instrumento }, curso: schema.cursosAluno.nome })
     .from(presencas)
     .innerJoin(alunos, eq(alunos.id, presencas.alunoId))
+    .leftJoin(schema.cursosAluno, eq(schema.cursosAluno.id, presencas.cursoId))
     .where(
       and(
         eq(alunos.professorId, idDa(conta)),
-        ...doMembro(conta),
+        ...doCursoDoMembro(conta),
         gte(presencas.data, inicio),
         lte(presencas.data, fim),
         alunoId ? eq(presencas.alunoId, alunoId) : undefined,
@@ -565,9 +579,9 @@ export async function agendaDoPeriodo(
   filtro: { alunoId?: number } = {},
 ) {
   const db = await getDb();
-  const { horarios, aulasDesmarcadas, reposicoes: rep } = schema;
-  // equipe que só vê os próprios alunos: só as aulas deles
-  const doAluno = [...(filtro.alunoId ? [eq(alunos.id, filtro.alunoId)] : []), ...doMembro(professor)];
+  const { horarios, aulasDesmarcadas, reposicoes: rep, cursosAluno: cur } = schema;
+  // equipe que só vê os próprios alunos: só as aulas dos cursos dela
+  const doAluno = [...(filtro.alunoId ? [eq(alunos.id, filtro.alunoId)] : []), ...doCursoDoMembro(professor)];
   const [listaHorarios, desmarcadas, agendadas] = await Promise.all([
     db
       .select({
@@ -578,9 +592,15 @@ export async function agendaDoPeriodo(
         duracaoMin: horarios.duracaoMin,
         // sem "início das aulas", vale a data do cadastro (o calendário não mostra aulas antes do aluno existir)
         inicio: sql<string | null>`coalesce(${alunos.dataInicio}, substr(${alunos.criadoEm}, 1, 10))`,
+        cursoId: cur.id,
+        curso: cur.nome,
+        membroId: cur.membroId,
+        professor: schema.membros.nome,
       })
       .from(horarios)
       .innerJoin(alunos, eq(alunos.id, horarios.alunoId))
+      .leftJoin(cur, eq(cur.id, horarios.cursoId))
+      .leftJoin(schema.membros, eq(schema.membros.id, cur.membroId))
       .where(and(eq(alunos.professorId, professor.id), eq(alunos.ativo, true), ...doAluno)),
     db
       .select()
@@ -594,9 +614,23 @@ export async function agendaDoPeriodo(
         ),
       ),
     db
-      .select({ id: rep.id, alunoId: rep.alunoId, nome: alunos.nome, data: rep.data, hora: rep.hora, duracaoMin: rep.duracaoMin, motivo: rep.motivo })
+      .select({
+        id: rep.id,
+        alunoId: rep.alunoId,
+        nome: alunos.nome,
+        data: rep.data,
+        hora: rep.hora,
+        duracaoMin: rep.duracaoMin,
+        motivo: rep.motivo,
+        cursoId: cur.id,
+        curso: cur.nome,
+        membroId: cur.membroId,
+        professor: schema.membros.nome,
+      })
       .from(rep)
       .innerJoin(alunos, eq(alunos.id, rep.alunoId))
+      .leftJoin(cur, eq(cur.id, rep.cursoId))
+      .leftJoin(schema.membros, eq(schema.membros.id, cur.membroId))
       .where(and(eq(rep.professorId, professor.id), gte(rep.data, de), lte(rep.data, ate), ...doAluno)),
   ]);
   return montarAgenda({
@@ -630,10 +664,20 @@ export async function reposicoesPendentes(conta: Conta, alunoId?: number) {
   const db = await getDb();
   const { reposicoes: rep } = schema;
   return db
-    .select({ id: rep.id, alunoId: rep.alunoId, nome: alunos.nome, motivo: rep.motivo, criadoEm: rep.criadoEm })
+    .select({
+      id: rep.id,
+      alunoId: rep.alunoId,
+      nome: alunos.nome,
+      motivo: rep.motivo,
+      criadoEm: rep.criadoEm,
+      cursoId: schema.cursosAluno.id,
+      curso: schema.cursosAluno.nome,
+      membroId: schema.cursosAluno.membroId,
+    })
     .from(rep)
     .innerJoin(alunos, eq(alunos.id, rep.alunoId))
-    .where(and(eq(rep.professorId, idDa(conta)), isNull(rep.data), ...doMembro(conta), ...(alunoId ? [eq(rep.alunoId, alunoId)] : [])))
+    .leftJoin(schema.cursosAluno, eq(schema.cursosAluno.id, rep.cursoId))
+    .where(and(eq(rep.professorId, idDa(conta)), isNull(rep.data), ...doCursoDoMembro(conta), ...(alunoId ? [eq(rep.alunoId, alunoId)] : [])))
     .orderBy(asc(rep.criadoEm));
 }
 
@@ -760,14 +804,34 @@ export async function equipePorAluno(professorId: number) {
   return mapa;
 }
 
-/** Nomes dos professores da equipe de um aluno. */
-export async function nomesDaEquipeDoAluno(professorId: number, alunoId: number) {
+/**
+ * Cursos dos alunos da conta (estúdio), com o professor de cada um. Quem da equipe só vê os próprios
+ * alunos recebe só os cursos dele. `professor` = nome de quem dá a aula (o membro, ou o dono).
+ */
+export async function cursosDaConta(conta: Conta, filtro: { alunoId?: number } = {}) {
   const db = await getDb();
-  const linhas = await db
-    .select({ nome: schema.membros.nome })
-    .from(schema.alunoEquipe)
-    .innerJoin(schema.membros, eq(schema.membros.id, schema.alunoEquipe.membroId))
-    .where(and(eq(schema.alunoEquipe.alunoId, alunoId), eq(schema.membros.professorId, professorId)))
-    .orderBy(asc(schema.membros.nome));
-  return linhas.map((l) => l.nome);
+  const { cursosAluno: cur, membros } = schema;
+  const membroId = membroDa(conta);
+  return db
+    .select({ id: cur.id, alunoId: cur.alunoId, nome: cur.nome, membroId: cur.membroId, membro: membros.nome })
+    .from(cur)
+    .innerJoin(alunos, eq(alunos.id, cur.alunoId))
+    .leftJoin(membros, eq(membros.id, cur.membroId))
+    .where(
+      and(
+        eq(alunos.professorId, idDa(conta)),
+        ...(filtro.alunoId ? [eq(cur.alunoId, filtro.alunoId)] : []),
+        ...(membroId != null ? [eq(cur.membroId, membroId)] : []),
+      ),
+    )
+    .orderBy(asc(cur.id));
+}
+
+/** Aluno sem chave do link pessoal (não deveria acontecer; a migração e o cadastro geram): gera agora. */
+export async function garantirChaveAluno(aluno: { id: number; chave: string | null }) {
+  if (aluno.chave) return aluno.chave;
+  const db = await getDb();
+  const chave = schema.novaChaveAluno();
+  await db.update(alunos).set({ chave }).where(and(eq(alunos.id, aluno.id), isNull(alunos.chave)));
+  return (await db.query.alunos.findFirst({ where: eq(alunos.id, aluno.id), columns: { chave: true } }))?.chave ?? chave;
 }

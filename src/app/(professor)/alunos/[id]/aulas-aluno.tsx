@@ -5,7 +5,7 @@ import { excluirReposicao } from "@/app/acoes/agenda";
 import { BotaoAgendar, BotaoConceder, BotaoDesmarcar } from "@/app/(professor)/agenda/acoes-agenda";
 import { BotaoAcao } from "@/components/botao-acao";
 import { Card, CardTitulo, Selo } from "@/components/ui";
-import { DIAS_CURTOS, diaDaSemana, type Ocorrencia } from "@/lib/agenda";
+import { DIAS_CURTOS, diaDaSemana, rotuloCurso, type Ocorrencia } from "@/lib/agenda";
 import { dataBR } from "@/lib/formato";
 
 type Pendente = { id: number; motivo: string | null };
@@ -20,6 +20,7 @@ export function AulasAluno({
   historico,
   hoje,
   duracaoPadrao,
+  cursos = [],
 }: {
   alunoId: number;
   nome: string;
@@ -29,6 +30,8 @@ export function AulasAluno({
   historico: ReposicaoHistorico[];
   hoje: string;
   duracaoPadrao: number;
+  /** estúdio: cursos do aluno ("Piano com Paula"), para escolher o da reposição */
+  cursos?: { id: number; rotulo: string }[];
 }) {
   const comData = historico.filter((r) => r.data);
   const feitas = comData.filter((r) => r.data! < hoje).length;
@@ -73,6 +76,7 @@ export function AulasAluno({
             <li key={o.chave} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3 text-sm">
               <span className="w-28 font-mono text-xs">{curto(o)}</span>
               <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+                {o.curso && <span className="text-xs text-suave">{rotuloCurso(o.curso, o.professor)}</span>}
                 {o.tipo === "reposicao" && <Selo cor="azul">reposição</Selo>}
                 {o.desmarcada?.por === "professor" && <Selo>desmarcada</Selo>}
                 {o.desmarcada?.por === "aluno" && <Selo cor="amarelo">avisou que não vem</Selo>}
@@ -119,7 +123,7 @@ export function AulasAluno({
         </details>
       )}
       <div className="border-t border-borda px-5 py-3">
-        <BotaoConceder alunoId={alunoId} nome={nome} rotulo="Dar reposição" />
+        <BotaoConceder alunoId={alunoId} nome={nome} rotulo="Dar reposição" cursos={cursos} />
       </div>
     </Card>
   );

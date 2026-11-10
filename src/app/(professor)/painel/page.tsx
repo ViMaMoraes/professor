@@ -5,7 +5,7 @@ import { Suspense, type ReactNode } from "react";
 
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, cn, Esqueleto, Selo } from "@/components/ui";
-import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, somarDiasAgenda } from "@/lib/agenda";
+import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, somarDiasAgenda, rotuloCurso } from "@/lib/agenda";
 import { exigirAcesso } from "@/lib/auth";
 import { filtroDeAlunos, podeVer } from "@/lib/permissoes";
 import { resumoCobranca } from "@/lib/cobranca";
@@ -59,7 +59,7 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
         : dia === somarDiasAgenda(hojeAulas, -1)
           ? "Aulas de ontem"
           : `Aulas de ${DIAS_LONGOS[diaDaSemana(dia)].toLowerCase()}, ${dataBR(dia).slice(0, 5)}`;
-  const statusHoje = new Map(chamadasDia.map((p) => [p.alunoId, p.status]));
+  const statusHoje = new Map(chamadasDia.map((p) => [`${p.alunoId}-${p.cursoId}`, p.status]));
   const maiorMes = Math.max(...porMes.map((m) => m.total), 1);
 
   return (
@@ -187,12 +187,13 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
           ) : (
             <ul className="divide-y divide-borda">
               {aulasHoje.map((a) => {
-                const status = statusHoje.get(a.alunoId);
+                const status = statusHoje.get(`${a.alunoId}-${a.cursoId}`);
                 return (
                   <li key={a.chave} className="flex items-center gap-3 px-5 py-3 text-sm">
                     <span className="w-12 font-mono text-xs text-suave">{a.hora ?? "—"}</span>
                     <Link href={`/alunos/${a.alunoId}`} className="min-w-0 flex-1 truncate font-medium hover:text-marca-texto">
                       {a.nome}
+                      {a.curso && <span className="font-normal text-suave"> · {rotuloCurso(a.curso, a.professor ?? professor.nome)}</span>}
                     </Link>
                     {status ? (
                       <SeloPresenca status={status} />

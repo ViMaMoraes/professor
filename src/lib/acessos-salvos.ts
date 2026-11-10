@@ -4,7 +4,8 @@
  * (usuário e código) e os nomes para mostrar; nada de senha (o aluno não tem).
  */
 
-export type AcessoSalvo = { usuario: string; codigo: string; nome: string; professor: string };
+/** `professor`: o que aparece embaixo do nome (estúdio ou professor, ou "Piano com Paula"); `chave`: do link pessoal. */
+export type AcessoSalvo = { usuario: string; codigo: string; nome: string; professor: string; chave?: string };
 
 const CHAVE = "acessos-aluno";
 const EVENTO = "acessos-aluno-mudou";
@@ -28,7 +29,13 @@ export function lerAcessos(): AcessoSalvo[] {
     if (Array.isArray(dados)) {
       lista = dados
         .filter((a) => a && typeof a.usuario === "string" && typeof a.codigo === "string")
-        .map((a) => ({ usuario: a.usuario, codigo: a.codigo, nome: String(a.nome ?? a.usuario), professor: String(a.professor ?? "") }))
+        .map((a) => ({
+          usuario: a.usuario,
+          codigo: a.codigo,
+          nome: String(a.nome ?? a.usuario),
+          professor: String(a.professor ?? ""),
+          chave: typeof a.chave === "string" && /^[a-z0-9]{8,32}$/.test(a.chave) ? a.chave : undefined,
+        }))
         .slice(0, MAXIMO);
     }
   } catch {
@@ -54,7 +61,7 @@ const mesmo = (a: Pick<AcessoSalvo, "usuario" | "codigo">, b: Pick<AcessoSalvo, 
 export function lembrarAcesso(acesso: AcessoSalvo) {
   const atual = lerAcessos();
   const antes = atual.find((a) => mesmo(a, acesso));
-  if (antes && antes === atual[0] && antes.nome === acesso.nome && antes.professor === acesso.professor) return;
+  if (antes && antes === atual[0] && antes.nome === acesso.nome && antes.professor === acesso.professor && antes.chave === acesso.chave) return;
   gravar([acesso, ...atual.filter((a) => !mesmo(a, acesso))]);
 }
 

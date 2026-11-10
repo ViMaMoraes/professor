@@ -5,7 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 
 import { entrar, entrarAluno } from "@/app/acoes/auth";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
-import { Campo, cn, Input } from "@/components/ui";
+import { Campo, cn, estiloBotao, Input } from "@/components/ui";
 import { assinarAcessos, esquecerAcesso, lerAcessos, type AcessoSalvo } from "@/lib/acessos-salvos";
 import { primeiroNome } from "@/lib/formato";
 
@@ -23,7 +23,11 @@ export function FormLogin({
 }) {
   const [escolhido, setAcesso] = useState<Acesso | null>(null);
   // aparelho com conta de aluno lembrada (ex.: app instalado pelo aluno): abre na aba do aluno
-  const temContaLembrada = useSyncExternalStore(assinarAcessos, () => lerAcessos().length > 0, () => false);
+  const temContaLembrada = useSyncExternalStore(
+    assinarAcessos,
+    () => lerAcessos().length > 0,
+    () => false,
+  );
   const acesso = escolhido ?? (temContaLembrada ? "aluno" : inicial);
   return (
     <>
@@ -79,6 +83,7 @@ function AcessoAluno({ usuarioInicial, codigoInicial }: { usuarioInicial?: strin
   const salvos = useSyncExternalStore(assinarAcessos, lerAcessos, () => nenhum);
   // "auto": lista se houver conta lembrada, a não ser que o link seja de outra conta (aí, o formulário preenchido)
   const [modo, setModo] = useState<"auto" | "lista" | "outro">("auto");
+  const [comCodigo, setComCodigo] = useState(Boolean(codigoInicial));
   const outro = modo === "outro";
   const doLink = usuarioInicial && !salvos.some((a) => a.usuario === usuarioInicial && (!codigoInicial || a.codigo === codigoInicial));
   const mostrarFormulario = salvos.length === 0 || outro || (modo === "auto" && doLink);
@@ -91,10 +96,12 @@ function AcessoAluno({ usuarioInicial, codigoInicial }: { usuarioInicial?: strin
           <ul className="flex flex-col gap-2">
             {salvos.map((a) => (
               <li key={`${a.codigo}|${a.usuario}`} className="flex items-stretch gap-1">
-                <Formulario acao={entrarAluno} className="min-w-0 flex-1">
-                  <input type="hidden" name="usuario" value={a.usuario} />
-                  <input type="hidden" name="codigo" value={a.codigo} />
-                  <BotaoEnviar variante="secundario" className="h-auto w-full justify-start py-2.5 text-left">
+                {a.chave ? (
+                  // com a chave do link pessoal, entra por ele (sem depender de usuário nem código)
+                  <a
+                    href={`/a/${a.chave}`}
+                    className={cn(estiloBotao({ variante: "secundario" }), "h-auto min-w-0 flex-1 justify-start py-2.5 text-left")}
+                  >
                     <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-marca-suave text-sm font-semibold text-marca-texto">
                       {a.nome[0]?.toUpperCase()}
                     </span>
@@ -105,8 +112,25 @@ function AcessoAluno({ usuarioInicial, codigoInicial }: { usuarioInicial?: strin
                         {a.usuario}
                       </span>
                     </span>
-                  </BotaoEnviar>
-                </Formulario>
+                  </a>
+                ) : (
+                  <Formulario acao={entrarAluno} className="min-w-0 flex-1">
+                    <input type="hidden" name="usuario" value={a.usuario} />
+                    <input type="hidden" name="codigo" value={a.codigo} />
+                    <BotaoEnviar variante="secundario" className="h-auto w-full justify-start py-2.5 text-left">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-marca-suave text-sm font-semibold text-marca-texto">
+                        {a.nome[0]?.toUpperCase()}
+                      </span>
+                      <span className="min-w-0 leading-tight">
+                        <span className="block truncate font-medium">Entrar como {primeiroNome(a.nome)}</span>
+                        <span className="block truncate text-xs font-normal text-suave">
+                          {a.professor ? `${a.professor} · ` : ""}
+                          {a.usuario}
+                        </span>
+                      </span>
+                    </BotaoEnviar>
+                  </Formulario>
+                )}
                 <button
                   type="button"
                   onClick={() => esquecerAcesso(a)}
@@ -119,7 +143,11 @@ function AcessoAluno({ usuarioInicial, codigoInicial }: { usuarioInicial?: strin
               </li>
             ))}
           </ul>
-          <button type="button" onClick={() => setModo("outro")} className="text-center text-sm font-medium text-marca-texto hover:underline">
+          <button
+            type="button"
+            onClick={() => setModo("outro")}
+            className="text-center text-sm font-medium text-marca-texto hover:underline"
+          >
             Entrar com outro usuário
           </button>
         </>
@@ -139,30 +167,40 @@ function AcessoAluno({ usuarioInicial, codigoInicial }: { usuarioInicial?: strin
               placeholder="ex.: julia.ramos"
             />
           </Campo>
-          <Campo
-            rotulo="Código do professor"
-            dica={
-              codigoInicial && !outro
-                ? "Já veio no link do seu professor."
-                : "Vem no link que seu professor mandou. Se você sempre entrou só com o usuário, pode deixar em branco."
-            }
-          >
-            <Input
-              name="codigo"
-              defaultValue={outro ? undefined : codigoInicial}
-              autoComplete="off"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="ex.: marcus"
-            />
-          </Campo>
+          {/* o código só é preciso quando dois alunos têm o mesmo usuário (o link pessoal nunca pede) */}
+          {comCodigo ? (
+            <Campo rotulo="Código da escola ou do professor" dica="Só se pedirem: seu professor te passa.">
+              <Input
+                name="codigo"
+                defaultValue={outro ? undefined : codigoInicial}
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="ex.: marcus"
+              />
+            </Campo>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setComCodigo(true)}
+              className="-mt-2 self-start text-xs text-suave hover:text-texto hover:underline"
+            >
+              Pediram um código?
+            </button>
+          )}
           <BotaoEnviar className="mt-2 w-full">
             <LogIn /> Entrar
           </BotaoEnviar>
-          <p className="text-center text-xs text-suave">Depois da primeira vez, este aparelho lembra de você.</p>
+          <p className="text-center text-xs text-suave">
+            Depois da primeira vez, este aparelho lembra de você. Pelo link que seu professor mandou, nem precisa digitar.
+          </p>
           {salvos.length > 0 && (
-            <button type="button" onClick={() => setModo("lista")} className="text-center text-sm font-medium text-marca-texto hover:underline">
+            <button
+              type="button"
+              onClick={() => setModo("lista")}
+              className="text-center text-sm font-medium text-marca-texto hover:underline"
+            >
               Voltar para as contas deste aparelho
             </button>
           )}

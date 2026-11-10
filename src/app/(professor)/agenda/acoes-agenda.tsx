@@ -94,7 +94,23 @@ export function BotaoAgendar({
 }
 
 /** Conceder uma reposição (exceção: ex.: o aluno faltou com atestado). */
-export function BotaoConceder({ alunoId, nome, motivo, rotulo = "Dar reposição" }: { alunoId: number; nome: string; motivo?: string; rotulo?: string }) {
+export function BotaoConceder({
+  alunoId,
+  nome,
+  motivo,
+  rotulo = "Dar reposição",
+  cursoId = null,
+  cursos = [],
+}: {
+  alunoId: number;
+  nome: string;
+  motivo?: string;
+  rotulo?: string;
+  /** curso da aula de onde veio (estúdio) */
+  cursoId?: number | null;
+  /** cursos do aluno para escolher, quando não veio de uma aula e ele tem mais de um */
+  cursos?: { id: number; rotulo: string }[];
+}) {
   return (
     <JanelaFormulario
       rotulo={
@@ -106,9 +122,23 @@ export function BotaoConceder({ alunoId, nome, motivo, rotulo = "Dar reposição
       tamanho="sm"
       titulo="Conceder reposição"
       subtitulo={`${nome} · por padrão, falta do aluno não tem reposição; aqui você abre uma exceção`}
-      acao={concederReposicao.bind(null, alunoId)}
+      acao={concederReposicao.bind(null, alunoId, cursoId)}
       enviar="Conceder reposição"
     >
+      {!cursoId && cursos.length > 1 && (
+        <Campo rotulo="Curso">
+          <Select name="cursoId" required defaultValue="">
+            <option value="" disabled>
+              Escolha o curso
+            </option>
+            {cursos.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.rotulo}
+              </option>
+            ))}
+          </Select>
+        </Campo>
+      )}
       <Campo rotulo="Motivo" dica="Fica registrado na reposição.">
         <Input name="motivo" defaultValue={motivo} placeholder="Ex.: falta com atestado médico" autoFocus />
       </Campo>

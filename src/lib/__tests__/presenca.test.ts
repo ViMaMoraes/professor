@@ -27,3 +27,19 @@ describe("presença do aluno", () => {
     expect(meses[0].resumo.frequencia).toBe(100);
   });
 });
+
+describe("presença por curso (aluno com dois professores)", () => {
+  it("separa a frequência de cada curso", async () => {
+    const { presencaPorCurso } = await import("../presenca");
+    const r = presencaPorCurso([
+      { data: "2026-11-02", status: "presente" as const, cursoId: 1 },
+      { data: "2026-11-02", status: "falta" as const, cursoId: 2 },
+      { data: "2026-11-09", status: "presente" as const, cursoId: 1 },
+      { data: "2026-11-09", status: "presente" as const, cursoId: 2 },
+    ]);
+    expect(r.map((c) => [c.cursoId, c.resumo.frequencia])).toEqual([
+      [1, 100],
+      [2, 50],
+    ]);
+  });
+});

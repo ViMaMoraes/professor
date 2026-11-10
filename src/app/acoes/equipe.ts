@@ -9,7 +9,7 @@ import { exigirDono } from "@/lib/auth";
 import { buscarMembro, emailEmUso } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
-import { cargoValido, gravarModulos, moduloValido } from "@/lib/permissoes";
+import { cargoValido, gravarModulos, listaDeCursos, moduloValido } from "@/lib/permissoes";
 import { gerarSenha } from "@/lib/senha";
 import { ehEstudio } from "@/lib/planos";
 
@@ -27,6 +27,7 @@ function lerDados(dados: FormData) {
   return {
     nome: texto(dados, "nome"),
     email: texto(dados, "email")?.toLowerCase() ?? null,
+    cursos: listaDeCursos(texto(dados, "cursos")).join(", ") || null,
     cargo,
     modulos: gravarModulos(dados.getAll("modulos").filter(moduloValido)),
     todosAlunos: dados.get("todosAlunos") === "on",

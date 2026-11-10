@@ -7,7 +7,7 @@ import { desagendarReposicao, desfazerDesmarcada, excluirReposicao } from "@/app
 import { AtivarNotificacoes } from "@/components/ativar-notificacoes";
 import { BotaoAcao } from "@/components/botao-acao";
 import { BotaoLink, Cabecalho, Card, CardTitulo, cn, EsqueletoPagina, Selo } from "@/components/ui";
-import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, inicioDaSemana, somarDiasAgenda, type Ocorrencia } from "@/lib/agenda";
+import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, inicioDaSemana, somarDiasAgenda, type Ocorrencia, rotuloCurso } from "@/lib/agenda";
 import { exigirAcesso } from "@/lib/auth";
 import { agendaDoPeriodo, reposicoesPendentes } from "@/lib/consultas";
 import { mesValido, nomeMes, somarMeses } from "@/lib/financeiro";
@@ -56,10 +56,12 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/agenda">["
   // grade do mês: da segunda da 1ª semana ao domingo da última
   const primeiroDia = inicioDaSemana(`${mes}-01`);
   const ultimoDia = somarDiasAgenda(inicioDaSemana(somarDiasAgenda(`${somarMeses(mes, 1)}-01`, -1)), 6);
-  const [agenda, pendentes] = await Promise.all([
+  const [agendaBruta, pendentes] = await Promise.all([
     visao === "mes" ? agendaDoPeriodo(professor, primeiroDia, ultimoDia) : agendaDoPeriodo(professor, segunda, domingo),
     reposicoesPendentes(professor),
   ]);
+  // estúdio: aula de curso sem professor da equipe é do dono (mostra "Piano com Marcus")
+  const agenda = agendaBruta.map((o) => ({ ...o, professor: o.professor ?? (o.curso ? professor.nome : null) }));
   const dias = Array.from({ length: 7 }, (_, i) => somarDiasAgenda(segunda, i));
   const chavePublica = chavePublicaVapid();
 
@@ -75,6 +77,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/agenda">["
                   <Link href={`/alunos/${r.alunoId}`} className="font-medium hover:text-marca-texto">
                     {r.nome}
                   </Link>
+                  {r.curso && <span className="text-xs text-suave"> · {r.curso}</span>}
                   {r.motivo && <p className="text-xs text-suave">{r.motivo}</p>}
                 </div>
                 <BotaoAgendar reposicaoId={r.id} nome={r.nome} hoje={hoje} duracaoPadrao={professor.duracaoAula} />
@@ -380,6 +383,7 @@ function Aula({
             {!o.hora && <Selo>horário a definir</Selo>}
           </p>
           <p className="text-xs text-suave">
+            {rotuloCurso(o.curso, o.professor) && `${rotuloCurso(o.curso, o.professor)} · `}
             {o.duracaoMin} min
             {o.desmarcada?.motivo && ` · ${o.desmarcada.motivo}`}
             {o.reposicao?.motivo && ` · ${o.reposicao.motivo}`}
@@ -394,7 +398,7 @@ function Aula({
           {o.desmarcada && (
             <>
               {o.desmarcada.por === "aluno" && (
-                <BotaoConceder alunoId={o.alunoId} nome={o.nome} motivo={`Falta avisada em ${diaMes(o.data)}`} />
+                <BotaoConceder alunoId={o.alunoId} nome={o.nome} cursoId={o.cursoId || null} motivo={`Falta avisada em ${diaMes(o.data)}`} />
               )}
               <BotaoAcao
                 acao={desfazerDesmarcada.bind(null, o.desmarcada.id)}

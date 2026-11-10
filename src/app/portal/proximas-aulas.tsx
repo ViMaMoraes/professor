@@ -14,6 +14,8 @@ export type AulaDoAluno = {
   hora: string | null;
   /** "segunda, 10/11" */
   quando: string;
+  /** estúdio: "Piano com Paula" */
+  curso: string | null;
   reposicao: boolean;
   desmarcadaPor: "professor" | "aluno" | null;
   motivo: string | null;
@@ -68,6 +70,7 @@ export function ProximasAulas({ aulas, reposicoesAMarcar }: { aulas: AulaDoAluno
                   {a.quando}
                   {a.hora && ` às ${a.hora}`}
                 </p>
+                {a.curso && <p className="text-xs text-suave">{a.curso}</p>}
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {a.reposicao && <Selo cor="azul">reposição</Selo>}
                   {a.desmarcadaPor === "professor" && <Selo>desmarcada pelo professor{a.motivo ? ` · ${a.motivo}` : ""}</Selo>}

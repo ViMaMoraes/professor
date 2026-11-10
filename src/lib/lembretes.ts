@@ -48,7 +48,7 @@ export async function enviarLembretesDeAula(agora = new Date()) {
             : `dia ${aula.data.slice(8, 10)}/${aula.data.slice(5, 7)}`;
       await notificarAlunos([aula.alunoId], {
         title: `${aula.tipo === "reposicao" ? "Sua reposição" : "Sua aula"} é ${dia} às ${aula.hora}`,
-        body: `Aula com ${primeiroNome(professor.nome)}. Se não puder ir, avise pelo app.`,
+        body: `${aula.curso ? `Aula de ${aula.curso} com` : "Aula com"} ${primeiroNome(aula.professor ?? professor.nome)}. Se não puder ir, avise pelo app.`,
         url: "/portal",
       });
       enviados.push(`${aula.nome} ${aula.data} ${aula.hora}`);

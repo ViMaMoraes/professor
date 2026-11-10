@@ -21,7 +21,12 @@ export async function GET(request: Request) {
   // quem da equipe só vê os próprios alunos exporta só a chamada deles
   const conta = { id: usuario.professor.id, escopoMembro: filtroDeAlunos(acessoDe(usuario)) };
   const linhas = await historicoPresencas(conta, inicio, fim, alunoId, instituicao?.id);
-  const registros = linhas.map(({ presenca, aluno }) => ({ ...presenca, aluno }));
+  // estúdio: cada curso do aluno vira uma linha própria na planilha, "Ana Souza (Piano)" (id negativo do curso
+  // só para separar as linhas; os ids de curso e de aluno nunca se misturam)
+  const registros = linhas.map(({ presenca, aluno, curso }) => ({
+    ...presenca,
+    aluno: curso ? { id: -presenca.cursoId, nome: `${aluno.nome} (${curso})`, instrumento: curso } : aluno,
+  }));
   const arquivo = await gerarPlanilhaChamada(registros, { inicio, fim }, instituicao?.nome);
 
   const quem = alunoId && registros[0] ? ` ${registros[0].aluno.nome}` : instituicao ? ` ${instituicao.nome}` : "";

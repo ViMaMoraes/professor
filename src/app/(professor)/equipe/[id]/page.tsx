@@ -21,13 +21,13 @@ export default async function PaginaMembro(props: PageProps<"/equipe/[id]">) {
   const membro = await buscarMembro(professor.id, Number((await props.params).id));
   if (!membro) notFound();
   // só o que o formulário usa (nada de senha indo para o navegador)
-  const { id, nome, email, cargo, modulos, todosAlunos, ativo } = membro;
+  const { id, nome, email, cargo, cursos, modulos, todosAlunos, ativo } = membro;
 
   return (
     <>
       <Voltar href="/equipe">Voltar para a equipe</Voltar>
       <Cabecalho titulo={membro.nome} descricao="O que esta pessoa pode ver no estúdio." />
-      <FormMembro membro={{ id, nome, email, cargo, modulos, todosAlunos, ativo }} />
+      <FormMembro membro={{ id, nome, email, cargo, cursos, modulos, todosAlunos, ativo }} />
       <div className="mt-6">
         <RedefinirSenha
           id={membro.id}

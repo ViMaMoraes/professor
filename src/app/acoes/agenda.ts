@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, horaValida, minutosDe } from "@/lib/agenda";
 import { exigirAlunoComProfessor, exigirProfessor } from "@/lib/auth";
-import { agendaDoPeriodo, buscarAluno } from "@/lib/consultas";
+import { agendaDoPeriodo, buscarAluno, cursosDaConta } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { dataBR, isoValido } from "@/lib/formato";
@@ -28,6 +28,9 @@ function revalidar(alunoId: number) {
 export async function desmarcarAula(alunoId: number, data: string, hora: string, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor("agenda");
   if (!(await buscarAluno(professor, alunoId)) || !isoValido(data)) return { erro: "Aula não encontrada." };
+  // a aula (e o curso dela) dentro do que esta pessoa vê; a reposição fica no mesmo curso
+  const aula = (await agendaDoPeriodo(professor, data, data, { alunoId })).find((o) => o.tipo === "aula" && (o.hora ?? "") === hora);
+  if (!aula) return { erro: "Aula não encontrada." };
   const motivo = texto(dados, "motivo");
   const gerarReposicao = dados.get("reposicao") === "on";
   const db = await getDb();
@@ -42,7 +45,8 @@ export async function desmarcarAula(alunoId: number, data: string, hora: string,
     await db.insert(schema.reposicoes).values({
       professorId: professor.id,
       alunoId,
-      motivo: `Aula de ${dataBR(data)} desmarcada pelo professor${motivo ? ` (${motivo})` : ""}`,
+      cursoId: aula.cursoId || null,
+      motivo: `Aula de ${dataBR(data)}${aula.curso ? ` de ${aula.curso}` : ""} desmarcada pelo professor${motivo ? ` (${motivo})` : ""}`,
     });
   }
   await notificarAlunos([alunoId], {
@@ -66,11 +70,16 @@ export async function desfazerDesmarcada(id: number) {
 }
 
 /** Concede uma reposição (ex.: o aluno faltou com atestado). Sempre decisão do professor. */
-export async function concederReposicao(alunoId: number, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
+export async function concederReposicao(alunoId: number, cursoId: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const professor = await exigirProfessor("agenda");
   if (!(await buscarAluno(professor, alunoId))) return { erro: "Aluno não encontrado." };
+  // estúdio: de qual curso é a reposição (o que veio da aula, ou o escolhido); só cursos que esta pessoa vê
+  const cursos = await cursosDaConta(professor, { alunoId });
+  const escolhido = Number(dados.get("cursoId")) || cursoId;
+  const curso = cursos.find((c) => c.id === escolhido) ?? (cursos.length === 1 ? cursos[0] : undefined);
+  if (cursos.length > 1 && !curso) return { erro: "Escolha o curso da reposição." };
   const db = await getDb();
-  await db.insert(schema.reposicoes).values({ professorId: professor.id, alunoId, motivo: texto(dados, "motivo") });
+  await db.insert(schema.reposicoes).values({ professorId: professor.id, alunoId, cursoId: curso?.id ?? null, motivo: texto(dados, "motivo") });
   revalidar(alunoId);
   return { ok: "Reposição concedida. Agora é só agendar." };
 }
@@ -143,8 +152,9 @@ export async function avisarFalta(data: string, hora: string): Promise<{ erro?: 
     body: `Aula de ${diaCurto(data)}${aula.hora ? ` às ${aula.hora}` : ""}. A reposição fica a seu critério.`,
     url: "/agenda",
   };
-  // o dono e quem da equipe vê esse aluno
-  await Promise.all([notificarProfessores([professor.id], falta), notificarEquipe(professor.id, falta, { alunoId: aluno.id })]);
+  // o dono e o professor do curso dessa aula (aula sem curso: quem da equipe vê esse aluno)
+  const deQuem = aula.membroId ? { membroIds: [aula.membroId] } : { alunoId: aluno.id };
+  await Promise.all([notificarProfessores([professor.id], falta), notificarEquipe(professor.id, falta, deQuem)]);
   revalidar(aluno.id);
   return { ok: "Pronto, o professor foi avisado." };
 }

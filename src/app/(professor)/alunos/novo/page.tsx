@@ -13,7 +13,7 @@ import { opcoesDoFormulario } from "../opcoes-equipe";
 export const metadata: Metadata = { title: "Novo aluno" };
 
 export default async function PaginaNovoAluno() {
-  const { professor, acesso } = await exigirAcesso("alunos");
+  const { professor, acesso, membro } = await exigirAcesso("alunos");
   const [instituicoes, ativos] = await Promise.all([listarInstituicoes(professor.id), contarAlunosAtivos(professor.id)]);
   const limite = limiteDeAlunos(professor);
 
@@ -49,7 +49,7 @@ export default async function PaginaNovoAluno() {
         instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
         diaPadrao={professor.diaVencimento}
         duracaoPadrao={professor.duracaoAula}
-        {...await opcoesDoFormulario(professor, acesso)}
+        {...await opcoesDoFormulario(professor, acesso, membro)}
       />
     </>
   );

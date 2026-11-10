@@ -10,7 +10,7 @@ import { CARGOS, LISTA_MODULOS, lerModulos, MODULOS, type Cargo, type Modulo } f
 
 import { Credenciais } from "../admin/credenciais";
 
-type Dados = { id: number; nome: string; email: string; cargo: Cargo; modulos: string; todosAlunos: boolean; ativo: boolean };
+type Dados = { id: number; nome: string; email: string; cargo: Cargo; cursos: string | null; modulos: string; todosAlunos: boolean; ativo: boolean };
 
 function Campos({ membro }: { membro?: Dados }) {
   const [cargo, setCargo] = useState<Cargo>(membro?.cargo ?? "professor");
@@ -31,6 +31,13 @@ function Campos({ membro }: { membro?: Dados }) {
       </Campo>
       <Campo rotulo="E-mail (login) *">
         <Input type="email" name="email" required defaultValue={membro?.email} />
+      </Campo>
+      <Campo
+        rotulo="Dá aula de"
+        dica="Ex.: “Piano” ou “Violão, Teclado”. Quando ele cadastrar um aluno, o curso já vem daqui."
+        className="sm:col-span-2"
+      >
+        <Input name="cursos" defaultValue={membro?.cursos ?? ""} placeholder="ex.: Piano, Teclado" maxLength={120} />
       </Campo>
 
       <fieldset className="sm:col-span-2">

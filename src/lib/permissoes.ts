@@ -111,3 +111,12 @@ export function destinoLiberado({
   const meusEscolhidos = querTodos ? meus : escolhidos.filter((a) => meus.includes(a));
   return { paraTodos: false, alunoIds: [...new Set([...meusEscolhidos, ...deOutros])] };
 }
+
+/** "Violão, teclado ,, Violão" → ["Violão", "teclado"] (do que alguém da equipe dá aula). */
+export function listaDeCursos(texto: string | null | undefined) {
+  const vistos = new Set<string>();
+  return (texto ?? "")
+    .split(/[,;\n]/)
+    .map((c) => c.trim().replace(/\s+/g, " ").slice(0, 60))
+    .filter((c) => c && !vistos.has(c.toLowerCase()) && vistos.add(c.toLowerCase()));
+}

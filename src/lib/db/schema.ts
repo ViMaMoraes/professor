@@ -1,6 +1,13 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+/** Chave aleatória do link pessoal do aluno (12 letras/números minúsculos, sem confusão de 0/o, 1/l). */
+export function novaChaveAluno() {
+  const letras = "abcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(bytes, (b) => letras[b % letras.length]).join("");
+}
+
 const criadoEm = () =>
   text("criado_em")
     .notNull()
@@ -57,6 +64,8 @@ export const membros = sqliteTable(
     cargo: text("cargo", { enum: ["professor", "coordenacao"] })
       .notNull()
       .default("professor"),
+    // do que dá aula, ex.: "Piano, Teclado" (vira o curso do aluno que ele cadastrar)
+    cursos: text("cursos"),
     // módulos liberados, separados por vírgula (ver src/lib/permissoes.ts)
     modulos: text("modulos").notNull().default(""),
     // false = só os alunos de que ele é professor (aluno_equipe); true = todos os alunos da conta
@@ -114,6 +123,8 @@ export const alunos = sqliteTable(
     usuario: text("usuario"),
     // usuário criado quando ele ainda era único no site inteiro: continua entrando só com o usuário (sem código)
     usuarioGlobal: integer("usuario_global", { mode: "boolean" }).notNull().default(false),
+    // chave secreta do link pessoal (/a/<chave>): entra direto, sem digitar usuário nem código
+    chave: text("chave").$defaultFn(() => novaChaveAluno()),
     senhaHash: text("senha_hash"), // não é mais usada (o aluno entra só com o usuário); mantida para não recriar a tabela
     descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
     mensagem: text("mensagem"), // recado do professor que aparece em destaque no acesso do aluno
@@ -132,7 +143,24 @@ export const alunos = sqliteTable(
     observacoes: text("observacoes"),
     criadoEm: criadoEm(),
   },
-  (t) => [uniqueIndex("alunos_professor_usuario").on(t.professorId, t.usuario)],
+  (t) => [uniqueIndex("alunos_professor_usuario").on(t.professorId, t.usuario), uniqueIndex("alunos_chave").on(t.chave)],
+);
+
+/**
+ * Cursos do aluno numa conta de estúdio (ex.: Piano com a Paula, Teoria com a Carla), cada um com os seus
+ * horários, chamada e presença. `membroId` vazio = o professor é o dono da conta.
+ */
+export const cursosAluno = sqliteTable(
+  "cursos_aluno",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    nome: text("nome").notNull(),
+    membroId: integer("membro_id").references(() => membros.id, { onDelete: "set null" }),
+  },
+  (t) => [index("cursos_aluno_aluno").on(t.alunoId), index("cursos_aluno_membro").on(t.membroId)],
 );
 
 /** Professores da equipe que dão aula para o aluno (um aluno pode ter mais de um). O dono vê todos. */
@@ -159,8 +187,10 @@ export const presencas = sqliteTable(
     data: text("data").notNull(),
     status: text("status", { enum: ["presente", "falta", "justificada", "reposicao"] }).notNull(),
     observacao: text("observacao"),
+    // curso da aula (estúdio: o aluno pode ter Piano e Teoria no mesmo dia); 0 = sem curso separado
+    cursoId: integer("curso_id").notNull().default(0),
   },
-  (t) => [uniqueIndex("presenca_aluno_data").on(t.alunoId, t.data)],
+  (t) => [uniqueIndex("presenca_aluno_data_curso").on(t.alunoId, t.data, t.cursoId)],
 );
 
 export const recibos = sqliteTable(
@@ -317,6 +347,8 @@ export const horarios = sqliteTable(
     diaSemana: integer("dia_semana").notNull(), // 0 = domingo ... 6 = sábado
     hora: text("hora"), // HH:MM; vazio = horário a definir
     duracaoMin: integer("duracao_min"), // vazio = duração padrão do professor
+    // curso a que o horário pertence (estúdio); vazio = aula do aluno sem curso separado
+    cursoId: integer("curso_id").references(() => cursosAluno.id, { onDelete: "cascade" }),
   },
   (t) => [index("horarios_aluno").on(t.alunoId)],
 );
@@ -355,6 +387,7 @@ export const reposicoes = sqliteTable(
     data: text("data"),
     hora: text("hora"),
     duracaoMin: integer("duracao_min"),
+    cursoId: integer("curso_id").references(() => cursosAluno.id, { onDelete: "set null" }), // reposição de qual curso
     criadoEm: criadoEm(),
   },
   (t) => [index("reposicoes_professor").on(t.professorId)],
@@ -422,6 +455,7 @@ export const avisosAlunos = sqliteTable(
 
 export type Professor = typeof professores.$inferSelect;
 export type Membro = typeof membros.$inferSelect;
+export type CursoAluno = typeof cursosAluno.$inferSelect;
 export type Aluno = typeof alunos.$inferSelect;
 export type Presenca = typeof presencas.$inferSelect;
 export type Recibo = typeof recibos.$inferSelect;

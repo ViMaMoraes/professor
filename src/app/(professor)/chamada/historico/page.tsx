@@ -128,13 +128,14 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
               </tr>
             </thead>
             <tbody>
-              {registros.map(({ presenca, aluno }) => (
+              {registros.map(({ presenca, aluno, curso }) => (
                 <tr key={presenca.id}>
                   <td className="tabular-nums">{dataBR(presenca.data)}</td>
                   <td>
                     <Link href={`/alunos/${aluno.id}`} className="hover:text-marca-texto">
                       {aluno.nome}
                     </Link>
+                    {curso && <span className="text-xs text-suave"> · {curso}</span>}
                   </td>
                   <td>
                     <SeloPresenca status={presenca.status} />

@@ -9,17 +9,18 @@ import { Botao, Card, CardTitulo, estiloBotao } from "@/components/ui";
 import { primeiroNome } from "@/lib/formato";
 import { linkWhatsapp } from "@/lib/mensagens";
 
-/** Link pessoal do aluno (já com o código do professor e o usuário) e mensagem pronta para mandar. */
+/** Link pessoal do aluno (com a chave dele: entra direto, sem usuário nem código) e mensagem pronta para mandar. */
 export function CompartilharAcesso({
   nome,
   usuario,
-  codigo,
+  chave,
   telefone,
   endereco,
 }: {
   nome: string;
   usuario: string;
-  codigo: string;
+  /** chave secreta do link pessoal */
+  chave: string;
   telefone: string | null;
   endereco: string | null;
 }) {
@@ -27,10 +28,10 @@ export function CompartilharAcesso({
   const { notificar } = useInterface();
   const [copiado, setCopiado] = useState<"link" | "mensagem" | null>(null);
 
-  const link = `${origem}/aluno?p=${encodeURIComponent(codigo)}&u=${encodeURIComponent(usuario)}`;
+  const link = `${origem}/a/${chave}`;
   const mensagem =
     `Olá, ${primeiroNome(nome)}! Aqui você acessa os materiais e o diário das nossas aulas:\n${link}\n\n` +
-    `Seu usuário: ${usuario}\nCódigo do professor: ${codigo}\n\n` +
+    `É só tocar no link para entrar. Se um dia pedir, seu usuário é: ${usuario}\n\n` +
     "Dica: no celular, adicione o site à tela inicial para usar como app e ative as notificações para saber quando chegar material novo.";
 
   async function copiar(texto: string, qual: "link" | "mensagem") {
@@ -60,7 +61,7 @@ export function CompartilharAcesso({
           </a>
         </div>
         <p className="text-xs text-suave">
-          O link abre o login com o usuário e o seu código de professor ({codigo}) já preenchidos; o aluno só toca em Entrar.
+          O link é só deste aluno e já entra direto, sem usuário nem código. Depois da primeira vez, o celular dele lembra o acesso.
           {!telefone && " Sem telefone no cadastro, o WhatsApp abre para você escolher o contato."}
         </p>
       </div>

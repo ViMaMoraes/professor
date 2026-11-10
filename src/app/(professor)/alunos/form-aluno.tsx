@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, CircleAlert, CircleCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 
 import { conferirUsuario, salvarAluno } from "@/app/acoes/alunos";
 import { EditorHorarios } from "@/components/editor-horarios";
@@ -9,10 +9,12 @@ import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { SelectVencimento } from "@/components/select-vencimento";
 import { InputMascara } from "@/components/input-mascara";
 import { BotaoLink, Campo, Card, Input, Select, Textarea } from "@/components/ui";
-import { INSTRUMENTOS, NIVEIS } from "@/lib/constantes";
+import { NIVEIS } from "@/lib/constantes";
 import type { Aluno } from "@/lib/db/schema";
 import { centavosParaCampo } from "@/lib/formato";
 import { normalizarUsuario, sugerirUsuario } from "@/lib/usuario";
+
+import { EditorCursos } from "./editor-cursos";
 
 type Props = {
   aluno?: Omit<Aluno, "senhaHash">;
@@ -22,9 +24,8 @@ type Props = {
   duracaoPadrao: number;
   /** Mostra mensalidade, vencimento e descrição do recibo (a equipe sem o Financeiro não vê valores). */
   verValores?: boolean;
-  /** Estúdio: professores da equipe que podem ser escolhidos para o aluno (só para quem atribui). */
-  equipe?: { id: number; nome: string }[];
-  equipeDoAluno?: number[];
+  /** Estúdio: os cursos do aluno (cada um com professor e horários) no lugar de "Curso" e "Horários". */
+  estudio?: Omit<ComponentProps<typeof EditorCursos>, "duracaoPadrao">;
 };
 
 export function FormAluno(props: Props) {
@@ -40,8 +41,7 @@ function CamposAluno({
   horarios,
   duracaoPadrao,
   verValores = true,
-  equipe,
-  equipeDoAluno,
+  estudio,
   limpar,
 }: Props & { limpar: () => void }) {
   const [usuario, setUsuario] = useState(aluno?.usuario ?? "");
@@ -89,14 +89,11 @@ function CamposAluno({
         </Secao>
 
         <Secao titulo="Aulas">
-          <Campo rotulo="Curso / matéria" dica="Ex.: Violino, Inglês, Matemática.">
-            <Input name="instrumento" list="instrumentos" defaultValue={aluno?.instrumento ?? ""} />
-            <datalist id="instrumentos">
-              {INSTRUMENTOS.map((i) => (
-                <option key={i} value={i} />
-              ))}
-            </datalist>
-          </Campo>
+          {!estudio && (
+            <Campo rotulo="Curso / matéria" dica="Escreva como você chama: ex.: Violino, Inglês, Reforço de Matemática.">
+              <Input name="instrumento" defaultValue={aluno?.instrumento ?? ""} maxLength={60} />
+            </Campo>
+          )}
           <Campo rotulo="Nível">
             <Select name="nivel" defaultValue={aluno?.nivel ?? ""}>
               <option value="">—</option>
@@ -105,22 +102,18 @@ function CamposAluno({
               ))}
             </Select>
           </Campo>
-          <Campo rotulo="Horários de aula" dica="Pode ter mais de um por semana. Aparecem na Agenda e geram o lembrete do aluno." className="sm:col-span-2 lg:col-span-3">
-            <EditorHorarios iniciais={horarios ?? []} duracaoPadrao={duracaoPadrao} />
-          </Campo>
-          {equipe && equipe.length > 0 && (
-            <fieldset className="sm:col-span-2 lg:col-span-3">
-              <legend className="mb-1.5 text-sm font-medium">Professores do aluno</legend>
-              <p className="mb-2 text-xs text-suave">Quem da equipe dá aula para ele. Pode marcar mais de um; você sempre vê todos os alunos.</p>
-              <div className="flex flex-wrap gap-2">
-                {equipe.map((m) => (
-                  <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-borda px-3 py-1.5 text-sm has-checked:border-marca has-checked:bg-marca-suave">
-                    <input type="checkbox" name="equipe" value={m.id} defaultChecked={equipeDoAluno?.includes(m.id)} className="size-4 accent-marca" />
-                    {m.nome}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+          {estudio ? (
+            <Campo
+              rotulo="Cursos"
+              dica="Cada curso com o seu professor e os seus horários. Aparecem na Agenda, na Chamada e no acesso do aluno."
+              className="sm:col-span-2 lg:col-span-3"
+            >
+              <EditorCursos {...estudio} duracaoPadrao={duracaoPadrao} />
+            </Campo>
+          ) : (
+            <Campo rotulo="Horários de aula" dica="Pode ter mais de um por semana. Aparecem na Agenda e geram o lembrete do aluno." className="sm:col-span-2 lg:col-span-3">
+              <EditorHorarios iniciais={horarios ?? []} duracaoPadrao={duracaoPadrao} />
+            </Campo>
           )}
           {verValores && (
             <>
@@ -147,7 +140,7 @@ function CamposAluno({
 
         <Secao
           titulo="Acesso do aluno"
-          descricao="O aluno entra em “Acesso aluno” com este usuário e o seu código de professor, sem senha (o link pessoal já leva os dois). Deixe vazio para não dar acesso."
+          descricao="O aluno entra pelo link pessoal (fica na página dele depois de salvar), sem digitar nada, ou em “Acesso aluno” com este usuário. Deixe vazio para não dar acesso."
         >
           <Campo rotulo="Usuário" dica="Sugerido a partir do nome; pode trocar. Use só letras, números e ponto. Só não pode repetir entre os seus alunos.">
             <Input

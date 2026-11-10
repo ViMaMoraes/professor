@@ -1,25 +1,34 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirAcesso, exigirProfessor } from "@/lib/auth";
-import { podeVer } from "@/lib/permissoes";
-import { alunoComUsuario, buscarAluno, buscarInstituicao, contarAlunosAtivos, listarMembros, usuarioLivre } from "@/lib/consultas";
+import { podeVer, type Acesso } from "@/lib/permissoes";
+import {
+  alunoComUsuario,
+  buscarAluno,
+  buscarInstituicao,
+  contarAlunosAtivos,
+  cursosDaConta,
+  listarMembros,
+  usuarioLivre,
+} from "@/lib/consultas";
+import { lerCursosDoFormulario, resumoDosCursos } from "@/lib/cursos";
 import { getDb, schema } from "@/lib/db";
 import { DIAS_LONGOS, DURACOES, horaValida } from "@/lib/agenda";
 import { lerDiaVencimento } from "@/lib/financeiro";
 import { erroTelefone, mascaraTelefone } from "@/lib/mascaras";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { isoValido, lerValorEmCentavos } from "@/lib/formato";
-import { cabeMaisUmAluno, limiteDeAlunos, textoLimiteAtingido } from "@/lib/planos";
+import { cabeMaisUmAluno, ehEstudio, limiteDeAlunos, textoLimiteAtingido } from "@/lib/planos";
 import { notificarAlunos } from "@/lib/push";
 import { normalizarUsuario } from "@/lib/usuario";
-import { ehEstudio } from "@/lib/planos";
 
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const { professor, acesso } = await exigirAcesso("alunos");
+  const estudio = ehEstudio(professor);
   // a equipe sem o Financeiro não vê nem muda valores: ficam os que já estavam
   const verValores = podeVer(acesso, "financeiro");
   const db = await getDb();
@@ -50,6 +59,10 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   const instituicaoId = Number(dados.get("instituicaoId")) || null;
   if (instituicaoId && !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Instituição inválida." };
 
+  // estúdio: cursos (cada um com professor e horários); fora dele, um curso escrito e os horários
+  const doEstudio = estudio ? lerCursosDoFormulario(dados) : null;
+  if (doEstudio?.cursos.some((c) => !c.nome)) return { erro: "Informe o nome de cada curso." };
+
   // horários de aula: uma linha por dia (dia, hora, duração)
   const horas = dados.getAll("horarioHora").map(String);
   const duracoes = dados.getAll("horarioDuracao").map(Number);
@@ -73,7 +86,8 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     telefone: mascaraTelefone(texto(dados, "telefone")) || null,
     responsavel: texto(dados, "responsavel"),
     dataNascimento: data("dataNascimento"),
-    instrumento: texto(dados, "instrumento"),
+    // estúdio: atualizado depois, com os nomes de todos os cursos do aluno
+    instrumento: estudio ? (existente?.instrumento ?? null) : texto(dados, "instrumento"),
     nivel: texto(dados, "nivel"),
     // campos antigos, mantidos em dia com o primeiro horário
     diaAula: horarios[0] ? DIAS_LONGOS[horarios[0].diaSemana] : null,
@@ -102,30 +116,15 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
       .returning({ id: schema.alunos.id });
     alunoId = novo.id;
   }
-  // professores da equipe (estúdio): quem atribui (dono ou quem vê todos) escolhe; quem só vê os
-  // próprios alunos fica como professor do aluno que cadastrar e não muda os de quem já existe
-  let professoresDoAluno: number[] | null = null;
-  if (ehEstudio(professor)) {
-    if (acesso.dono || acesso.todosAlunos) {
-      const daConta = new Set((await listarMembros(professor.id)).map((m) => m.id));
-      professoresDoAluno = [...new Set(dados.getAll("equipe").map(Number))].filter((m) => daConta.has(m));
-    } else if (!id) {
-      professoresDoAluno = [acesso.membroId];
-    }
+  if (doEstudio) {
+    await salvarCursos(professor.id, alunoId!, acesso, doEstudio, Boolean(id));
+  } else {
+    // troca os horários de uma vez (o D1 executa o batch junto)
+    await db.batch([
+      db.delete(schema.horarios).where(eq(schema.horarios.alunoId, alunoId!)),
+      ...(horarios.length ? [db.insert(schema.horarios).values(horarios.map((h) => ({ ...h, alunoId: alunoId! })))] : []),
+    ]);
   }
-  // troca os horários (e os professores) de uma vez (o D1 executa o batch junto)
-  await db.batch([
-    db.delete(schema.horarios).where(eq(schema.horarios.alunoId, alunoId!)),
-    ...(horarios.length ? [db.insert(schema.horarios).values(horarios.map((h) => ({ ...h, alunoId: alunoId! })))] : []),
-    ...(professoresDoAluno
-      ? [
-          db.delete(schema.alunoEquipe).where(eq(schema.alunoEquipe.alunoId, alunoId!)),
-          ...(professoresDoAluno.length
-            ? [db.insert(schema.alunoEquipe).values(professoresDoAluno.map((membroId) => ({ alunoId: alunoId!, membroId })))]
-            : []),
-        ]
-      : []),
-  ]);
   revalidatePath("/", "layout");
   // aluno novo: o formulário pergunta se quer cadastrar outro; editando, volta para a página dele
   if (!id) {
@@ -137,6 +136,76 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     return { ok: `Aluno “${nome}” cadastrado!`, criado: true };
   }
   redirect(`/alunos/${alunoId}`);
+}
+
+/**
+ * Grava os cursos do aluno no estúdio e os horários de cada um. Quem atribui (dono ou quem vê todos os alunos)
+ * muda todos os cursos; o professor da equipe só os dele (os novos ficam com ele). Depois, o campo de curso do
+ * aluno vira a lista dos cursos e a equipe do aluno (quem o vê) passa a ser a dos professores dos cursos.
+ */
+async function salvarCursos(
+  professorId: number,
+  alunoId: number,
+  acesso: Acesso,
+  enviados: ReturnType<typeof lerCursosDoFormulario>,
+  jaExistia: boolean,
+) {
+  const db = await getDb();
+  const { cursosAluno, horarios, alunoEquipe, alunos } = schema;
+  const atribui = acesso.dono || acesso.todosAlunos;
+  const eu = acesso.dono ? null : acesso.membroId;
+  const daConta = new Set((await listarMembros(professorId)).map((m) => m.id));
+  const existentes = jaExistia ? await cursosDaConta(professorId, { alunoId }) : [];
+  // o que esta pessoa pode mudar
+  const editaveis = atribui ? existentes : existentes.filter((c) => c.membroId === eu);
+  const idDe = new Map<string, number>();
+  for (const c of enviados.cursos) {
+    const membroId = atribui ? (c.membroId && daConta.has(c.membroId) ? c.membroId : null) : eu;
+    const atual = c.id ? editaveis.find((e) => e.id === c.id) : undefined;
+    if (atual) {
+      await db.update(cursosAluno).set({ nome: c.nome, membroId }).where(eq(cursosAluno.id, atual.id));
+      idDe.set(c.chave, atual.id);
+    } else {
+      const [novo] = await db.insert(cursosAluno).values({ alunoId, nome: c.nome, membroId }).returning({ id: cursosAluno.id });
+      idDe.set(c.chave, novo.id);
+    }
+  }
+  const mantidos = new Set(idDe.values());
+  const removidos = editaveis.filter((c) => !mantidos.has(c.id)).map((c) => c.id);
+  // horários: os dos cursos que esta pessoa cuida (e os antigos, sem curso, que viram curso agora)
+  const trocar = [...new Set([...editaveis.map((c) => c.id), ...mantidos])];
+  const novosHorarios = enviados.horarios
+    .filter((h) => idDe.has(h.cursoChave))
+    .map(({ cursoChave, ...h }) => ({ ...h, alunoId, cursoId: idDe.get(cursoChave)! }));
+  await db.batch([
+    db.delete(horarios).where(
+      and(
+        eq(horarios.alunoId, alunoId),
+        // horários antigos (sem curso) viram curso: quem atribui sempre; o professor da equipe só se o aluno não tinha curso
+        atribui || existentes.length === 0
+          ? or(isNull(horarios.cursoId), inArray(horarios.cursoId, trocar.length ? trocar : [0]))
+          : inArray(horarios.cursoId, trocar.length ? trocar : [0]),
+      ),
+    ),
+    ...(removidos.length ? [db.delete(cursosAluno).where(inArray(cursosAluno.id, removidos))] : []),
+    ...(novosHorarios.length ? [db.insert(horarios).values(novosHorarios)] : []),
+  ]);
+  // resumo no aluno e quem da equipe o vê
+  const todos = await cursosDaConta(professorId, { alunoId });
+  const equipe = [...new Set(todos.map((c) => c.membroId).filter((m): m is number => m != null))];
+  const primeiro = (await db.select().from(horarios).where(eq(horarios.alunoId, alunoId)).limit(1))[0];
+  await db.batch([
+    db
+      .update(alunos)
+      .set({
+        instrumento: resumoDosCursos(todos.map((c) => c.nome)),
+        diaAula: primeiro ? DIAS_LONGOS[primeiro.diaSemana] : null,
+        horario: primeiro?.hora ?? null,
+      })
+      .where(eq(alunos.id, alunoId)),
+    db.delete(alunoEquipe).where(eq(alunoEquipe.alunoId, alunoId)),
+    ...(equipe.length ? [db.insert(alunoEquipe).values(equipe.map((membroId) => ({ alunoId, membroId })))] : []),
+  ]);
 }
 
 const textoUsuarioRepetido = (usuario: string, aluno: { nome: string; ativo: boolean }, livre: string) =>

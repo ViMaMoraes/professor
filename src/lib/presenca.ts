@@ -6,7 +6,7 @@
 
 import type { StatusPresenca } from "./db/schema";
 
-export type RegistroPresenca = { data: string; status: StatusPresenca };
+export type RegistroPresenca = { data: string; status: StatusPresenca; cursoId?: number };
 
 export function resumoPresenca(registros: RegistroPresenca[]) {
   const conta = { presente: 0, reposicao: 0, justificada: 0, falta: 0 };
@@ -24,4 +24,11 @@ export function presencaPorMes(registros: RegistroPresenca[]) {
     meses.set(mes, [...(meses.get(mes) ?? []), r]);
   }
   return [...meses].map(([mes, doMes]) => ({ mes, registros: doMes, resumo: resumoPresenca(doMes) }));
+}
+
+/** Resumo por curso (estúdio), na ordem em que os cursos aparecem; só os cursos com chamada. */
+export function presencaPorCurso<R extends RegistroPresenca>(registros: R[]) {
+  const cursos = new Map<number, R[]>();
+  for (const r of registros) cursos.set(r.cursoId ?? 0, [...(cursos.get(r.cursoId ?? 0) ?? []), r]);
+  return [...cursos].map(([cursoId, doCurso]) => ({ cursoId, resumo: resumoPresenca(doCurso) }));
 }

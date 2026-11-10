@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `membros` (
   `senha_hash` text NOT NULL,
   `trocar_senha` integer DEFAULT true NOT NULL,
   `cargo` text DEFAULT 'professor' NOT NULL,
+  `cursos` text,
   `modulos` text DEFAULT '' NOT NULL,
   `todos_alunos` integer DEFAULT false NOT NULL,
   `ativo` integer DEFAULT true NOT NULL,
@@ -91,12 +92,25 @@ CREATE TABLE IF NOT EXISTS `alunos` (
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
   `usuario` text,
   `usuario_global` integer DEFAULT false NOT NULL,
+  `chave` text,
   `descricao_recibo` text,
   `mensagem` text,
   `dia_vencimento` integer
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `alunos_professor_usuario` ON `alunos` (`professor_id`,`usuario`);
+CREATE UNIQUE INDEX IF NOT EXISTS `alunos_chave` ON `alunos` (`chave`);
 CREATE INDEX IF NOT EXISTS `alunos_professor` ON `alunos` (`professor_id`);
+
+CREATE TABLE IF NOT EXISTS `cursos_aluno` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `aluno_id` integer NOT NULL,
+  `nome` text NOT NULL,
+  `membro_id` integer,
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`membro_id`) REFERENCES `membros`(`id`) ON UPDATE no action ON DELETE set null
+);
+CREATE INDEX IF NOT EXISTS `cursos_aluno_aluno` ON `cursos_aluno` (`aluno_id`);
+CREATE INDEX IF NOT EXISTS `cursos_aluno_membro` ON `cursos_aluno` (`membro_id`);
 
 CREATE TABLE IF NOT EXISTS `aluno_equipe` (
   `aluno_id` integer NOT NULL,
@@ -113,9 +127,10 @@ CREATE TABLE IF NOT EXISTS `presencas` (
   `data` text NOT NULL,
   `status` text NOT NULL,
   `observacao` text,
+  `curso_id` integer DEFAULT 0 NOT NULL,
   FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
 );
-CREATE UNIQUE INDEX IF NOT EXISTS `presenca_aluno_data` ON `presencas` (`aluno_id`, `data`);
+CREATE UNIQUE INDEX IF NOT EXISTS `presenca_aluno_data_curso` ON `presencas` (`aluno_id`,`data`,`curso_id`);
 
 CREATE TABLE IF NOT EXISTS `recibos` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -222,6 +237,7 @@ CREATE TABLE IF NOT EXISTS `horarios` (
   `dia_semana` integer NOT NULL,
   `hora` text,
   `duracao_min` integer,
+  `curso_id` integer REFERENCES cursos_aluno(id) ON DELETE cascade,
   FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
 );
 CREATE INDEX IF NOT EXISTS `horarios_aluno` ON `horarios` (`aluno_id`);
@@ -249,6 +265,7 @@ CREATE TABLE IF NOT EXISTS `reposicoes` (
   `hora` text,
   `duracao_min` integer,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  `curso_id` integer REFERENCES cursos_aluno(id) ON DELETE set null,
   FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade,
   FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -341,4 +358,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0012_planos_plus_premium.sql'),
   ('0013_usuario_por_professor.sql'),
   ('0014_equipe_estudio.sql'),
-  ('0015_push_equipe.sql');
+  ('0015_push_equipe.sql'),
+  ('0016_cursos_do_aluno.sql');

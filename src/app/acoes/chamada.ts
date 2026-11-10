@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { STATUS_PRESENCA } from "@/lib/constantes";
 import { exigirProfessor } from "@/lib/auth";
-import { listarAlunos } from "@/lib/consultas";
+import { cursosDaConta, listarAlunos } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import type { StatusPresenca } from "@/lib/db/schema";
 import { texto, type EstadoForm } from "@/lib/estado-form";
@@ -16,26 +16,34 @@ export async function salvarChamada(_: EstadoForm, dados: FormData): Promise<Est
   const data = texto(dados, "data");
   if (!isoValido(data)) return { erro: "Data inválida." };
 
-  // só aceita alunos deste professor
+  // só aceita aulas de alunos deste professor e, na equipe que só vê os próprios alunos, só dos cursos dela
   const meus = new Set((await listarAlunos(professor, { situacao: "todos" })).map((a) => a.id));
-  const ids = dados.getAll("alunos").map(Number).filter((id) => meus.has(id));
+  const cursos = new Map((await cursosDaConta(professor)).map((c) => [c.id, c.alunoId]));
+  const aulas = dados
+    .getAll("aulas")
+    .map(String)
+    .map((chave) => {
+      const [alunoId, cursoId] = chave.split("-").map(Number);
+      return { chave, alunoId, cursoId: cursoId || 0 };
+    })
+    .filter((a) => meus.has(a.alunoId) && (a.cursoId === 0 || cursos.get(a.cursoId) === a.alunoId));
   const db = await getDb();
   const { presencas } = schema;
   let marcados = 0;
 
   // tudo num batch só (o D1 da Cloudflare não tem transações, mas executa o batch de uma vez)
-  const comandos = ids.map((alunoId) => {
-    const status = String(dados.get(`status_${alunoId}`) ?? "");
-    const observacao = texto(dados, `obs_${alunoId}`);
+  const comandos = aulas.map(({ chave, alunoId, cursoId }) => {
+    const status = String(dados.get(`status_${chave}`) ?? "");
+    const observacao = texto(dados, `obs_${chave}`);
     if (status in STATUS_PRESENCA) {
       marcados++;
       return db
         .insert(presencas)
-        .values({ alunoId, data, status: status as StatusPresenca, observacao })
-        .onConflictDoUpdate({ target: [presencas.alunoId, presencas.data], set: { status: status as StatusPresenca, observacao } });
+        .values({ alunoId, data, cursoId, status: status as StatusPresenca, observacao })
+        .onConflictDoUpdate({ target: [presencas.alunoId, presencas.data, presencas.cursoId], set: { status: status as StatusPresenca, observacao } });
     }
     // "sem registro" apaga a marcação existente
-    return db.delete(presencas).where(and(eq(presencas.data, data), eq(presencas.alunoId, alunoId)));
+    return db.delete(presencas).where(and(eq(presencas.data, data), eq(presencas.alunoId, alunoId), eq(presencas.cursoId, cursoId)));
   });
   if (comandos.length) await db.batch(comandos as [(typeof comandos)[number], ...typeof comandos]);
 

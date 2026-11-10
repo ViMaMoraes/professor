@@ -5,7 +5,9 @@ import { BancoDesatualizado } from "@/components/banco-desatualizado";
 import { CaixaUsuario } from "@/components/caixa-usuario";
 import { Logo } from "@/components/logo";
 import { exigirAlunoComProfessor } from "@/lib/auth";
-import { videosDoAluno } from "@/lib/consultas";
+import { rotuloCurso } from "@/lib/agenda";
+import { cursosDaConta, videosDoAluno } from "@/lib/consultas";
+import { ehEstudio } from "@/lib/planos";
 import { migracoesPendentes } from "@/lib/db";
 import { chavePublicaVapid } from "@/lib/push";
 
@@ -18,7 +20,13 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
   // checa o login antes de qualquer coisa: visitante sem sessão recebe redirecionamento direto
   const { aluno, professor } = await exigirAlunoComProfessor();
   // as abas aparecem sempre (Início e Presença); a de Vídeos só quando há vídeo liberado para o aluno
-  const temVideos = (await videosDoAluno(aluno)).videos.length > 0;
+  const [temVideos, cursos] = await Promise.all([
+    videosDoAluno(aluno).then((v) => v.videos.length > 0),
+    ehEstudio(professor) ? cursosDaConta(professor.id, { alunoId: aluno.id }) : [],
+  ]);
+  // no estúdio, o aluno vê o nome do estúdio e os professores dele por curso ("Piano com Paula")
+  const deQuem = ehEstudio(professor) ? (professor.nomeEstudio ?? professor.nome) : professor.nome;
+  const professoresDoAluno = cursos.map((c) => rotuloCurso(c.nome, c.membro ?? professor.nome)).join(" · ");
   return (
     <>
       <header className="sticky top-0 z-30 border-b border-borda bg-superficie/80 backdrop-blur">
@@ -27,7 +35,7 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
             <Logo />
             <span className="min-w-0 leading-tight">
               <span className="block font-semibold whitespace-nowrap">Acesso aluno</span>
-              <span className="block truncate text-xs text-suave">{professor.nome}</span>
+              <span className="block truncate text-xs text-suave">{deQuem}</span>
             </span>
           </Link>
           <div className="flex items-center gap-1">
@@ -49,7 +57,15 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
         <AbasPortal videos={temVideos} />
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
-      {aluno.usuario && <LembrarAcesso usuario={aluno.usuario} codigo={professor.codigo ?? ""} nome={aluno.nome} professor={professor.nome} />}
+      {aluno.usuario && (
+        <LembrarAcesso
+          usuario={aluno.usuario}
+          codigo={professor.codigo ?? ""}
+          nome={aluno.nome}
+          professor={professoresDoAluno || deQuem}
+          chave={aluno.chave ?? undefined}
+        />
+      )}
     </>
   );
 }

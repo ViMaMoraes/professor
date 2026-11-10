@@ -6,7 +6,7 @@ import { AtivarNotificacoes } from "@/components/ativar-notificacoes";
 import { IconeMaterial } from "@/components/icone-material";
 import { BotaoVer, CaixaSelecao, ProvedorSelecao } from "@/components/materiais-selecao";
 import { Card, CardTitulo, cn, EsqueletoPagina, Vazio } from "@/components/ui";
-import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, minutosDe, somarDiasAgenda } from "@/lib/agenda";
+import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, minutosDe, somarDiasAgenda, rotuloCurso } from "@/lib/agenda";
 import { exigirAlunoComProfessor } from "@/lib/auth";
 import { agendaDoPeriodo, avisosDoAluno, diarioDoAluno, materiaisDoAluno, reposicoesPendentes } from "@/lib/consultas";
 import { NOME_TIPO_DRIVE, podeBaixarEmLote, urlBaixar } from "@/lib/drive";
@@ -46,6 +46,7 @@ async function Conteudo() {
       data: o.data,
       hora: o.hora,
       quando: `${DIAS_LONGOS[diaDaSemana(o.data)].toLowerCase()}, ${dataBR(o.data).slice(0, 5)}`,
+      curso: o.curso ? rotuloCurso(o.curso, o.professor ?? professor.nome) : null,
       reposicao: o.tipo === "reposicao",
       desmarcadaPor: o.desmarcada?.por ?? null,
       motivo: o.desmarcada?.motivo ?? null,

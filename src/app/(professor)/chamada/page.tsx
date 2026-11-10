@@ -6,7 +6,9 @@ import { Suspense } from "react";
 import { BotaoLink, Cabecalho, EsqueletoPagina, estiloBotao } from "@/components/ui";
 import { exigirProfessor } from "@/lib/auth";
 import { DIAS_SEMANA } from "@/lib/constantes";
-import { agendaDoPeriodo, listarAlunos, listarInstituicoes, presencasNaData } from "@/lib/consultas";
+import { rotuloCurso } from "@/lib/agenda";
+import { agendaDoPeriodo, cursosDaConta, listarAlunos, listarInstituicoes, presencasNaData } from "@/lib/consultas";
+import { ehEstudio } from "@/lib/planos";
 import { dataPorExtenso, hojeISO, isoValido, somarDias } from "@/lib/formato";
 
 import { FormChamada } from "./form-chamada";
@@ -41,19 +43,50 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
   const todos = params.todos === "1" || Boolean(instituicaoId);
   const diaSemana = DIAS_SEMANA[new Date(`${dia}T12:00:00Z`).getUTCDay()];
 
-  const [ativos, registros, instituicoes, agenda] = await Promise.all([
+  const [ativos, registros, instituicoes, agenda, cursos] = await Promise.all([
     listarAlunos(professor, { instituicaoId }),
     presencasNaData(professor, dia),
     listarInstituicoes(professor.id),
     agendaDoPeriodo(professor, dia, dia),
+    cursosDaConta(professor),
   ]);
-  const porAluno = new Map(registros.map((r) => [r.alunoId, r]));
-  // aula do dia de cada aluno (fixa ou reposição); aula desmarcada pelo professor não entra
-  const aulaDo = new Map(agenda.filter((o) => o.desmarcada?.por !== "professor").map((o) => [o.alunoId, o]));
-  // por padrão mostra quem tem aula nesse dia (agenda) ou já tem marcação na data
-  const alunos = (todos ? ativos : ativos.filter((a) => aulaDo.has(a.id) || porAluno.has(a.id))).sort((a, b) =>
-    (aulaDo.get(a.id)?.hora ?? "99").localeCompare(aulaDo.get(b.id)?.hora ?? "99") || a.nome.localeCompare(b.nome),
-  );
+  const estudio = ehEstudio(professor);
+  const nomeAluno = new Map(ativos.map((a) => [a.id, a]));
+  const cursoPorId = new Map(cursos.map((c) => [c.id, c]));
+  // equipe que só vê os próprios alunos: só as aulas dos cursos dela (ou sem curso, de aluno dela)
+  const restrito = professor.escopoMembro != null;
+  const podeVerCurso = (cursoId: number) => cursoId === 0 || !restrito || cursoPorId.has(cursoId);
+  const chave = (alunoId: number, cursoId: number) => `${alunoId}-${cursoId}`;
+  const registroDe = new Map(registros.filter((r) => podeVerCurso(r.cursoId)).map((r) => [chave(r.alunoId, r.cursoId), r]));
+  // aulas do dia (fixas ou reposições); aula desmarcada pelo professor não entra
+  const aulaDe = new Map(agenda.filter((o) => o.desmarcada?.por !== "professor").map((o) => [chave(o.alunoId, o.cursoId), o]));
+
+  // uma linha por aula (aluno + curso): quem tem aula no dia e o que já foi marcado; em "todos", cada curso de cada aluno
+  const linhas = new Map<string, { alunoId: number; cursoId: number }>();
+  const incluir = (alunoId: number, cursoId: number) => nomeAluno.has(alunoId) && linhas.set(chave(alunoId, cursoId), { alunoId, cursoId });
+  if (todos) {
+    for (const a of ativos) {
+      const doAluno = cursos.filter((c) => c.alunoId === a.id);
+      if (doAluno.length) doAluno.forEach((c) => incluir(a.id, c.id));
+      else if (!restrito || !estudio) incluir(a.id, 0);
+    }
+  }
+  for (const o of aulaDe.values()) incluir(o.alunoId, o.cursoId);
+  for (const r of registroDe.values()) incluir(r.alunoId, r.cursoId);
+
+  const rotulo = (cursoId: number, alunoId: number) => {
+    const c = cursoPorId.get(cursoId);
+    if (!c) return nomeAluno.get(alunoId)?.instrumento;
+    // o professor só aparece quando não é quem está fazendo a chamada
+    return restrito ? c.nome : rotuloCurso(c.nome, c.membro ?? professor.nome);
+  };
+  const alunos = [...linhas.entries()]
+    .map(([k, { alunoId, cursoId }]) => ({ k, alunoId, cursoId, aula: aulaDe.get(k) }))
+    .sort(
+      (x, y) =>
+        (x.aula?.hora ?? "99").localeCompare(y.aula?.hora ?? "99") ||
+        nomeAluno.get(x.alunoId)!.nome.localeCompare(nomeAluno.get(y.alunoId)!.nome),
+    );
   const extra = (mostrarTodos: boolean) => `${mostrarTodos ? "&todos=1" : ""}${instituicaoId ? `&instituicao=${instituicaoId}` : ""}`;
   const link = (data: string, mostrarTodos = todos) => `/chamada?data=${data}${extra(mostrarTodos)}`;
 
@@ -73,7 +106,11 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
         </span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {instituicoes.length > 0 && (
-            <SeletorInstituicao data={dia} valor={instituicaoId} instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} />
+            <SeletorInstituicao
+              data={dia}
+              valor={instituicaoId}
+              instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
+            />
           )}
           {!instituicaoId && (
             <Link href={link(dia, !todos)} className="rounded-lg px-3 py-1.5 text-sm text-marca-texto hover:bg-marca-suave">
@@ -87,19 +124,19 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
         key={`${dia}-${todos}-${instituicaoId ?? ""}`}
         data={dia}
         diaSemana={diaSemana}
-        alunos={alunos.map((a) => ({
-          id: a.id,
-          nome: a.nome,
+        alunos={alunos.map(({ k, alunoId, cursoId, aula }) => ({
+          chave: k,
+          nome: nomeAluno.get(alunoId)!.nome,
           detalhe: [
-            a.instrumento,
-            aulaDo.get(a.id)?.hora,
-            aulaDo.get(a.id)?.tipo === "reposicao" && "reposição",
-            aulaDo.get(a.id)?.desmarcada?.por === "aluno" && "avisou que não vem",
+            rotulo(cursoId, alunoId),
+            aula?.hora,
+            aula?.tipo === "reposicao" && "reposição",
+            aula?.desmarcada?.por === "aluno" && "avisou que não vem",
           ]
             .filter(Boolean)
             .join(" · "),
-          status: porAluno.get(a.id)?.status ?? "",
-          observacao: porAluno.get(a.id)?.observacao ?? "",
+          status: registroDe.get(k)?.status ?? "",
+          observacao: registroDe.get(k)?.observacao ?? "",
         }))}
         linkTodos={link(dia, true)}
       />

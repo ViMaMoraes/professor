@@ -25,9 +25,28 @@ export type HorarioAluno = {
   duracaoMin: number | null;
   /** AAAA-MM-DD: antes disso o aluno ainda não tinha aula */
   inicio?: string | null;
+  /** curso do horário (estúdio) e o professor dele (membro da equipe; vazio = o dono) */
+  cursoId?: number | null;
+  curso?: string | null;
+  membroId?: number | null;
+  /** nome do professor da equipe (vazio = o dono) */
+  professor?: string | null;
 };
 export type Desmarcada = { id: number; alunoId: number; data: string; hora: string; por: "professor" | "aluno"; motivo: string | null };
-export type ReposicaoAgendada = { id: number; alunoId: number; nome: string; data: string; hora: string | null; duracaoMin: number | null; motivo: string | null };
+export type ReposicaoAgendada = {
+  id: number;
+  alunoId: number;
+  nome: string;
+  data: string;
+  hora: string | null;
+  duracaoMin: number | null;
+  motivo: string | null;
+  cursoId?: number | null;
+  curso?: string | null;
+  membroId?: number | null;
+  /** nome do professor da equipe (vazio = o dono) */
+  professor?: string | null;
+};
 
 export type Ocorrencia = {
   /** identifica a aula (para lembretes e chaves de lista) */
@@ -38,6 +57,13 @@ export type Ocorrencia = {
   alunoId: number;
   nome: string;
   tipo: "aula" | "reposicao";
+  /** curso da aula (estúdio); 0 = sem curso separado (é a chave da presença) */
+  cursoId: number;
+  curso: string | null;
+  /** professor da equipe que dá a aula; null = o dono da conta */
+  membroId: number | null;
+  /** nome do professor da equipe; null = o dono da conta */
+  professor: string | null;
   desmarcada?: Desmarcada;
   reposicao?: ReposicaoAgendada;
 };
@@ -102,6 +128,10 @@ export function montarAgenda({
         alunoId: h.alunoId,
         nome: h.nome,
         tipo: "aula",
+        cursoId: h.cursoId ?? 0,
+        curso: h.curso ?? null,
+        membroId: h.membroId ?? null,
+        professor: h.professor ?? null,
         desmarcada: desmarcadaDe.get(`${h.alunoId}|${data}|${hora}`),
       });
     }
@@ -116,11 +146,17 @@ export function montarAgenda({
       alunoId: r.alunoId,
       nome: r.nome,
       tipo: "reposicao",
+      cursoId: r.cursoId ?? 0,
+      curso: r.curso ?? null,
+      membroId: r.membroId ?? null,
+      professor: r.professor ?? null,
       reposicao: r,
     });
   }
   // horário a definir vai para o fim do dia
-  return lista.sort((a, b) => a.data.localeCompare(b.data) || (a.hora ?? "99").localeCompare(b.hora ?? "99") || a.nome.localeCompare(b.nome));
+  return lista.sort(
+    (a, b) => a.data.localeCompare(b.data) || (a.hora ?? "99").localeCompare(b.hora ?? "99") || a.nome.localeCompare(b.nome) || a.cursoId - b.cursoId,
+  );
 }
 
 /** "Seg 18:00, Qua 18:00" (ou "Sáb (horário a definir)") */
@@ -143,4 +179,12 @@ export function aulasParaLembrar(ocorrencias: Ocorrencia[], agora: { data: strin
     const lembrete = inicio - antecedencia;
     return lembrete <= agoraAbs && agoraAbs - lembrete < tolerancia && inicio > agoraAbs;
   });
+}
+
+/** "Piano com Paula" / "Piano" / null, para mostrar de quem é a aula. */
+export function rotuloCurso(curso: string | null | undefined, professor: string | null | undefined) {
+  if (!curso && !professor) return null;
+  if (!professor) return curso ?? null;
+  const primeiro = professor.trim().split(/\s+/)[0];
+  return curso ? `${curso} com ${primeiro}` : `com ${primeiro}`;
 }

@@ -9,7 +9,8 @@ import { BotaoEnviar, Formulario } from "@/components/formulario";
 import { Botao, Card, cn, Input, Vazio } from "@/components/ui";
 import { STATUS_PRESENCA } from "@/lib/constantes";
 
-type Linha = { id: number; nome: string; detalhe: string; status: string; observacao: string };
+/** Uma aula da chamada: `chave` = "alunoId-cursoId" (o mesmo aluno pode ter dois cursos no dia). */
+type Linha = { chave: string; nome: string; detalhe: string; status: string; observacao: string };
 
 const OPCOES = [
   { valor: "presente", cor: "peer-checked:bg-emerald-600 peer-checked:border-emerald-600" },
@@ -30,9 +31,7 @@ export function FormChamada({
   alunos: Linha[];
   linkTodos: string;
 }) {
-  const [status, setStatus] = useState<Record<number, string>>(() =>
-    Object.fromEntries(alunos.map((a) => [a.id, a.status])),
-  );
+  const [status, setStatus] = useState<Record<string, string>>(() => Object.fromEntries(alunos.map((a) => [a.chave, a.status])));
 
   if (alunos.length === 0) {
     return (
@@ -51,8 +50,8 @@ export function FormChamada({
       <input type="hidden" name="data" value={data} />
       <Card className="divide-y divide-borda">
         {alunos.map((a) => (
-          <div key={a.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
-            <input type="hidden" name="alunos" value={a.id} />
+          <div key={a.chave} className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
+            <input type="hidden" name="aulas" value={a.chave} />
             <div className="min-w-0 md:w-52">
               <p className="truncate font-medium">{a.nome}</p>
               <p className="truncate text-xs text-suave">{a.detalhe}</p>
@@ -64,10 +63,10 @@ export function FormChamada({
                   <label key={op.valor} title={info.nome} className="cursor-pointer">
                     <input
                       type="radio"
-                      name={`status_${a.id}`}
+                      name={`status_${a.chave}`}
                       value={op.valor}
-                      checked={status[a.id] === op.valor}
-                      onChange={() => setStatus((s) => ({ ...s, [a.id]: op.valor }))}
+                      checked={status[a.chave] === op.valor}
+                      onChange={() => setStatus((s) => ({ ...s, [a.chave]: op.valor }))}
                       className="peer sr-only"
                     />
                     <span
@@ -83,7 +82,7 @@ export function FormChamada({
                 );
               })}
             </div>
-            <Input name={`obs_${a.id}`} defaultValue={a.observacao} placeholder="Conteúdo da aula, recado..." className="md:flex-1" />
+            <Input name={`obs_${a.chave}`} defaultValue={a.observacao} placeholder="Conteúdo da aula, recado..." className="md:flex-1" />
           </div>
         ))}
       </Card>
@@ -94,7 +93,7 @@ export function FormChamada({
         <Botao
           type="button"
           variante="secundario"
-          onClick={() => setStatus(Object.fromEntries(alunos.map((a) => [a.id, "presente"])))}
+          onClick={() => setStatus(Object.fromEntries(alunos.map((a) => [a.chave, "presente"])))}
         >
           <CheckCheck /> Todos presentes
         </Botao>

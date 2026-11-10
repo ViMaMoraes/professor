@@ -7,7 +7,7 @@ import { alternarSituacao, excluirAluno } from "@/app/acoes/alunos";
 import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo, Voltar } from "@/components/ui";
-import { agoraBrasilia, resumoHorarios, somarDiasAgenda } from "@/lib/agenda";
+import { agoraBrasilia, resumoHorarios, somarDiasAgenda, rotuloCurso } from "@/lib/agenda";
 import { exigirAcesso } from "@/lib/auth";
 import { podeVer } from "@/lib/permissoes";
 import { enderecoSite } from "@/lib/endereco";
@@ -20,7 +20,8 @@ import {
   horariosDoAluno,
   materiaisDoAluno,
   presencasDoAluno,
-  nomesDaEquipeDoAluno,
+  cursosDaConta,
+  garantirChaveAluno,
   recibosDoAluno,
   reposicoesDoAluno,
 } from "@/lib/consultas";
@@ -47,7 +48,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
   const aluno = await buscarAluno(professor, id);
   if (!aluno) notFound();
   const hojeAgenda = agoraBrasilia().data;
-  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximas, todasReposicoes, equipe] = await Promise.all([
+  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximasBrutas, todasReposicoes, cursos] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
     ver.recibos ? recibosDoAluno(id) : [],
@@ -57,8 +58,10 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
     horariosDoAluno(id),
     agendaDoPeriodo(professor, hojeAgenda, somarDiasAgenda(hojeAgenda, 13), { alunoId: id }),
     reposicoesDoAluno(professor.id, id),
-    ehEstudio(professor) ? nomesDaEquipeDoAluno(professor.id, id) : [],
+    ehEstudio(professor) ? cursosDaConta(professor, { alunoId: id }) : [],
   ]);
+  // aula de curso sem professor da equipe é do dono
+  const proximas = proximasBrutas.map((o) => ({ ...o, professor: o.professor ?? (o.curso ? professor.nome : null) }));
 
   return (
     <>
@@ -106,7 +109,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
             <CompartilharAcesso
               nome={aluno.nome}
               usuario={aluno.usuario}
-              codigo={professor.codigo}
+              chave={await garantirChaveAluno(aluno)}
               telefone={aluno.telefone}
               endereco={enderecoSite()}
             />
@@ -128,8 +131,12 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               <Item rotulo="Nascimento">{aluno.dataNascimento && dataBR(aluno.dataNascimento)}</Item>
               <Item rotulo="Início">{aluno.dataInicio && dataBR(aluno.dataInicio)}</Item>
               {ehEstudio(professor) && (
-                <Item rotulo="Professores">
-                  {equipe.length ? equipe.join(", ") : <span className="text-suave">ninguém da equipe</span>}
+                <Item rotulo="Cursos">
+                  {cursos.length ? (
+                    cursos.map((c) => rotuloCurso(c.nome, c.membro ?? professor.nome)).join(" · ")
+                  ) : (
+                    <span className="text-suave">nenhum curso cadastrado</span>
+                  )}
                 </Item>
               )}
               {ver.valores && <Item rotulo="Mensalidade">{aluno.mensalidadeCentavos != null && moeda(aluno.mensalidadeCentavos)}</Item>}
@@ -166,6 +173,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
             historico={todasReposicoes}
             hoje={hojeAgenda}
             duracaoPadrao={professor.duracaoAula}
+            cursos={cursos.map((c) => ({ id: c.id, rotulo: rotuloCurso(c.nome, c.membro ?? professor.nome) ?? c.nome }))}
           />
           <Card>
             <CardTitulo
@@ -186,7 +194,9 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
                   <li key={p.id} className="flex items-center gap-4 px-5 py-2.5 text-sm">
                     <span className="w-24 tabular-nums">{dataBR(p.data)}</span>
                     <SeloPresenca status={p.status} />
-                    <span className="truncate text-suave">{p.observacao}</span>
+                    <span className="truncate text-suave">
+                      {[cursos.find((c) => c.id === p.cursoId)?.nome, p.observacao].filter(Boolean).join(" · ")}
+                    </span>
                   </li>
                 ))}
               </ul>

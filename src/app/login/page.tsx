@@ -15,7 +15,7 @@ import { FormLogin } from "./form-login";
 export const metadata: Metadata = { title: "Entrar" };
 
 export default async function PaginaLogin(props: PageProps<"/login">) {
-  const { acesso, usuario, professor } = await props.searchParams;
+  const { acesso, usuario, professor, link } = await props.searchParams;
   await connection();
   const pendentes = await migracoesPendentes();
   if (pendentes.length) return <BancoDesatualizado pendentes={pendentes} paraAluno={acesso === "aluno"} />;
@@ -24,6 +24,11 @@ export default async function PaginaLogin(props: PageProps<"/login">) {
       <Suspense>
         <PrimeiroAcesso />
       </Suspense>
+      {link === "invalido" && (
+        <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          Esse link de acesso não vale mais. Peça um link novo ao seu professor ou entre com o seu usuário.
+        </p>
+      )}
       <FormLogin
         inicial={acesso === "aluno" ? "aluno" : "professor"}
         usuarioInicial={typeof usuario === "string" ? normalizarUsuario(usuario) : undefined}
