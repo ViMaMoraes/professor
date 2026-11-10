@@ -98,6 +98,7 @@ O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) com o **usuár
 
 - **Código do professor:** gerado a partir do nome (ex.: `marcus`) e editável em Configurações; aparece também na Administração.
 - **Usuário único por professor:** dois professores podem ter um aluno "nicolas". No cadastro, o site confere enquanto você digita e sugere uma variação livre ("nicolas2") se já for de outro aluno seu.
+- **O aparelho lembra o aluno:** depois da primeira entrada, a tela de login mostra "Entrar como Ana" (com o nome do professor) e basta um toque, sem lembrar usuário nem código. Cabe mais de uma conta no mesmo aparelho (ex.: irmãos), e o "x" tira uma delas. Com conta lembrada, o login já abre na aba *Acesso aluno*. O login do aluno vale por 1 ano (o do professor, 30 dias); tirar o usuário ou desativar o aluno corta o acesso na hora.
 - **Alunos antigos:** quem já tinha usuário antes dessa mudança continua entrando só com o usuário, e os links antigos (`/aluno?u=...`) continuam valendo. Sem código, o site também aceita o usuário quando só um aluno no site tem esse nome; se houver mais de um, pede o código. Na página de cada aluno, o cartão **Acesso do aluno** tem o link pessoal dele (`/aluno?p=codigo&u=usuario`, que já abre com o código e o usuário preenchidos) e botões para copiar o link, copiar uma mensagem pronta ou enviar pelo WhatsApp. O aluno vê:
 
 - os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;

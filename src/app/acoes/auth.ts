@@ -14,7 +14,7 @@ import { texto, type EstadoForm } from "@/lib/estado-form";
 import { COOKIE_SESSAO, criarToken, opcoesCookie, type Sessao } from "@/lib/sessao";
 
 async function iniciarSessao(sessao: Sessao) {
-  (await cookies()).set(COOKIE_SESSAO, await criarToken(sessao), opcoesCookie);
+  (await cookies()).set(COOKIE_SESSAO, await criarToken(sessao), opcoesCookie(sessao.tipo));
 }
 
 export async function entrar(estado: EstadoForm, dados: FormData): Promise<EstadoForm> {

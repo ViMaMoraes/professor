@@ -10,6 +10,7 @@ import { migracoesPendentes } from "@/lib/db";
 import { chavePublicaVapid } from "@/lib/push";
 
 import { AbasPortal } from "./abas-portal";
+import { LembrarAcesso } from "./lembrar-acesso";
 
 export default async function LayoutPortal({ children }: LayoutProps<"/portal">) {
   const pendentes = await migracoesPendentes();
@@ -48,6 +49,7 @@ export default async function LayoutPortal({ children }: LayoutProps<"/portal">)
         <AbasPortal videos={temVideos} />
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+      {aluno.usuario && <LembrarAcesso usuario={aluno.usuario} codigo={professor.codigo ?? ""} nome={aluno.nome} professor={professor.nome} />}
     </>
   );
 }

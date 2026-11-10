@@ -8,7 +8,12 @@ import { PASTA_DADOS } from "./caminhos";
 export type Sessao = { tipo: "professor" | "aluno"; id: number };
 
 export const COOKIE_SESSAO = "sessao";
-const DURACAO_SEGUNDOS = 60 * 60 * 24 * 30; // 30 dias
+const DIA = 60 * 60 * 24;
+/**
+ * Quanto tempo o login dura: professor 30 dias; aluno 1 ano (ele entra sem senha e o que mais atrapalha
+ * é ter que lembrar usuário e código de novo; o acesso some na hora se o professor tirar o usuário ou desativar).
+ */
+export const duracaoSessao = (tipo: Sessao["tipo"]) => (tipo === "aluno" ? 365 : 30) * DIA;
 
 let chaveEmCache: Uint8Array | undefined;
 
@@ -38,7 +43,7 @@ export async function criarToken(sessao: Sessao) {
   return new SignJWT(sessao)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${DURACAO_SEGUNDOS}s`)
+    .setExpirationTime(`${duracaoSessao(sessao.tipo)}s`)
     .sign(chave());
 }
 
@@ -55,10 +60,10 @@ export async function lerToken(token: string | undefined): Promise<Sessao | null
   return null;
 }
 
-export const opcoesCookie = {
+export const opcoesCookie = (tipo: Sessao["tipo"]) => ({
   httpOnly: true,
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
   path: "/",
-  maxAge: DURACAO_SEGUNDOS,
-};
+  maxAge: duracaoSessao(tipo),
+});
