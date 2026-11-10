@@ -16,6 +16,7 @@ import { isoValido, lerValorEmCentavos } from "@/lib/formato";
 import { cabeMaisUmAluno, limiteDeAlunos, textoLimiteAtingido } from "@/lib/planos";
 import { notificarAlunos } from "@/lib/push";
 import { normalizarUsuario } from "@/lib/usuario";
+import { ehEstudio } from "@/lib/planos";
 
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const { professor, acesso } = await exigirAcesso("alunos");
@@ -43,7 +44,8 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   // o usuário é o login do aluno: precisa ser único entre os alunos deste professor
   if (usuario && usuario.length < 3) return { erro: "O usuário precisa ter pelo menos 3 caracteres." };
   const conflito = usuario ? await alunoComUsuario(professor.id, usuario, id ?? undefined) : null;
-  if (usuario && conflito) return { erro: textoUsuarioRepetido(usuario, conflito, await usuarioLivre(professor.id, usuario, id ?? undefined)) };
+  if (usuario && conflito)
+    return { erro: textoUsuarioRepetido(usuario, conflito, await usuarioLivre(professor.id, usuario, id ?? undefined)) };
 
   const instituicaoId = Number(dados.get("instituicaoId")) || null;
   if (instituicaoId && !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Instituição inválida." };
@@ -53,7 +55,11 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   const duracoes = dados.getAll("horarioDuracao").map(Number);
   const horarios = dados
     .getAll("horarioDia")
-    .map((dia, i) => ({ diaSemana: Number(dia), hora: horaValida(horas[i]) ? horas[i] : null, duracaoMin: DURACOES.includes(duracoes[i]) ? duracoes[i] : null }))
+    .map((dia, i) => ({
+      diaSemana: Number(dia),
+      hora: horaValida(horas[i]) ? horas[i] : null,
+      duracaoMin: DURACOES.includes(duracoes[i]) ? duracoes[i] : null,
+    }))
     .filter((h) => Number.isInteger(h.diaSemana) && h.diaSemana >= 0 && h.diaSemana <= 6)
     .slice(0, 14);
 
@@ -99,7 +105,7 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
   // professores da equipe (estúdio): quem atribui (dono ou quem vê todos) escolhe; quem só vê os
   // próprios alunos fica como professor do aluno que cadastrar e não muda os de quem já existe
   let professoresDoAluno: number[] | null = null;
-  if (professor.tipoConta === "estudio") {
+  if (ehEstudio(professor)) {
     if (acesso.dono || acesso.todosAlunos) {
       const daConta = new Set((await listarMembros(professor.id)).map((m) => m.id));
       professoresDoAluno = [...new Set(dados.getAll("equipe").map(Number))].filter((m) => daConta.has(m));
@@ -114,7 +120,9 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     ...(professoresDoAluno
       ? [
           db.delete(schema.alunoEquipe).where(eq(schema.alunoEquipe.alunoId, alunoId!)),
-          ...(professoresDoAluno.length ? [db.insert(schema.alunoEquipe).values(professoresDoAluno.map((membroId) => ({ alunoId: alunoId!, membroId })))] : []),
+          ...(professoresDoAluno.length
+            ? [db.insert(schema.alunoEquipe).values(professoresDoAluno.map((membroId) => ({ alunoId: alunoId!, membroId })))]
+            : []),
         ]
       : []),
   ]);
@@ -138,7 +146,10 @@ const textoUsuarioRepetido = (usuario: string, aluno: { nome: string; ativo: boo
  * Confere o usuário enquanto o professor digita: livre ou de qual aluno dele já é, com uma sugestão livre.
  * Só olha os alunos do próprio professor (de outros professores pode repetir).
  */
-export async function conferirUsuario(texto: string, alunoId: number | null): Promise<{ livre: boolean; mensagem?: string; sugestao?: string }> {
+export async function conferirUsuario(
+  texto: string,
+  alunoId: number | null,
+): Promise<{ livre: boolean; mensagem?: string; sugestao?: string }> {
   const professor = await exigirProfessor("alunos");
   const usuario = normalizarUsuario(texto);
   if (usuario.length < 3) return { livre: false };

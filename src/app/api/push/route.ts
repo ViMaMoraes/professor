@@ -10,8 +10,8 @@ const Inscricao = z.object({
 });
 
 /**
- * Ativa as notificações neste aparelho: o aluno recebe avisos e materiais novos;
- * o professor (master) recebe o aviso de vencimento dos clientes.
+ * Ativa as notificações neste aparelho: o aluno recebe avisos e materiais novos; o professor, as aulas
+ * (e o dono também o financeiro e, se for o master, o vencimento dos clientes); a equipe, só as aulas dela.
  */
 export async function POST(request: Request) {
   const usuario = await usuarioAtual();
@@ -19,10 +19,6 @@ export async function POST(request: Request) {
   const dados = Inscricao.safeParse(await request.json().catch(() => null));
   if (!dados.success) return Response.json({ erro: "Inscrição inválida." }, { status: 400 });
 
-  // a equipe de um estúdio ainda não recebe notificações (iriam para a lista do dono, ex.: mensalidades)
-  if (usuario.tipo === "professor" && usuario.membro) {
-    return Response.json({ erro: "As notificações no celular ainda são só para o responsável pelo estúdio." }, { status: 403 });
-  }
   const { endpoint, keys } = dados.data;
   const db = await getDb();
   // o mesmo aparelho fica numa lista só (de quem está logado agora), para não receber avisos de outra conta
@@ -32,16 +28,24 @@ export async function POST(request: Request) {
       db
         .insert(schema.pushInscricoes)
         .values({ alunoId: usuario.aluno.id, endpoint, p256dh: keys.p256dh, auth: keys.auth })
-        .onConflictDoUpdate({ target: schema.pushInscricoes.endpoint, set: { alunoId: usuario.aluno.id, p256dh: keys.p256dh, auth: keys.auth } }),
+        .onConflictDoUpdate({
+          target: schema.pushInscricoes.endpoint,
+          set: { alunoId: usuario.aluno.id, p256dh: keys.p256dh, auth: keys.auth },
+        }),
     ]);
   } else {
     const professorId = usuario.professor.id;
+    // aparelho de alguém da equipe fica marcado com ele (recebe só as aulas dele, nada do financeiro)
+    const membroId = usuario.membro?.id ?? null;
     await db.batch([
       db.delete(schema.pushInscricoes).where(eq(schema.pushInscricoes.endpoint, endpoint)),
       db
         .insert(schema.pushProfessores)
-        .values({ professorId, endpoint, p256dh: keys.p256dh, auth: keys.auth })
-        .onConflictDoUpdate({ target: schema.pushProfessores.endpoint, set: { professorId, p256dh: keys.p256dh, auth: keys.auth } }),
+        .values({ professorId, membroId, endpoint, p256dh: keys.p256dh, auth: keys.auth })
+        .onConflictDoUpdate({
+          target: schema.pushProfessores.endpoint,
+          set: { professorId, membroId, p256dh: keys.p256dh, auth: keys.auth },
+        }),
     ]);
   }
   return Response.json({ ok: true });

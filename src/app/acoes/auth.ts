@@ -12,6 +12,7 @@ import { explicarErroDeConfiguracao } from "@/lib/erros";
 import { normalizarCodigo, normalizarUsuario } from "@/lib/usuario";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { COOKIE_SESSAO, criarToken, opcoesCookie, type Sessao } from "@/lib/sessao";
+import { ehEstudio } from "@/lib/planos";
 
 async function iniciarSessao(sessao: Sessao) {
   (await cookies()).set(COOKIE_SESSAO, await criarToken(sessao), opcoesCookie(sessao.tipo));
@@ -44,7 +45,7 @@ async function fazerLogin(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const membro = professor ? null : await db.query.membros.findFirst({ where: eq(schema.membros.email, email) });
   if (membro && (await bcrypt.compare(senha, membro.senhaHash))) {
     const dono = await db.query.professores.findFirst({ where: eq(schema.professores.id, membro.professorId) });
-    if (!membro.ativo || !dono || dono.tipoConta !== "estudio") return { erro: "Seu acesso está bloqueado. Fale com o responsável pelo estúdio." };
+    if (!membro.ativo || !dono || !ehEstudio(dono)) return { erro: "Seu acesso está bloqueado. Fale com o responsável pelo estúdio." };
     if (!contaLiberada(dono)) return { erro: "O acesso do estúdio está suspenso no momento. Fale com o responsável pelo estúdio." };
     await iniciarSessao({ tipo: "membro", id: membro.id });
     redirect(membro.trocarSenha ? "/trocar-senha" : "/painel");

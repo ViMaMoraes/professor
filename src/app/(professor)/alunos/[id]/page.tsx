@@ -30,6 +30,7 @@ import { CompartilharAcesso } from "./compartilhar-acesso";
 import { AulasAluno } from "./aulas-aluno";
 import { DiarioAluno } from "./diario-aluno";
 import { MensagemAluno } from "./mensagem-aluno";
+import { ehEstudio } from "@/lib/planos";
 
 export default function PaginaAluno(props: PageProps<"/alunos/[id]">) {
   return (
@@ -56,7 +57,7 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
     horariosDoAluno(id),
     agendaDoPeriodo(professor, hojeAgenda, somarDiasAgenda(hojeAgenda, 13), { alunoId: id }),
     reposicoesDoAluno(professor.id, id),
-    professor.tipoConta === "estudio" ? nomesDaEquipeDoAluno(professor.id, id) : [],
+    ehEstudio(professor) ? nomesDaEquipeDoAluno(professor.id, id) : [],
   ]);
 
   return (
@@ -126,8 +127,10 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               </Item>
               <Item rotulo="Nascimento">{aluno.dataNascimento && dataBR(aluno.dataNascimento)}</Item>
               <Item rotulo="Início">{aluno.dataInicio && dataBR(aluno.dataInicio)}</Item>
-              {professor.tipoConta === "estudio" && (
-                <Item rotulo="Professores">{equipe.length ? equipe.join(", ") : <span className="text-suave">ninguém da equipe</span>}</Item>
+              {ehEstudio(professor) && (
+                <Item rotulo="Professores">
+                  {equipe.length ? equipe.join(", ") : <span className="text-suave">ninguém da equipe</span>}
+                </Item>
               )}
               {ver.valores && <Item rotulo="Mensalidade">{aluno.mensalidadeCentavos != null && moeda(aluno.mensalidadeCentavos)}</Item>}
               <Item rotulo="Frequência">{frequencia != null && `${frequencia}%`}</Item>

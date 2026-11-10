@@ -21,7 +21,10 @@ export const metadata: Metadata = { title: "Agenda" };
 export default function PaginaAgenda(props: PageProps<"/agenda">) {
   return (
     <>
-      <Cabecalho titulo="Agenda" descricao="Calendário das aulas, reposições e aulas desmarcadas. Toque num dia para ver e agir. A reposição só existe quando você concede." />
+      <Cabecalho
+        titulo="Agenda"
+        descricao="Calendário das aulas, reposições e aulas desmarcadas. Toque num dia para ver e agir. A reposição só existe quando você concede."
+      />
       <Suspense fallback={<EsqueletoPagina />}>
         <Conteudo searchParams={props.searchParams} />
       </Suspense>
@@ -58,8 +61,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/agenda">["
     reposicoesPendentes(professor),
   ]);
   const dias = Array.from({ length: 7 }, (_, i) => somarDiasAgenda(segunda, i));
-  // as notificações no celular ainda são só do dono da conta (não da equipe)
-  const chavePublica = membro ? null : chavePublicaVapid();
+  const chavePublica = chavePublicaVapid();
 
   return (
     <>
@@ -198,7 +200,11 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/agenda">["
           <AtivarNotificacoes
             chavePublica={chavePublica}
             titulo="Receba no celular os avisos das aulas"
-            motivo="das aulas do dia, de manhã, e quando um aluno avisar que não vai"
+            motivo={
+              membro
+                ? "das suas aulas do dia, de manhã, e quando um aluno seu avisar que não vai"
+                : "das aulas do dia, de manhã, e quando um aluno avisar que não vai"
+            }
           />
         </div>
       )}
@@ -344,7 +350,17 @@ function Calendario({
 }
 
 /** Uma aula da lista; `compacta` (painel do dia ao lado do calendário) põe os botões embaixo do nome. */
-function Aula({ aula: o, hoje, duracaoPadrao, compacta = false }: { aula: Ocorrencia; hoje: string; duracaoPadrao: number; compacta?: boolean }) {
+function Aula({
+  aula: o,
+  hoje,
+  duracaoPadrao,
+  compacta = false,
+}: {
+  aula: Ocorrencia;
+  hoje: string;
+  duracaoPadrao: number;
+  compacta?: boolean;
+}) {
   const passou = o.data < hoje;
   return (
     <li className={cn("flex flex-col gap-2 px-5 py-3", !compacta && "sm:flex-row sm:items-center", o.desmarcada && "opacity-70")}>

@@ -11,6 +11,7 @@ import type { Membro, Professor } from "./db/schema";
 import { hojeISO } from "./formato";
 import { ACESSO_DONO, acessoDoMembro, filtroDeAlunos, podeVer, type Acesso, type Modulo } from "./permissoes";
 import { COOKIE_SESSAO, lerToken } from "./sessao";
+import { ehEstudio } from "./planos";
 
 /** A conta do professor está liberada? (o master nunca é bloqueado) */
 export function contaLiberada(professor: Pick<Professor, "master" | "ativo" | "acessoAte">, hoje = hojeISO()) {
@@ -38,7 +39,7 @@ export const usuarioAtual = cache(async () => {
     if (!membro?.ativo) return null;
     const professor = await db.query.professores.findFirst({ where: eq(schema.professores.id, membro.professorId) });
     // a equipe só existe enquanto a conta é de estúdio
-    return professor && contaLiberada(professor) && professor.tipoConta === "estudio" ? { tipo: "professor" as const, professor, membro } : null;
+    return professor && contaLiberada(professor) && ehEstudio(professor) ? { tipo: "professor" as const, professor, membro } : null;
   }
   const aluno = await db.query.alunos.findFirst({ where: eq(schema.alunos.id, sessao.id) });
   // sem usuário = acesso removido pelo professor

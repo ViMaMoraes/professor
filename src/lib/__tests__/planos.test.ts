@@ -32,3 +32,16 @@ describe("planos", () => {
     expect(textoLimiteAtingido({ plano: "plus" }, 5)).toContain("plano Plus permite até 5 alunos ativos");
   });
 });
+
+describe("plano Estúdio", () => {
+  it("só o plano Estúdio (e o master) libera a equipe; mudou de plano, deixa de ser estúdio", async () => {
+    const { ehEstudio, planoPermiteEquipe, limiteDeAlunos } = await import("../planos");
+    expect(planoPermiteEquipe({ plano: "estudio", master: false })).toBe(true);
+    expect(planoPermiteEquipe({ plano: "premium", master: false })).toBe(false);
+    expect(planoPermiteEquipe({ plano: "plus", master: true })).toBe(true);
+    expect(limiteDeAlunos({ plano: "estudio", master: false })).toBeNull();
+    expect(ehEstudio({ tipoConta: "estudio", plano: "estudio", master: false })).toBe(true);
+    expect(ehEstudio({ tipoConta: "estudio", plano: "premium", master: false })).toBe(false);
+    expect(ehEstudio({ tipoConta: "autonomo", plano: "estudio", master: false })).toBe(false);
+  });
+});

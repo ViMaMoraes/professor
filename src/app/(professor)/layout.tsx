@@ -3,6 +3,7 @@ import { CaixaUsuario } from "@/components/caixa-usuario";
 import { MenuLateral } from "@/components/menu-lateral";
 import { exigirAcesso } from "@/lib/auth";
 import { migracoesPendentes } from "@/lib/db";
+import { ehEstudio } from "@/lib/planos";
 
 export default async function LayoutProfessor({ children }: LayoutProps<"/">) {
   const pendentes = await migracoesPendentes();
@@ -15,7 +16,7 @@ export default async function LayoutProfessor({ children }: LayoutProps<"/">) {
     <>
       <MenuLateral
         master={professor.master}
-        estudio={professor.tipoConta === "estudio"}
+        estudio={ehEstudio(professor)}
         acesso={acesso}
         rodape={<CaixaUsuario nome={(membro ?? professor).nome} detalhe={detalhe} />}
       />

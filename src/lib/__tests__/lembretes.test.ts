@@ -31,7 +31,10 @@ beforeAll(async () => {
     return new Response(null, { status: 201 });
   });
   const db = await getDb();
-  const [p] = await db.insert(schema.professores).values({ nome: "Marcus Moraes", email: "p@x.com", senhaHash: "x", lembreteMinutos: 120 }).returning();
+  const [p] = await db
+    .insert(schema.professores)
+    .values({ nome: "Marcus Moraes", email: "p@x.com", senhaHash: "x", lembreteMinutos: 120 })
+    .returning();
   professor = p;
   const [ana, bruno, carla] = await db
     .insert(schema.alunos)
@@ -47,7 +50,9 @@ beforeAll(async () => {
     { alunoId: bruno.id, diaSemana: 1, hora: "18:00" },
     { alunoId: carla.id, diaSemana: 1, hora: "18:00" },
   ]);
-  await db.insert(schema.aulasDesmarcadas).values({ professorId: p.id, alunoId: bruno.id, data: "2026-11-09", hora: "18:00", por: "professor" });
+  await db
+    .insert(schema.aulasDesmarcadas)
+    .values({ professorId: p.id, alunoId: bruno.id, data: "2026-11-09", hora: "18:00", por: "professor" });
   // reposição da Ana na terça 10/11 às 10:00
   await db.insert(schema.reposicoes).values({ professorId: p.id, alunoId: ana.id, data: "2026-11-10", hora: "10:00" });
   await db.insert(schema.pushInscricoes).values([
@@ -85,5 +90,54 @@ describe("lembretes de aula", () => {
     expect(enviados.slice(antes)).toEqual(["https://push.example/professor"]);
     // dia sem aulas: nada
     expect((await avisarAulasDoDia(utc("2026-11-11T11:17"))).avisados).toEqual([]);
+  });
+});
+
+describe("notificações da equipe do estúdio", () => {
+  it("resumo da manhã: o dono recebe todas as aulas; a professora da equipe, só as dos alunos dela; sem Agenda, nada", async () => {
+    const db = await getDb();
+    const { notificarProfessores, notificarEquipe } = await import("../push");
+    const [dono] = await db
+      .insert(schema.professores)
+      .values({ nome: "Dono Estúdio", email: "dono-e@x.com", senhaHash: "x", tipoConta: "estudio", plano: "estudio" })
+      .returning();
+    const [aluna, outro] = await db
+      .insert(schema.alunos)
+      .values([
+        { professorId: dono.id, nome: "Lia Prado", dataInicio: "2026-01-01" },
+        { professorId: dono.id, nome: "Rui Costa", dataInicio: "2026-01-01" },
+      ])
+      .returning();
+    await db.insert(schema.horarios).values([
+      { alunoId: aluna.id, diaSemana: 3, hora: "09:00" },
+      { alunoId: outro.id, diaSemana: 3, hora: "10:00" },
+    ]);
+    const [paula, semAgenda] = await db
+      .insert(schema.membros)
+      .values([
+        { professorId: dono.id, nome: "Paula", email: "paula-e@x.com", senhaHash: "x", modulos: "alunos,agenda,chamada" },
+        { professorId: dono.id, nome: "Sem Agenda", email: "sa-e@x.com", senhaHash: "x", modulos: "alunos", todosAlunos: true },
+      ])
+      .returning();
+    await db.insert(schema.alunoEquipe).values({ alunoId: aluna.id, membroId: paula.id });
+    await db.insert(schema.pushProfessores).values([
+      { professorId: dono.id, ...(await aparelho("https://push.example/dono-e")) },
+      { professorId: dono.id, membroId: paula.id, ...(await aparelho("https://push.example/paula")) },
+      { professorId: dono.id, membroId: semAgenda.id, ...(await aparelho("https://push.example/sem-agenda")) },
+    ]);
+
+    const antes = enviados.length;
+    // quarta 11/11/2026
+    expect((await avisarAulasDoDia(utc("2026-11-11T11:17"))).avisados).toEqual(["Dono Estúdio", "Paula"]);
+    expect(enviados.slice(antes).sort()).toEqual(["https://push.example/dono-e", "https://push.example/paula"]);
+
+    // financeiro (notificarProfessores) só para o dono; aviso de falta do aluno dela, para ela também
+    const antes2 = enviados.length;
+    await notificarProfessores([dono.id], { title: "Mensalidade vencendo" });
+    expect(enviados.slice(antes2)).toEqual(["https://push.example/dono-e"]);
+    const antes3 = enviados.length;
+    await notificarEquipe(dono.id, { title: "Lia não vai" }, { alunoId: aluna.id });
+    await notificarEquipe(dono.id, { title: "Rui não vai" }, { alunoId: outro.id });
+    expect(enviados.slice(antes3)).toEqual(["https://push.example/paula"]);
   });
 });

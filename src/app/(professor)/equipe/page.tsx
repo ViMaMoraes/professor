@@ -8,25 +8,30 @@ import { BotaoLink, Cabecalho, Card, Selo, Tabela, Vazio } from "@/components/ui
 import { exigirDono } from "@/lib/auth";
 import { equipePorAluno, listarMembros } from "@/lib/consultas";
 import { CARGOS, LISTA_MODULOS, lerModulos, MODULOS } from "@/lib/permissoes";
+import { ehEstudio, planoPermiteEquipe } from "@/lib/planos";
 
 export const metadata: Metadata = { title: "Equipe" };
 
 export default async function PaginaEquipe() {
   const professor = await exigirDono();
 
-  if (professor.tipoConta !== "estudio") {
+  if (!ehEstudio(professor)) {
     return (
       <>
         <Cabecalho titulo="Equipe" />
         <Card>
           <Vazio icone={<UserCog />} titulo="A equipe é para estúdios e escolas">
-            Em Configurações, mude o tipo de conta para “Estúdio ou escola” para cadastrar outros professores.
+            {planoPermiteEquipe(professor)
+              ? "Em Configurações, mude o tipo de conta para “Estúdio ou escola” para cadastrar outros professores."
+              : "A equipe faz parte do plano Estúdio. Fale com o suporte para mudar de plano."}
           </Vazio>
-          <div className="flex justify-center pb-6">
-            <BotaoLink href="/configuracoes" variante="secundario">
-              <Settings /> Ir para Configurações
-            </BotaoLink>
-          </div>
+          {planoPermiteEquipe(professor) && (
+            <div className="flex justify-center pb-6">
+              <BotaoLink href="/configuracoes" variante="secundario">
+                <Settings /> Ir para Configurações
+              </BotaoLink>
+            </div>
+          )}
         </Card>
       </>
     );
@@ -38,7 +43,10 @@ export default async function PaginaEquipe() {
 
   return (
     <>
-      <Cabecalho titulo="Equipe" descricao="Quem trabalha no estúdio com você e o que cada um pode ver. Cada pessoa entra com o próprio e-mail e senha.">
+      <Cabecalho
+        titulo="Equipe"
+        descricao="Quem trabalha no estúdio com você e o que cada um pode ver. Cada pessoa entra com o próprio e-mail e senha."
+      >
         <BotaoLink href="/equipe/novo">
           <UserPlus /> Adicionar
         </BotaoLink>

@@ -11,12 +11,13 @@ import { enderecoSite } from "@/lib/endereco";
 
 import { RedefinirSenha } from "../../admin/[id]/redefinir-senha";
 import { FormMembro } from "../form-membro";
+import { ehEstudio } from "@/lib/planos";
 
 export const metadata: Metadata = { title: "Equipe" };
 
 export default async function PaginaMembro(props: PageProps<"/equipe/[id]">) {
   const professor = await exigirDono();
-  if (professor.tipoConta !== "estudio") redirect("/equipe");
+  if (!ehEstudio(professor)) redirect("/equipe");
   const membro = await buscarMembro(professor.id, Number((await props.params).id));
   if (!membro) notFound();
   // só o que o formulário usa (nada de senha indo para o navegador)
@@ -40,8 +41,8 @@ export default async function PaginaMembro(props: PageProps<"/equipe/[id]">) {
       <Card className="mt-6 max-w-2xl border-red-200 p-5 dark:border-red-900">
         <h2 className="font-semibold text-red-600 dark:text-red-400">Tirar da equipe</h2>
         <p className="mt-1 mb-4 text-sm text-suave">
-          Apaga só o acesso de {membro.nome}. Os alunos, chamadas, diário e recibos continuam no estúdio. Para só suspender, desmarque “Acesso
-          liberado” acima.
+          Apaga só o acesso de {membro.nome}. Os alunos, chamadas, diário e recibos continuam no estúdio. Para só suspender, desmarque
+          “Acesso liberado” acima.
         </p>
         <BotaoAcao acao={excluirMembro.bind(null, membro.id)} confirmar={`Tirar ${membro.nome} da equipe?`} variante="perigo">
           <Trash2 /> Tirar da equipe

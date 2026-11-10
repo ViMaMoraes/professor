@@ -29,7 +29,9 @@ export const professores = sqliteTable("professores", {
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true), // conta liberada
   acessoAte: text("acesso_ate"), // AAAA-MM-DD; vazio = sem data de validade
   // conta de professor sozinho ou de estúdio/escola (com equipe); o recibo do estúdio sai no nome dele
-  tipoConta: text("tipo_conta", { enum: ["autonomo", "estudio"] }).notNull().default("autonomo"),
+  tipoConta: text("tipo_conta", { enum: ["autonomo", "estudio"] })
+    .notNull()
+    .default("autonomo"),
   nomeEstudio: text("nome_estudio"),
   plano: text("plano").notNull().default("premium"), // plus (até 5 alunos ativos) ou premium (ilimitado); ver src/lib/planos.ts
   trocarSenha: integer("trocar_senha", { mode: "boolean" }).notNull().default(false), // senha provisória: troca no próximo login
@@ -52,7 +54,9 @@ export const membros = sqliteTable(
     email: text("email").notNull().unique(), // login; único também entre os professores donos
     senhaHash: text("senha_hash").notNull(),
     trocarSenha: integer("trocar_senha", { mode: "boolean" }).notNull().default(true),
-    cargo: text("cargo", { enum: ["professor", "coordenacao"] }).notNull().default("professor"),
+    cargo: text("cargo", { enum: ["professor", "coordenacao"] })
+      .notNull()
+      .default("professor"),
     // módulos liberados, separados por vírgula (ver src/lib/permissoes.ts)
     modulos: text("modulos").notNull().default(""),
     // false = só os alunos de que ele é professor (aluno_equipe); true = todos os alunos da conta
@@ -99,34 +103,34 @@ export const instituicoes = sqliteTable(
 export const alunos = sqliteTable(
   "alunos",
   {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  professorId: professorId(),
-  // instituição que paga por este aluno (opcional)
-  instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "set null" }),
-  nome: text("nome").notNull(),
-  email: text("email"),
-  // login do aluno (só usuário, sem senha); vazio = sem acesso aos downloads.
-  // Único por professor: no login, o código do professor diz de quem é o aluno.
-  usuario: text("usuario"),
-  // usuário criado quando ele ainda era único no site inteiro: continua entrando só com o usuário (sem código)
-  usuarioGlobal: integer("usuario_global", { mode: "boolean" }).notNull().default(false),
-  senhaHash: text("senha_hash"), // não é mais usada (o aluno entra só com o usuário); mantida para não recriar a tabela
-  descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
-  mensagem: text("mensagem"), // recado do professor que aparece em destaque no acesso do aluno
-  telefone: text("telefone"),
-  responsavel: text("responsavel"),
-  dataNascimento: text("data_nascimento"), // AAAA-MM-DD
-  instrumento: text("instrumento"),
-  nivel: text("nivel"),
-  // antigos (um dia e horário só): os horários agora ficam na tabela `horarios`
-  diaAula: text("dia_aula"),
-  horario: text("horario"),
-  mensalidadeCentavos: integer("mensalidade_centavos"),
-  diaVencimento: integer("dia_vencimento"), // vazio = dia padrão do professor
-  dataInicio: text("data_inicio"),
-  ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
-  observacoes: text("observacoes"),
-  criadoEm: criadoEm(),
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: professorId(),
+    // instituição que paga por este aluno (opcional)
+    instituicaoId: integer("instituicao_id").references(() => instituicoes.id, { onDelete: "set null" }),
+    nome: text("nome").notNull(),
+    email: text("email"),
+    // login do aluno (só usuário, sem senha); vazio = sem acesso aos downloads.
+    // Único por professor: no login, o código do professor diz de quem é o aluno.
+    usuario: text("usuario"),
+    // usuário criado quando ele ainda era único no site inteiro: continua entrando só com o usuário (sem código)
+    usuarioGlobal: integer("usuario_global", { mode: "boolean" }).notNull().default(false),
+    senhaHash: text("senha_hash"), // não é mais usada (o aluno entra só com o usuário); mantida para não recriar a tabela
+    descricaoRecibo: text("descricao_recibo"), // ex.: "às aulas de violino"
+    mensagem: text("mensagem"), // recado do professor que aparece em destaque no acesso do aluno
+    telefone: text("telefone"),
+    responsavel: text("responsavel"),
+    dataNascimento: text("data_nascimento"), // AAAA-MM-DD
+    instrumento: text("instrumento"),
+    nivel: text("nivel"),
+    // antigos (um dia e horário só): os horários agora ficam na tabela `horarios`
+    diaAula: text("dia_aula"),
+    horario: text("horario"),
+    mensalidadeCentavos: integer("mensalidade_centavos"),
+    diaVencimento: integer("dia_vencimento"), // vazio = dia padrão do professor
+    dataInicio: text("data_inicio"),
+    ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+    observacoes: text("observacoes"),
+    criadoEm: criadoEm(),
   },
   (t) => [uniqueIndex("alunos_professor_usuario").on(t.professorId, t.usuario)],
 );
@@ -385,6 +389,8 @@ export const pushProfessores = sqliteTable("push_professores", {
   professorId: integer("professor_id")
     .notNull()
     .references(() => professores.id, { onDelete: "cascade" }),
+  // aparelho de alguém da equipe (estúdio); vazio = do dono da conta, que recebe também o financeiro
+  membroId: integer("membro_id").references(() => membros.id, { onDelete: "cascade" }),
   endpoint: text("endpoint").notNull().unique(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),

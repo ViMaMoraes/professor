@@ -11,12 +11,13 @@ import { DURACOES, LEMBRETES } from "@/lib/agenda";
 import { CampoAssinatura } from "@/components/campo-assinatura";
 import { Campo, Card, Input, Select } from "@/components/ui";
 import type { Professor } from "@/lib/db/schema";
+import { planoPermiteEquipe } from "@/lib/planos";
 
 export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor, "senhaHash"> }) {
   return (
     <Formulario acao={salvarConfiguracoes} className="max-w-3xl">
       <Card className="divide-y divide-borda">
-        <TipoDeConta tipo={p.tipoConta} nomeEstudio={p.nomeEstudio} />
+        <TipoDeConta tipo={p.tipoConta} nomeEstudio={p.nomeEstudio} permiteEstudio={planoPermiteEquipe(p)} />
         <section className="grid gap-4 p-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <h2 className="font-semibold">Seus dados</h2>
@@ -71,7 +72,16 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
             rotulo="Código do professor"
             dica="Identifica você no acesso do aluno e vai no link pessoal de cada um. Se trocar, mande o link de novo aos alunos que entraram depois desta mudança."
           >
-            <Input name="codigo" defaultValue={p.codigo ?? ""} required minLength={3} maxLength={20} autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+            <Input
+              name="codigo"
+              defaultValue={p.codigo ?? ""}
+              required
+              minLength={3}
+              maxLength={20}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
           </Campo>
         </section>
         <section className="p-5">
@@ -99,8 +109,17 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
 }
 
 /** Professor sozinho ou estúdio/escola: o estúdio ganha a Equipe e o recibo sai no nome dele. */
-function TipoDeConta({ tipo, nomeEstudio }: { tipo: Professor["tipoConta"]; nomeEstudio: string | null }) {
-  const [atual, setAtual] = useState(tipo);
+function TipoDeConta({
+  tipo,
+  nomeEstudio,
+  permiteEstudio,
+}: {
+  tipo: Professor["tipoConta"];
+  nomeEstudio: string | null;
+  permiteEstudio: boolean;
+}) {
+  // plano sem equipe: a opção aparece, mas só libera no plano Estúdio
+  const [atual, setAtual] = useState(permiteEstudio ? tipo : "autonomo");
   return (
     <section className="grid gap-4 p-5 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -114,11 +133,26 @@ function TipoDeConta({ tipo, nomeEstudio }: { tipo: Professor["tipoConta"]; nome
             ["estudio", "Estúdio ou escola", "Você e uma equipe de professores, com permissões."],
           ] as const
         ).map(([valor, nome, descricao]) => (
-          <label key={valor} className="flex cursor-pointer items-start gap-3 rounded-xl border border-borda p-3 has-checked:border-marca has-checked:bg-marca-suave">
-            <input type="radio" name="tipoConta" value={valor} checked={atual === valor} onChange={() => setAtual(valor)} className="mt-1 size-4 accent-marca" />
+          <label
+            key={valor}
+            className="flex cursor-pointer items-start gap-3 rounded-xl border border-borda p-3 has-checked:border-marca has-checked:bg-marca-suave has-disabled:cursor-not-allowed has-disabled:opacity-60"
+          >
+            <input
+              type="radio"
+              name="tipoConta"
+              value={valor}
+              checked={atual === valor}
+              disabled={valor === "estudio" && !permiteEstudio}
+              onChange={() => setAtual(valor)}
+              className="mt-1 size-4 accent-marca"
+            />
             <span>
               <span className="block text-sm font-medium">{nome}</span>
-              <span className="block text-xs text-suave">{descricao}</span>
+              <span className="block text-xs text-suave">
+                {valor === "estudio" && !permiteEstudio
+                  ? "Disponível no plano Estúdio. Fale com o suporte para mudar de plano."
+                  : descricao}
+              </span>
             </span>
           </label>
         ))}

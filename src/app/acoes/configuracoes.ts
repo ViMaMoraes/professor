@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { exigirDono } from "@/lib/auth";
 import { codigoEmUso, emailEmUso } from "@/lib/consultas";
+import { planoPermiteEquipe } from "@/lib/planos";
 import { erroCodigo, normalizarCodigo } from "@/lib/usuario";
 import { getDb, schema } from "@/lib/db";
 import { DURACOES, LEMBRETES } from "@/lib/agenda";
@@ -53,7 +54,8 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
       nome,
       email,
       codigo,
-      tipoConta: dados.get("tipoConta") === "estudio" ? "estudio" : "autonomo",
+      // estúdio só no plano que permite equipe
+      tipoConta: dados.get("tipoConta") === "estudio" && planoPermiteEquipe(professor) ? "estudio" : "autonomo",
       nomeEstudio: dados.get("tipoConta") === "estudio" ? (texto(dados, "nomeEstudio")?.slice(0, 80) ?? null) : professor.nomeEstudio,
       documento: mascaraDocumento(texto(dados, "documento")) || null,
       telefone: mascaraTelefone(texto(dados, "telefone")) || null,

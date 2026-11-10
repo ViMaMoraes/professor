@@ -1,8 +1,9 @@
 import "server-only";
 
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { getDb, schema } from "./db";
+import { lerModulos } from "./permissoes";
 import { chavePublicaDoJwk, requisicaoPush } from "./webpush";
 
 /**
@@ -40,7 +41,12 @@ async function enviar(aparelhos: Aparelho[], notificacao: Notificacao, esquecer:
   const contato = process.env.VAPID_CONTATO || "mailto:contato@example.com";
   const resultados = await Promise.allSettled(
     aparelhos.map(async (a) => {
-      const { endpoint, init } = await requisicaoPush({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } }, notificacao, privateJWK, contato);
+      const { endpoint, init } = await requisicaoPush(
+        { endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
+        notificacao,
+        privateJWK,
+        contato,
+      );
       const resposta = await fetch(endpoint, init);
       if (resposta.status === 404 || resposta.status === 410) await esquecer(a.endpoint);
       return resposta.ok;
@@ -64,13 +70,57 @@ export async function notificarAlunos(alunoIds: number[], notificacao: Notificac
   }
 }
 
-/** Notifica os aparelhos inscritos dos professores indicados (ex.: o master). */
+/**
+ * Notifica os aparelhos dos DONOS das contas indicadas (ex.: o master, o financeiro).
+ * A equipe de um estúdio não recebe estas; para ela, `notificarEquipe`.
+ */
 export async function notificarProfessores(professorIds: number[], notificacao: Notificacao) {
   if (!chavePrivada() || professorIds.length === 0) return { enviadas: 0 };
   try {
     const db = await getDb();
     const { pushProfessores: t } = schema;
-    const aparelhos = await db.select().from(t).where(inArray(t.professorId, professorIds));
+    const aparelhos = await db
+      .select()
+      .from(t)
+      .where(and(inArray(t.professorId, professorIds), isNull(t.membroId)));
+    return await enviar(aparelhos, notificacao, (endpoint) => db.delete(t).where(eq(t.endpoint, endpoint)));
+  } catch (erro) {
+    console.error("[push]", erro);
+    return { enviadas: 0 };
+  }
+}
+
+/**
+ * Notifica os aparelhos de pessoas da equipe (só o que é das aulas, nunca o financeiro).
+ * Só quem está ativo e tem a Agenda liberada; com `alunoId`, só quem vê esse aluno
+ * (vê todos os alunos ou é professor dele).
+ */
+export async function notificarEquipe(
+  professorId: number,
+  notificacao: Notificacao,
+  filtro: { alunoId?: number; membroIds?: number[] } = {},
+) {
+  if (!chavePrivada()) return { enviadas: 0 };
+  try {
+    const db = await getDb();
+    const { pushProfessores: t, membros, alunoEquipe } = schema;
+    const equipe = await db
+      .select()
+      .from(membros)
+      .where(and(eq(membros.professorId, professorId), eq(membros.ativo, true)));
+    let ids = equipe.filter((m) => lerModulos(m.modulos).includes("agenda")).map((m) => m.id);
+    if (filtro.membroIds) ids = ids.filter((id) => filtro.membroIds!.includes(id));
+    if (filtro.alunoId) {
+      const doAluno = new Set(
+        (await db.select({ id: alunoEquipe.membroId }).from(alunoEquipe).where(eq(alunoEquipe.alunoId, filtro.alunoId))).map((l) => l.id),
+      );
+      ids = ids.filter((id) => doAluno.has(id) || equipe.find((m) => m.id === id)?.todosAlunos);
+    }
+    if (ids.length === 0) return { enviadas: 0 };
+    const aparelhos = await db
+      .select()
+      .from(t)
+      .where(and(eq(t.professorId, professorId), inArray(t.membroId, ids)));
     return await enviar(aparelhos, notificacao, (endpoint) => db.delete(t).where(eq(t.endpoint, endpoint)));
   } catch (erro) {
     console.error("[push]", erro);

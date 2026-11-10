@@ -6,12 +6,13 @@ import { exigirDono } from "@/lib/auth";
 import { enderecoSite } from "@/lib/endereco";
 
 import { FormNovoMembro } from "../form-membro";
+import { ehEstudio } from "@/lib/planos";
 
 export const metadata: Metadata = { title: "Adicionar à equipe" };
 
 export default async function PaginaNovoMembro() {
   const professor = await exigirDono();
-  if (professor.tipoConta !== "estudio") redirect("/equipe");
+  if (!ehEstudio(professor)) redirect("/equipe");
   return (
     <>
       <Voltar href="/equipe">Voltar para a equipe</Voltar>

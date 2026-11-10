@@ -20,11 +20,14 @@ function Campos({ professor }: { professor?: Dados }) {
         <Input type="email" name="email" required defaultValue={professor?.email} />
       </Campo>
       {!professor?.master && (
-        <Campo rotulo="Plano" dica="Plus: até 5 alunos ativos. Premium: ilimitado. O tempo de acesso é a data abaixo.">
+        <Campo
+          rotulo="Plano"
+          dica="Plus: até 5 alunos ativos. Premium: ilimitado. Estúdio: ilimitado e com equipe. O tempo de acesso é a data abaixo."
+        >
           <Select name="plano" defaultValue={professor?.plano ?? PLANO_PADRAO}>
             {Object.entries(PLANOS).map(([valor, p]) => (
               <option key={valor} value={valor}>
-                {p.nome} · {p.limiteAlunos ? `até ${p.limiteAlunos} alunos` : "alunos ilimitados"}
+                {p.nome} · {p.resumo}
               </option>
             ))}
           </Select>

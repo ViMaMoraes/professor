@@ -11,13 +11,14 @@ import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { cargoValido, gravarModulos, moduloValido } from "@/lib/permissoes";
 import { gerarSenha } from "@/lib/senha";
+import { ehEstudio } from "@/lib/planos";
 
 export type EstadoNovoMembro = { erro?: string; ok?: string; senha?: string; id?: number; email?: string; nome?: string } | null;
 
 /** Só o dono de uma conta de estúdio cuida da equipe. */
 async function exigirDonoDeEstudio() {
   const professor = await exigirDono();
-  if (professor.tipoConta !== "estudio") redirect("/configuracoes");
+  if (!ehEstudio(professor)) redirect("/configuracoes");
   return professor;
 }
 
@@ -78,7 +79,10 @@ export async function novaSenhaMembro(id: number): Promise<{ erro?: string; senh
   if (!(await buscarMembro(professor.id, id))) return { erro: "Pessoa não encontrada na equipe." };
   const senha = gerarSenha();
   const db = await getDb();
-  await db.update(schema.membros).set({ senhaHash: await bcrypt.hash(senha, 10), trocarSenha: true }).where(eq(schema.membros.id, id));
+  await db
+    .update(schema.membros)
+    .set({ senhaHash: await bcrypt.hash(senha, 10), trocarSenha: true })
+    .where(eq(schema.membros.id, id));
   return { senha };
 }
 
@@ -86,7 +90,12 @@ export async function novaSenhaMembro(id: number): Promise<{ erro?: string; senh
 export async function excluirMembro(id: number) {
   const professor = await exigirDonoDeEstudio();
   const db = await getDb();
-  await db.delete(schema.membros).where(and(eq(schema.membros.id, id), eq(schema.membros.professorId, professor.id)));
+  if (!(await buscarMembro(professor.id, id))) return;
+  // aparelhos dele primeiro (garante mesmo em bancos onde a ligação não apaga em cascata)
+  await db.batch([
+    db.delete(schema.pushProfessores).where(eq(schema.pushProfessores.membroId, id)),
+    db.delete(schema.membros).where(and(eq(schema.membros.id, id), eq(schema.membros.professorId, professor.id))),
+  ]);
   revalidatePath("/", "layout");
   redirect("/equipe");
 }

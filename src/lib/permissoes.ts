@@ -43,7 +43,14 @@ export const moduloValido = (valor: unknown): valor is Modulo => typeof valor ==
 
 /** "alunos,agenda" → ["alunos", "agenda"] (ignora o que não for módulo). */
 export function lerModulos(texto: string | null | undefined): Modulo[] {
-  return [...new Set((texto ?? "").split(",").map((m) => m.trim()).filter(moduloValido))];
+  return [
+    ...new Set(
+      (texto ?? "")
+        .split(",")
+        .map((m) => m.trim())
+        .filter(moduloValido),
+    ),
+  ];
 }
 
 export const gravarModulos = (modulos: Modulo[]) => LISTA_MODULOS.filter((m) => modulos.includes(m)).join(",");

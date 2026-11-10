@@ -1,4 +1,15 @@
-import { Building2, ChevronLeft, ChevronRight, CircleSlash, FileText, MessageCircle, ReceiptText, TriangleAlert, Undo2, Wallet } from "lucide-react";
+import {
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  CircleSlash,
+  FileText,
+  MessageCircle,
+  ReceiptText,
+  TriangleAlert,
+  Undo2,
+  Wallet,
+} from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
@@ -48,11 +59,20 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/financeiro
     resumoCobranca(professor.id, hoje, professor.diaVencimento),
   ]);
   // meses anteriores (até 3) com mensalidade em atraso, para não serem esquecidos
-  const anteriores = [...Map.groupBy(cobranca.atrasados.filter((l) => l.mes < mes), (l) => l.mes)].sort(([a], [b]) => b.localeCompare(a));
-  // as notificações no celular ainda são só do dono da conta (não da equipe)
+  const anteriores = [
+    ...Map.groupBy(
+      cobranca.atrasados.filter((l) => l.mes < mes),
+      (l) => l.mes,
+    ),
+  ].sort(([a], [b]) => b.localeCompare(a));
+  // os avisos de mensalidade vão só para o dono da conta (a equipe recebe só os das aulas)
   const chavePublica = membro ? null : chavePublicaVapid();
   const resumo = resumoFinanceiro(linhas);
-  const contagem = { todos: linhas.length, aberto: linhas.filter((l) => l.situacao !== "pago").length, pago: linhas.filter((l) => l.situacao === "pago").length };
+  const contagem = {
+    todos: linhas.length,
+    aberto: linhas.filter((l) => l.situacao !== "pago").length,
+    pago: linhas.filter((l) => l.situacao === "pago").length,
+  };
   const visiveis = linhas.filter((l) => filtro === "todos" || (filtro === "pago" ? l.situacao === "pago" : l.situacao !== "pago"));
   const link = (m: string, f = filtro) => `/financeiro?mes=${m}${f !== "todos" ? `&filtro=${f}` : ""}`;
 
@@ -148,7 +168,10 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/financeiro
                     : `começa em ${dataBR(p.desde!)}`}
                 </span>
                 {motivo === "sem-valor" && (
-                  <Link href={`/${p.tipo === "aluno" ? "alunos" : "instituicoes"}/${p.id}/editar`} className="text-marca-texto hover:underline">
+                  <Link
+                    href={`/${p.tipo === "aluno" ? "alunos" : "instituicoes"}/${p.id}/editar`}
+                    className="text-marca-texto hover:underline"
+                  >
                     Definir valor
                   </Link>
                 )}
@@ -159,8 +182,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/financeiro
       )}
 
       <p className="mt-3 text-xs text-suave">
-        Entram os alunos particulares com mensalidade e as instituições com valor mensal (alunos de instituição são cobrados pela instituição).
-        O vencimento padrão é dia {professor.diaVencimento}; mude em Configurações ou no cadastro de cada um.
+        Entram os alunos particulares com mensalidade e as instituições com valor mensal (alunos de instituição são cobrados pela
+        instituição). O vencimento padrão é dia {professor.diaVencimento}; mude em Configurações ou no cadastro de cada um.
         {!professor.chavePix && " Cadastre sua chave Pix em Configurações para ela ir na mensagem de cobrança."}
       </p>
 
@@ -295,7 +318,11 @@ function Linha({
             target="_blank"
             rel="noopener"
             className={estiloBotao({ variante: "sucesso", tamanho: "sm" })}
-            title={p.telefone ? `Abrir o WhatsApp de ${p.contato || p.nome} com a mensagem de cobrança` : "Sem telefone no cadastro: o WhatsApp abre para você escolher o contato"}
+            title={
+              p.telefone
+                ? `Abrir o WhatsApp de ${p.contato || p.nome} com a mensagem de cobrança`
+                : "Sem telefone no cadastro: o WhatsApp abre para você escolher o contato"
+            }
           >
             <MessageCircle /> Cobrar
           </a>

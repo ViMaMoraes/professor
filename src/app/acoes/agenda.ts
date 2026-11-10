@@ -9,7 +9,7 @@ import { agendaDoPeriodo, buscarAluno } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { dataBR, isoValido } from "@/lib/formato";
-import { notificarAlunos, notificarProfessores } from "@/lib/push";
+import { notificarAlunos, notificarEquipe, notificarProfessores } from "@/lib/push";
 
 /** "quinta, 13/11" */
 const diaCurto = (data: string) => `${DIAS_LONGOS[diaDaSemana(data)].toLowerCase()}, ${dataBR(data).slice(0, 5)}`;
@@ -134,12 +134,17 @@ export async function avisarFalta(data: string, hora: string): Promise<{ erro?: 
     if (faltam < ANTECEDENCIA_AVISO_ALUNO_MIN) return { erro: "Falta menos de 2 horas para a aula. Avise o professor diretamente." };
   }
   const db = await getDb();
-  await db.insert(schema.aulasDesmarcadas).values({ professorId: professor.id, alunoId: aluno.id, data, hora, por: "aluno" }).onConflictDoNothing();
-  await notificarProfessores([professor.id], {
+  await db
+    .insert(schema.aulasDesmarcadas)
+    .values({ professorId: professor.id, alunoId: aluno.id, data, hora, por: "aluno" })
+    .onConflictDoNothing();
+  const falta = {
     title: `${aluno.nome} não vai à aula`,
     body: `Aula de ${diaCurto(data)}${aula.hora ? ` às ${aula.hora}` : ""}. A reposição fica a seu critério.`,
     url: "/agenda",
-  });
+  };
+  // o dono e quem da equipe vê esse aluno
+  await Promise.all([notificarProfessores([professor.id], falta), notificarEquipe(professor.id, falta, { alunoId: aluno.id })]);
   revalidar(aluno.id);
   return { ok: "Pronto, o professor foi avisado." };
 }
@@ -150,7 +155,8 @@ export async function desfazerAvisoFalta(data: string, hora: string): Promise<{ 
   const db = await getDb();
   const { aulasDesmarcadas: d } = schema;
   await db.delete(d).where(and(eq(d.alunoId, aluno.id), eq(d.data, data), eq(d.hora, hora), eq(d.por, "aluno")));
-  await notificarProfessores([professor.id], { title: `${aluno.nome} vai à aula`, body: `Aula de ${diaCurto(data)} confirmada de novo.`, url: "/agenda" });
+  const vai = { title: `${aluno.nome} vai à aula`, body: `Aula de ${diaCurto(data)} confirmada de novo.`, url: "/agenda" };
+  await Promise.all([notificarProfessores([professor.id], vai), notificarEquipe(professor.id, vai, { alunoId: aluno.id })]);
   revalidar(aluno.id);
   return { ok: "Combinado, aula confirmada." };
 }

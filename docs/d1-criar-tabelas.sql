@@ -295,6 +295,7 @@ CREATE TABLE IF NOT EXISTS `push_professores` (
   `p256dh` text NOT NULL,
   `auth` text NOT NULL,
   `criado_em` text DEFAULT (datetime('now', 'localtime')) NOT NULL,
+  `membro_id` integer REFERENCES membros(id) ON DELETE cascade,
   FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `push_professores_endpoint_unique` ON `push_professores` (`endpoint`);
@@ -339,4 +340,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0011_planos.sql'),
   ('0012_planos_plus_premium.sql'),
   ('0013_usuario_por_professor.sql'),
-  ('0014_equipe_estudio.sql');
+  ('0014_equipe_estudio.sql'),
+  ('0015_push_equipe.sql');
