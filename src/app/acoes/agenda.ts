@@ -26,8 +26,8 @@ function revalidar(alunoId: number) {
 
 /** Professor desmarca uma aula fixa; a reposição vem marcada (desmarcar ela = sem reposição). */
 export async function desmarcarAula(alunoId: number, data: string, hora: string, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
-  if (!(await buscarAluno(professor.id, alunoId)) || !isoValido(data)) return { erro: "Aula não encontrada." };
+  const professor = await exigirProfessor("agenda");
+  if (!(await buscarAluno(professor, alunoId)) || !isoValido(data)) return { erro: "Aula não encontrada." };
   const motivo = texto(dados, "motivo");
   const gerarReposicao = dados.get("reposicao") === "on";
   const db = await getDb();
@@ -56,7 +56,7 @@ export async function desmarcarAula(alunoId: number, data: string, hora: string,
 
 /** Desfaz a marcação (a aula volta a acontecer). Reposição concedida continua; dá para cancelar à parte. */
 export async function desfazerDesmarcada(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("agenda");
   const db = await getDb();
   const [apagada] = await db
     .delete(schema.aulasDesmarcadas)
@@ -67,8 +67,8 @@ export async function desfazerDesmarcada(id: number) {
 
 /** Concede uma reposição (ex.: o aluno faltou com atestado). Sempre decisão do professor. */
 export async function concederReposicao(alunoId: number, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
-  if (!(await buscarAluno(professor.id, alunoId))) return { erro: "Aluno não encontrado." };
+  const professor = await exigirProfessor("agenda");
+  if (!(await buscarAluno(professor, alunoId))) return { erro: "Aluno não encontrado." };
   const db = await getDb();
   await db.insert(schema.reposicoes).values({ professorId: professor.id, alunoId, motivo: texto(dados, "motivo") });
   revalidar(alunoId);
@@ -77,7 +77,7 @@ export async function concederReposicao(alunoId: number, _: EstadoForm, dados: F
 
 /** Marca (ou remarca) dia e hora da reposição e avisa o aluno. */
 export async function agendarReposicao(id: number, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("agenda");
   const data = texto(dados, "data");
   const hora = texto(dados, "hora");
   if (!isoValido(data)) return { erro: "Escolha o dia da reposição." };
@@ -97,7 +97,7 @@ export async function agendarReposicao(id: number, _: EstadoForm, dados: FormDat
 
 /** Tira a data da reposição (volta para "a marcar"). */
 export async function desagendarReposicao(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("agenda");
   const db = await getDb();
   const [r] = await db
     .update(schema.reposicoes)
@@ -109,7 +109,7 @@ export async function desagendarReposicao(id: number) {
 
 /** Cancela a reposição (o aluno deixa de ter direito a ela). */
 export async function excluirReposicao(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("agenda");
   const db = await getDb();
   const [r] = await db
     .delete(schema.reposicoes)

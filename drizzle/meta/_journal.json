@@ -99,6 +99,13 @@
       "when": 1793811076926,
       "tag": "0013_usuario_por_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1794327568568,
+      "tag": "0014_equipe_estudio",
+      "breakpoints": true
     }
   ]
 }

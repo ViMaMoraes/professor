@@ -33,7 +33,7 @@ async function Conteudo() {
     avisosDoAluno(aluno, 5),
     diarioDoAluno(aluno.id, { soVisiveis: true, limite: 30 }),
     agendaDoPeriodo(professor, agora.data, somarDiasAgenda(agora.data, 13), { alunoId: aluno.id }),
-    reposicoesPendentes(professor.id, aluno.id),
+    reposicoesPendentes(professor, aluno.id),
   ]);
   // próximas aulas (as de hoje que já começaram ficam de fora); avisar falta só com 2 horas ou mais de antecedência
   const minutosAte = (data: string, hora: string | null) =>

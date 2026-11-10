@@ -9,9 +9,9 @@ import { FormVideo } from "../form-video";
 export const metadata: Metadata = { title: "Adicionar vídeo" };
 
 export default async function PaginaNovoVideo(props: PageProps<"/videos/novo">) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const { modulo } = await props.searchParams;
-  const [modulos, alunos, instituicoes] = await Promise.all([listarModulos(professor.id), listarAlunos(professor.id), listarInstituicoes(professor.id)]);
+  const [modulos, alunos, instituicoes] = await Promise.all([listarModulos(professor.id), listarAlunos(professor), listarInstituicoes(professor.id)]);
   return (
     <>
       <Voltar href="/videos">Voltar para vídeos</Voltar>

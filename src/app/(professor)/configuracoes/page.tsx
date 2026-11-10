@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { Cabecalho, EsqueletoPagina } from "@/components/ui";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirDono } from "@/lib/auth";
 
 import { FormConfiguracoes } from "./form-configuracoes";
 
@@ -20,7 +20,7 @@ export default function PaginaConfiguracoes() {
 }
 
 async function Conteudo() {
-  const { senhaHash, ...professor } = await exigirProfessor();
+  const { senhaHash, ...professor } = await exigirDono();
   void senhaHash;
   return <FormConfiguracoes professor={professor} />;
 }

@@ -28,11 +28,40 @@ export const professores = sqliteTable("professores", {
   master: integer("master", { mode: "boolean" }).notNull().default(false), // administra os outros professores
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true), // conta liberada
   acessoAte: text("acesso_ate"), // AAAA-MM-DD; vazio = sem data de validade
+  // conta de professor sozinho ou de estúdio/escola (com equipe); o recibo do estúdio sai no nome dele
+  tipoConta: text("tipo_conta", { enum: ["autonomo", "estudio"] }).notNull().default("autonomo"),
+  nomeEstudio: text("nome_estudio"),
   plano: text("plano").notNull().default("premium"), // plus (até 5 alunos ativos) ou premium (ilimitado); ver src/lib/planos.ts
   trocarSenha: integer("trocar_senha", { mode: "boolean" }).notNull().default(false), // senha provisória: troca no próximo login
   vencimentoAvisado: text("vencimento_avisado"), // acessoAte que já gerou o aviso de vencimento para o master
   criadoEm: text("criado_em").$defaultFn(() => new Date().toISOString().slice(0, 10)),
 });
+
+/**
+ * Equipe de uma conta de estúdio: professores e coordenação que entram com e-mail e senha próprios
+ * e trabalham nos dados do dono da conta (`professorId`), vendo só os módulos que o dono liberar.
+ */
+export const membros = sqliteTable(
+  "membros",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    professorId: integer("professor_id")
+      .notNull()
+      .references(() => professores.id, { onDelete: "cascade" }),
+    nome: text("nome").notNull(),
+    email: text("email").notNull().unique(), // login; único também entre os professores donos
+    senhaHash: text("senha_hash").notNull(),
+    trocarSenha: integer("trocar_senha", { mode: "boolean" }).notNull().default(true),
+    cargo: text("cargo", { enum: ["professor", "coordenacao"] }).notNull().default("professor"),
+    // módulos liberados, separados por vírgula (ver src/lib/permissoes.ts)
+    modulos: text("modulos").notNull().default(""),
+    // false = só os alunos de que ele é professor (aluno_equipe); true = todos os alunos da conta
+    todosAlunos: integer("todos_alunos", { mode: "boolean" }).notNull().default(false),
+    ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
+    criadoEm: text("criado_em").$defaultFn(() => new Date().toISOString().slice(0, 10)),
+  },
+  (t) => [index("membros_professor").on(t.professorId)],
+);
 
 /** Coluna que liga cada registro ao professor dono (cada professor só enxerga os próprios dados). */
 const professorId = () =>
@@ -100,6 +129,20 @@ export const alunos = sqliteTable(
   criadoEm: criadoEm(),
   },
   (t) => [uniqueIndex("alunos_professor_usuario").on(t.professorId, t.usuario)],
+);
+
+/** Professores da equipe que dão aula para o aluno (um aluno pode ter mais de um). O dono vê todos. */
+export const alunoEquipe = sqliteTable(
+  "aluno_equipe",
+  {
+    alunoId: integer("aluno_id")
+      .notNull()
+      .references(() => alunos.id, { onDelete: "cascade" }),
+    membroId: integer("membro_id")
+      .notNull()
+      .references(() => membros.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.alunoId, t.membroId] }), index("aluno_equipe_membro").on(t.membroId)],
 );
 
 export const presencas = sqliteTable(
@@ -372,6 +415,7 @@ export const avisosAlunos = sqliteTable(
 );
 
 export type Professor = typeof professores.$inferSelect;
+export type Membro = typeof membros.$inferSelect;
 export type Aluno = typeof alunos.$inferSelect;
 export type Presenca = typeof presencas.$inferSelect;
 export type Recibo = typeof recibos.$inferSelect;

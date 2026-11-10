@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { exigirAlunoComProfessor, exigirProfessor } from "@/lib/auth";
 import { listarAlunos, videosDoAluno } from "@/lib/consultas";
+import { destinoLiberado } from "@/lib/permissoes";
 import { getDb, schema } from "@/lib/db";
 import { texto, type EstadoForm } from "@/lib/estado-form";
 import { notificarAlunos } from "@/lib/push";
@@ -29,17 +30,27 @@ async function moduloDoProfessor(professorId: number, valor: FormDataEntryValue 
 
 /** Cria (id = null) ou edita um vídeo. Vídeo novo avisa no celular os alunos que podem ver. */
 export async function salvarVideo(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const db = await getDb();
   const atual = id ? await db.query.videos.findFirst({ where: and(eq(videos.id, id), eq(videos.professorId, professor.id)) }) : undefined;
   if (id && !atual) return { erro: "Vídeo não encontrado." };
 
   const link = lerLinkVideo(texto(dados, "link"));
   const titulo = texto(dados, "titulo");
-  const paraTodos = dados.get("destino") === "todos";
-  const ativos = await listarAlunos(professor.id);
+  const querTodos = dados.get("destino") === "todos";
+  const ativos = await listarAlunos(professor);
   const meus = new Set(ativos.map((a) => a.id));
-  const alunoIds = [...new Set(dados.getAll("alunos").map(Number))].filter((a) => meus.has(a));
+  const escolhidos = [...new Set(dados.getAll("alunos").map(Number))].filter((a) => meus.has(a));
+  const vinculosAtuais = id ? (await db.select({ alunoId: videosAlunos.alunoId }).from(videosAlunos).where(eq(videosAlunos.videoId, id))).map((v) => v.alunoId) : [];
+  // equipe que só vê os próprios alunos: "todos" = os dela, e quem já tinha acesso continua
+  const { paraTodos, alunoIds } = destinoLiberado({
+    restrito: professor.escopoMembro != null,
+    querTodos,
+    escolhidos,
+    meus: [...meus],
+    eraParaTodos: atual?.paraTodos,
+    vinculosAtuais,
+  });
   if (!link) return { erro: "Cole o link de um vídeo do YouTube ou de um arquivo de vídeo do Google Drive." };
   if (!titulo) return { erro: "Informe o título do vídeo." };
   if (!paraTodos && alunoIds.length === 0) return { erro: "Escolha pelo menos um aluno ou marque “Todos os alunos”." };
@@ -68,7 +79,7 @@ export async function salvarVideo(id: number | null, _: EstadoForm, dados: FormD
   ]);
 
   if (!id) {
-    await notificarAlunos(paraTodos ? ativos.map((a) => a.id) : alunoIds, { title: "Novo vídeo", body: titulo, url: `/portal/videos/${videoId}` });
+    await notificarAlunos(paraTodos ? ativos.map((a) => a.id) : alunoIds.filter((a) => meus.has(a)), { title: "Novo vídeo", body: titulo, url: `/portal/videos/${videoId}` });
   }
   revalidar();
   if (!id) return { ok: `Vídeo “${titulo}” publicado!`, criado: true };
@@ -85,7 +96,7 @@ async function proximaOrdem(professorId: number, moduloId: number | null) {
 }
 
 export async function excluirVideo(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const db = await getDb();
   await db.delete(videos).where(and(eq(videos.id, id), eq(videos.professorId, professor.id)));
   revalidar();
@@ -94,7 +105,7 @@ export async function excluirVideo(id: number) {
 
 /** Sobe ou desce o vídeo dentro do módulo. */
 export async function moverVideo(id: number, direcao: -1 | 1) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const db = await getDb();
   const video = await db.query.videos.findFirst({ where: and(eq(videos.id, id), eq(videos.professorId, professor.id)) });
   if (!video) return;
@@ -122,7 +133,7 @@ function trocarComVizinho(lista: { id: number }[], id: number, direcao: -1 | 1) 
 
 /** Cria (id = null) ou renomeia um módulo. */
 export async function salvarModulo(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const nome = texto(dados, "nome");
   if (!nome) return { erro: "Dê um nome ao módulo." };
   const db = await getDb();
@@ -141,14 +152,14 @@ export async function salvarModulo(id: number | null, _: EstadoForm, dados: Form
 
 /** Exclui o módulo; os vídeos dele vão para "Outros vídeos". */
 export async function excluirModulo(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const db = await getDb();
   await db.delete(modulos).where(and(eq(modulos.id, id), eq(modulos.professorId, professor.id)));
   revalidar();
 }
 
 export async function moverModulo(id: number, direcao: -1 | 1) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const db = await getDb();
   const lista = await db.select({ id: modulos.id }).from(modulos).where(eq(modulos.professorId, professor.id)).orderBy(asc(modulos.ordem), asc(modulos.id));
   const ordem = trocarComVizinho(lista, id, direcao);

@@ -25,8 +25,8 @@ export default function PaginaNovoMaterial() {
 }
 
 async function Conteudo() {
-  const professor = await exigirProfessor();
-  const [alunos, instituicoes] = await Promise.all([listarAlunos(professor.id), listarInstituicoes(professor.id)]);
+  const professor = await exigirProfessor("materiais");
+  const [alunos, instituicoes] = await Promise.all([listarAlunos(professor), listarInstituicoes(professor.id)]);
   return (
     <FormMaterial
       alunos={alunos.map(({ id, nome, instrumento, instituicaoId }) => ({ id, nome, instrumento, instituicaoId }))}

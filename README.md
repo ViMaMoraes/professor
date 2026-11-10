@@ -92,6 +92,19 @@ O mesmo site atende vários professores, cada um com os próprios alunos, chamad
 - **Conta bloqueada ou vencida:** o professor e os alunos dele não conseguem entrar, mas nada é apagado. Ao liberar ou renovar, tudo volta como estava.
 - O e-mail do professor é o login dele e o usuário do aluno é o login do aluno; os dois são únicos no site inteiro.
 
+### Estúdio com equipe
+
+Em **Configurações → Tipo de conta**, o professor escolhe entre **Professor autônomo** e **Estúdio ou escola**. No estúdio:
+
+- **Equipe** (menu, só para o dono da conta): cadastra professores e coordenação com nome e e-mail. O site gera uma senha provisória, com os dados de acesso para copiar ou mandar pelo WhatsApp. A pessoa entra pela aba *Acesso professor* e cria a própria senha no primeiro login. Dá para bloquear, gerar nova senha e tirar da equipe sem apagar alunos, chamadas nem recibos.
+- **Cargos:** *Professor* vê os próprios alunos, com agenda, chamada, diário, downloads, vídeos e avisos, e não vê valores. *Coordenação* vê todos os alunos e tudo, menos Configurações e Equipe. As caixinhas de cada módulo e o "vê todos os alunos" podem ser ajustados por pessoa.
+- **Professores do aluno:** no cadastro do aluno, o dono (ou quem vê todos os alunos) marca quem da equipe dá aula para ele, um ou mais. Quem só vê os próprios alunos vê só esses na lista, na agenda, no painel, na chamada, no histórico e na planilha. O aluno que ele cadastrar já fica com ele.
+- **Valores:** sem o módulo *Financeiro e valores*, mensalidade, vencimento e valores não aparecem e não são alterados ao editar o aluno.
+- **"Para todos":** quem só vê os próprios alunos libera avisos, materiais e vídeos para os alunos dele, e não tira o acesso de quem já tinha.
+- **Recibo no nome do estúdio:** com o nome do estúdio preenchido, o recibo sai como "Estúdio X, CNPJ…, com endereço na…, recebeu de…", e a assinatura leva o nome do dono e o do estúdio.
+- **Ainda não:** notificações no celular para a equipe. Por enquanto elas ficam só com o dono.
+- Voltando para *Professor autônomo*, a equipe para de conseguir entrar. Nada é apagado.
+
 ### Acesso aluno
 
 O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) com o **usuário** criado pelo professor e o **código do professor**, sem senha.

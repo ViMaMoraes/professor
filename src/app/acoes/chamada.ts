@@ -12,12 +12,12 @@ import { texto, type EstadoForm } from "@/lib/estado-form";
 import { dataBR, isoValido } from "@/lib/formato";
 
 export async function salvarChamada(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("chamada");
   const data = texto(dados, "data");
   if (!isoValido(data)) return { erro: "Data inválida." };
 
   // só aceita alunos deste professor
-  const meus = new Set((await listarAlunos(professor.id, { situacao: "todos" })).map((a) => a.id));
+  const meus = new Set((await listarAlunos(professor, { situacao: "todos" })).map((a) => a.id));
   const ids = dados.getAll("alunos").map(Number).filter((id) => meus.has(id));
   const db = await getDb();
   const { presencas } = schema;

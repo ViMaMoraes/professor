@@ -13,13 +13,14 @@ export const metadata: Metadata = { title: "Criar senha" };
 export default async function PaginaTrocarSenha() {
   const usuario = await usuarioAtual();
   if (usuario?.tipo !== "professor") redirect("/login");
-  if (!usuario.professor.trocarSenha) redirect("/painel");
+  const pessoa = usuario.membro ?? usuario.professor;
+  if (!pessoa.trocarSenha) redirect("/painel");
   return (
     <TelaAuth
-      titulo={`Olá, ${primeiroNome(usuario.professor.nome)}!`}
+      titulo={`Olá, ${primeiroNome(pessoa.nome)}!`}
       subtitulo="Você entrou com uma senha provisória. Crie a sua senha para continuar."
     >
-      <FormTrocarSenha email={usuario.professor.email} />
+      <FormTrocarSenha email={pessoa.email} />
     </TelaAuth>
   );
 }

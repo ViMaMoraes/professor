@@ -1,6 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useState } from "react";
 
 import { salvarConfiguracoes } from "@/app/acoes/configuracoes";
 import { BotaoEnviar, Formulario } from "@/components/formulario";
@@ -15,6 +16,7 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
   return (
     <Formulario acao={salvarConfiguracoes} className="max-w-3xl">
       <Card className="divide-y divide-borda">
+        <TipoDeConta tipo={p.tipoConta} nomeEstudio={p.nomeEstudio} />
         <section className="grid gap-4 p-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <h2 className="font-semibold">Seus dados</h2>
@@ -93,5 +95,48 @@ export function FormConfiguracoes({ professor: p }: { professor: Omit<Professor,
         </div>
       </Card>
     </Formulario>
+  );
+}
+
+/** Professor sozinho ou estúdio/escola: o estúdio ganha a Equipe e o recibo sai no nome dele. */
+function TipoDeConta({ tipo, nomeEstudio }: { tipo: Professor["tipoConta"]; nomeEstudio: string | null }) {
+  const [atual, setAtual] = useState(tipo);
+  return (
+    <section className="grid gap-4 p-5 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <h2 className="font-semibold">Tipo de conta</h2>
+        <p className="text-sm text-suave">No estúdio ou escola, você cadastra a equipe e libera o que cada um vê.</p>
+      </div>
+      <div className="grid gap-2 sm:col-span-2 sm:grid-cols-2">
+        {(
+          [
+            ["autonomo", "Professor autônomo", "Só você usa a conta."],
+            ["estudio", "Estúdio ou escola", "Você e uma equipe de professores, com permissões."],
+          ] as const
+        ).map(([valor, nome, descricao]) => (
+          <label key={valor} className="flex cursor-pointer items-start gap-3 rounded-xl border border-borda p-3 has-checked:border-marca has-checked:bg-marca-suave">
+            <input type="radio" name="tipoConta" value={valor} checked={atual === valor} onChange={() => setAtual(valor)} className="mt-1 size-4 accent-marca" />
+            <span>
+              <span className="block text-sm font-medium">{nome}</span>
+              <span className="block text-xs text-suave">{descricao}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {atual === "estudio" && (
+        <Campo
+          rotulo="Nome do estúdio ou escola"
+          dica="O recibo sai no nome dele, com o CPF/CNPJ e o endereço abaixo. Em branco, sai no seu nome."
+          className="sm:col-span-2"
+        >
+          <Input name="nomeEstudio" defaultValue={nomeEstudio ?? ""} placeholder="ex.: Estúdio Harmonia" maxLength={80} />
+        </Campo>
+      )}
+      {tipo === "estudio" && atual === "autonomo" && (
+        <p className="text-sm text-amber-700 sm:col-span-2 dark:text-amber-300">
+          Voltando para autônomo, a equipe para de conseguir entrar. Nada é apagado: se mudar de novo para estúdio, ela volta.
+        </p>
+      )}
+    </section>
   );
 }

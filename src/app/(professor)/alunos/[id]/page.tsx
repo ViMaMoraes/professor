@@ -8,7 +8,8 @@ import { BotaoAcao } from "@/components/botao-acao";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, EsqueletoPagina, Selo, Voltar } from "@/components/ui";
 import { agoraBrasilia, resumoHorarios, somarDiasAgenda } from "@/lib/agenda";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirAcesso } from "@/lib/auth";
+import { podeVer } from "@/lib/permissoes";
 import { enderecoSite } from "@/lib/endereco";
 import {
   agendaDoPeriodo,
@@ -19,6 +20,7 @@ import {
   horariosDoAluno,
   materiaisDoAluno,
   presencasDoAluno,
+  nomesDaEquipeDoAluno,
   recibosDoAluno,
   reposicoesDoAluno,
 } from "@/lib/consultas";
@@ -38,21 +40,23 @@ export default function PaginaAluno(props: PageProps<"/alunos/[id]">) {
 }
 
 async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"] }) {
-  const professor = await exigirProfessor();
+  const { professor, acesso } = await exigirAcesso("alunos");
+  const ver = { valores: podeVer(acesso, "financeiro"), recibos: podeVer(acesso, "recibos") };
   const id = Number((await params).id);
-  const aluno = await buscarAluno(professor.id, id);
+  const aluno = await buscarAluno(professor, id);
   if (!aluno) notFound();
   const hojeAgenda = agoraBrasilia().data;
-  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximas, todasReposicoes] = await Promise.all([
+  const [presencas, frequencia, recibos, materiais, instituicao, diario, horarios, proximas, todasReposicoes, equipe] = await Promise.all([
     presencasDoAluno(id, 15),
     frequenciaDoAluno(id),
-    recibosDoAluno(id),
+    ver.recibos ? recibosDoAluno(id) : [],
     materiaisDoAluno(aluno),
     aluno.instituicaoId ? buscarInstituicao(professor.id, aluno.instituicaoId) : undefined,
     diarioDoAluno(id),
     horariosDoAluno(id),
     agendaDoPeriodo(professor, hojeAgenda, somarDiasAgenda(hojeAgenda, 13), { alunoId: id }),
     reposicoesDoAluno(professor.id, id),
+    professor.tipoConta === "estudio" ? nomesDaEquipeDoAluno(professor.id, id) : [],
   ]);
 
   return (
@@ -68,16 +72,16 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               {aluno.nome} {!aluno.ativo && <Selo>inativo</Selo>}
             </h1>
             <p className="text-sm text-suave">
-              {[aluno.instrumento ?? "Curso não informado", aluno.nivel, resumoHorarios(horarios)]
-                .filter(Boolean)
-                .join(" · ")}
+              {[aluno.instrumento ?? "Curso não informado", aluno.nivel, resumoHorarios(horarios)].filter(Boolean).join(" · ")}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <BotaoLink href={`/recibos/novo?aluno=${aluno.id}`} tamanho="sm">
-            <ReceiptText /> Gerar recibo
-          </BotaoLink>
+          {ver.recibos && (
+            <BotaoLink href={`/recibos/novo?aluno=${aluno.id}`} tamanho="sm">
+              <ReceiptText /> Gerar recibo
+            </BotaoLink>
+          )}
           <BotaoLink href={`/alunos/${aluno.id}/editar`} variante="secundario" tamanho="sm">
             <Pencil /> Editar
           </BotaoLink>
@@ -97,7 +101,15 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6">
-          {aluno.usuario && aluno.ativo && <CompartilharAcesso nome={aluno.nome} usuario={aluno.usuario} codigo={professor.codigo} telefone={aluno.telefone} endereco={enderecoSite()} />}
+          {aluno.usuario && aluno.ativo && (
+            <CompartilharAcesso
+              nome={aluno.nome}
+              usuario={aluno.usuario}
+              codigo={professor.codigo}
+              telefone={aluno.telefone}
+              endereco={enderecoSite()}
+            />
+          )}
           {aluno.usuario && aluno.ativo && <MensagemAluno alunoId={aluno.id} mensagem={aluno.mensagem} />}
           <Card>
             <CardTitulo>Dados</CardTitulo>
@@ -114,15 +126,16 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               </Item>
               <Item rotulo="Nascimento">{aluno.dataNascimento && dataBR(aluno.dataNascimento)}</Item>
               <Item rotulo="Início">{aluno.dataInicio && dataBR(aluno.dataInicio)}</Item>
-              <Item rotulo="Mensalidade">{aluno.mensalidadeCentavos != null && moeda(aluno.mensalidadeCentavos)}</Item>
+              {professor.tipoConta === "estudio" && (
+                <Item rotulo="Professores">{equipe.length ? equipe.join(", ") : <span className="text-suave">ninguém da equipe</span>}</Item>
+              )}
+              {ver.valores && <Item rotulo="Mensalidade">{aluno.mensalidadeCentavos != null && moeda(aluno.mensalidadeCentavos)}</Item>}
               <Item rotulo="Frequência">{frequencia != null && `${frequencia}%`}</Item>
               <Item rotulo="Usuário">
                 {aluno.usuario ? <span className="font-mono text-xs">{aluno.usuario}</span> : <Selo>sem acesso</Selo>}
               </Item>
             </dl>
-            {aluno.observacoes && (
-              <p className="border-t border-borda p-5 text-sm whitespace-pre-line text-suave">{aluno.observacoes}</p>
-            )}
+            {aluno.observacoes && <p className="border-t border-borda p-5 text-sm whitespace-pre-line text-suave">{aluno.observacoes}</p>}
           </Card>
           <Card>
             <CardTitulo icone={<CloudDownload />}>Materiais disponíveis</CardTitulo>
@@ -176,25 +189,27 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]">["params"
               </ul>
             )}
           </Card>
-          <Card>
-            <CardTitulo icone={<ReceiptText />}>Recibos</CardTitulo>
-            {recibos.length === 0 ? (
-              <p className="p-5 text-sm text-suave">Nenhum recibo emitido.</p>
-            ) : (
-              <ul className="divide-y divide-borda">
-                {recibos.map((r) => (
-                  <li key={r.id}>
-                    <Link href={`/recibos/${r.id}`} className="flex items-center gap-4 px-5 py-2.5 text-sm hover:bg-fundo/60">
-                      <span className="font-mono text-xs text-suave">#{numeroRecibo(r.numero)}</span>
-                      <span className="w-24 tabular-nums">{dataBR(r.dataPagamento)}</span>
-                      <span className="min-w-0 flex-1 truncate">{r.referente}</span>
-                      <span className="font-medium tabular-nums">{moeda(r.valorCentavos)}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          {ver.recibos && (
+            <Card>
+              <CardTitulo icone={<ReceiptText />}>Recibos</CardTitulo>
+              {recibos.length === 0 ? (
+                <p className="p-5 text-sm text-suave">Nenhum recibo emitido.</p>
+              ) : (
+                <ul className="divide-y divide-borda">
+                  {recibos.map((r) => (
+                    <li key={r.id}>
+                      <Link href={`/recibos/${r.id}`} className="flex items-center gap-4 px-5 py-2.5 text-sm hover:bg-fundo/60">
+                        <span className="font-mono text-xs text-suave">#{numeroRecibo(r.numero)}</span>
+                        <span className="w-24 tabular-nums">{dataBR(r.dataPagamento)}</span>
+                        <span className="min-w-0 flex-1 truncate">{r.referente}</span>
+                        <span className="font-medium tabular-nums">{moeda(r.valorCentavos)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
         </div>
       </div>
     </>

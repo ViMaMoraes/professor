@@ -4,8 +4,9 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { exigirProfessor } from "@/lib/auth";
-import { alunoComUsuario, buscarAluno, buscarInstituicao, contarAlunosAtivos, usuarioLivre } from "@/lib/consultas";
+import { exigirAcesso, exigirProfessor } from "@/lib/auth";
+import { podeVer } from "@/lib/permissoes";
+import { alunoComUsuario, buscarAluno, buscarInstituicao, contarAlunosAtivos, listarMembros, usuarioLivre } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { DIAS_LONGOS, DURACOES, horaValida } from "@/lib/agenda";
 import { lerDiaVencimento } from "@/lib/financeiro";
@@ -17,15 +18,17 @@ import { notificarAlunos } from "@/lib/push";
 import { normalizarUsuario } from "@/lib/usuario";
 
 export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const { professor, acesso } = await exigirAcesso("alunos");
+  // a equipe sem o Financeiro não vê nem muda valores: ficam os que já estavam
+  const verValores = podeVer(acesso, "financeiro");
   const db = await getDb();
-  const existente = id ? await buscarAluno(professor.id, id) : null;
+  const existente = id ? await buscarAluno(professor, id) : null;
   if (id && !existente) return { erro: "Aluno não encontrado." };
 
   const nome = texto(dados, "nome");
   const email = texto(dados, "email")?.toLowerCase() ?? null;
   const usuario = normalizarUsuario(String(dados.get("usuario") ?? "")) || null;
-  const valorDigitado = texto(dados, "mensalidade");
+  const valorDigitado = verValores ? texto(dados, "mensalidade") : null;
   const mensalidade = lerValorEmCentavos(valorDigitado);
 
   if (!nome) return { erro: "Informe o nome do aluno." };
@@ -69,11 +72,11 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
     // campos antigos, mantidos em dia com o primeiro horário
     diaAula: horarios[0] ? DIAS_LONGOS[horarios[0].diaSemana] : null,
     horario: horarios[0]?.hora ?? null,
-    mensalidadeCentavos: mensalidade,
-    diaVencimento: lerDiaVencimento(dados.get("diaVencimento")),
+    mensalidadeCentavos: verValores ? mensalidade : (existente?.mensalidadeCentavos ?? null),
+    diaVencimento: verValores ? lerDiaVencimento(dados.get("diaVencimento")) : (existente?.diaVencimento ?? null),
     dataInicio: data("dataInicio"),
     observacoes: texto(dados, "observacoes"),
-    descricaoRecibo: texto(dados, "descricaoRecibo"),
+    descricaoRecibo: verValores ? texto(dados, "descricaoRecibo") : (existente?.descricaoRecibo ?? null),
     instituicaoId,
     usuario,
     // usuário antigo (único no site) só continua valendo sem código enquanto não for trocado
@@ -93,10 +96,27 @@ export async function salvarAluno(id: number | null, _: EstadoForm, dados: FormD
       .returning({ id: schema.alunos.id });
     alunoId = novo.id;
   }
-  // troca os horários de uma vez (o D1 executa o batch junto)
+  // professores da equipe (estúdio): quem atribui (dono ou quem vê todos) escolhe; quem só vê os
+  // próprios alunos fica como professor do aluno que cadastrar e não muda os de quem já existe
+  let professoresDoAluno: number[] | null = null;
+  if (professor.tipoConta === "estudio") {
+    if (acesso.dono || acesso.todosAlunos) {
+      const daConta = new Set((await listarMembros(professor.id)).map((m) => m.id));
+      professoresDoAluno = [...new Set(dados.getAll("equipe").map(Number))].filter((m) => daConta.has(m));
+    } else if (!id) {
+      professoresDoAluno = [acesso.membroId];
+    }
+  }
+  // troca os horários (e os professores) de uma vez (o D1 executa o batch junto)
   await db.batch([
     db.delete(schema.horarios).where(eq(schema.horarios.alunoId, alunoId!)),
     ...(horarios.length ? [db.insert(schema.horarios).values(horarios.map((h) => ({ ...h, alunoId: alunoId! })))] : []),
+    ...(professoresDoAluno
+      ? [
+          db.delete(schema.alunoEquipe).where(eq(schema.alunoEquipe.alunoId, alunoId!)),
+          ...(professoresDoAluno.length ? [db.insert(schema.alunoEquipe).values(professoresDoAluno.map((membroId) => ({ alunoId: alunoId!, membroId })))] : []),
+        ]
+      : []),
   ]);
   revalidatePath("/", "layout");
   // aluno novo: o formulário pergunta se quer cadastrar outro; editando, volta para a página dele
@@ -119,7 +139,7 @@ const textoUsuarioRepetido = (usuario: string, aluno: { nome: string; ativo: boo
  * Só olha os alunos do próprio professor (de outros professores pode repetir).
  */
 export async function conferirUsuario(texto: string, alunoId: number | null): Promise<{ livre: boolean; mensagem?: string; sugestao?: string }> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("alunos");
   const usuario = normalizarUsuario(texto);
   if (usuario.length < 3) return { livre: false };
   const conflito = await alunoComUsuario(professor.id, usuario, alunoId ?? undefined);
@@ -137,9 +157,9 @@ async function erroDoLimite(professor: { id: number; plano: string; master: bool
 
 /** Ativa ou desativa o aluno. Reativar respeita o limite do plano. */
 export async function alternarSituacao(id: number): Promise<{ erro?: string }> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("alunos");
   const db = await getDb();
-  const aluno = await buscarAluno(professor.id, id);
+  const aluno = await buscarAluno(professor, id);
   if (!aluno) return {};
   if (!aluno.ativo) {
     const erroLimite = await erroDoLimite(professor);
@@ -151,7 +171,7 @@ export async function alternarSituacao(id: number): Promise<{ erro?: string }> {
 }
 
 export async function excluirAluno(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("alunos");
   const db = await getDb();
   await db.delete(schema.alunos).where(and(eq(schema.alunos.id, id), eq(schema.alunos.professorId, professor.id)));
   revalidatePath("/", "layout");
@@ -160,8 +180,8 @@ export async function excluirAluno(id: number) {
 
 /** Mensagem do professor que aparece em destaque no acesso do aluno (vazia = remove). */
 export async function salvarMensagemAluno(id: number, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
-  const aluno = await buscarAluno(professor.id, id);
+  const professor = await exigirProfessor("alunos");
+  const aluno = await buscarAluno(professor, id);
   if (!aluno) return { erro: "Aluno não encontrado." };
   const mensagem = texto(dados, "mensagem");
   if (mensagem && mensagem.length > 1000) return { erro: "A mensagem pode ter no máximo 1000 caracteres." };

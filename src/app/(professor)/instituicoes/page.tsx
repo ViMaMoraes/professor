@@ -10,7 +10,7 @@ import { moeda } from "@/lib/formato";
 export const metadata: Metadata = { title: "Instituições" };
 
 export default async function PaginaInstituicoes(props: PageProps<"/instituicoes">) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   const params = await props.searchParams;
   const situacao = typeof params.situacao === "string" ? params.situacao : "ativas";
   const linhas = await listarInstituicoes(professor.id, { situacao });

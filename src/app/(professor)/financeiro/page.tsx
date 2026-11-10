@@ -7,7 +7,7 @@ import { excluirPagamento } from "@/app/acoes/financeiro";
 import { BotaoAcao } from "@/components/botao-acao";
 import { AtivarNotificacoes } from "@/components/ativar-notificacoes";
 import { BotaoLink, Cabecalho, Card, CardTitulo, cn, EsqueletoPagina, estiloBotao, Selo, Vazio } from "@/components/ui";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirAcesso } from "@/lib/auth";
 import { resumoCobranca } from "@/lib/cobranca";
 import { financeiroDoMes } from "@/lib/consultas";
 import type { Professor } from "@/lib/db/schema";
@@ -38,7 +38,7 @@ export default function PaginaFinanceiro(props: PageProps<"/financeiro">) {
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/financeiro">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const { professor, membro } = await exigirAcesso("financeiro");
   const params = await searchParams;
   const hoje = hojeISO();
   const mes = mesValido(params.mes) ? params.mes : hoje.slice(0, 7);
@@ -49,7 +49,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/financeiro
   ]);
   // meses anteriores (até 3) com mensalidade em atraso, para não serem esquecidos
   const anteriores = [...Map.groupBy(cobranca.atrasados.filter((l) => l.mes < mes), (l) => l.mes)].sort(([a], [b]) => b.localeCompare(a));
-  const chavePublica = chavePublicaVapid();
+  // as notificações no celular ainda são só do dono da conta (não da equipe)
+  const chavePublica = membro ? null : chavePublicaVapid();
   const resumo = resumoFinanceiro(linhas);
   const contagem = { todos: linhas.length, aberto: linhas.filter((l) => l.situacao !== "pago").length, pago: linhas.filter((l) => l.situacao === "pago").length };
   const visiveis = linhas.filter((l) => filtro === "todos" || (filtro === "pago" ? l.situacao === "pago" : l.situacao !== "pago"));

@@ -13,7 +13,7 @@ import { isoValido, lerValorEmCentavos } from "@/lib/formato";
 
 /** Cria (id = null) ou edita um recibo. Na edição o número continua o mesmo. */
 export async function salvarRecibo(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("recibos");
   const db = await getDb();
   if (id && !(await buscarRecibo(id, { professorId: professor.id }))) return { erro: "Recibo não encontrado." };
 
@@ -27,7 +27,7 @@ export async function salvarRecibo(id: number | null, _: EstadoForm, dados: Form
   // o recibo é de um aluno OU de uma instituição, sempre deste professor
   if (paraInstituicao) {
     if (!instituicaoId || !(await buscarInstituicao(professor.id, instituicaoId))) return { erro: "Escolha a instituição." };
-  } else if (!alunoId || !(await buscarAluno(professor.id, alunoId))) {
+  } else if (!alunoId || !(await buscarAluno(professor, alunoId))) {
     return { erro: "Escolha o aluno." };
   }
   if (!valor) return { erro: "Informe um valor válido." };
@@ -89,7 +89,7 @@ export async function salvarRecibo(id: number | null, _: EstadoForm, dados: Form
 
 /** Exclui o recibo. `voltar` = false quando a exclusão é feita pela janela da lista (a lista só atualiza). */
 export async function excluirRecibo(id: number, voltar = true) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("recibos");
   const db = await getDb();
   await db.delete(schema.recibos).where(and(eq(schema.recibos.id, id), eq(schema.recibos.professorId, professor.id)));
   revalidatePath("/", "layout");

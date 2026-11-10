@@ -34,7 +34,7 @@ export default function PaginaMateriais() {
 }
 
 async function Lista() {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("materiais");
   const materiais = await listarMateriais(professor.id);
 
   if (materiais.length === 0) {

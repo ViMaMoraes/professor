@@ -9,19 +9,21 @@ import { Botao, Card } from "@/components/ui";
 
 import { Credenciais } from "../credenciais";
 
-/** Gera uma nova senha provisória (ex.: o professor esqueceu a dele). */
+/** Gera uma nova senha provisória (ex.: o professor esqueceu a dele). `gerar`: outra ação (ex.: a da Equipe). */
 export function RedefinirSenha({
   id,
   nome,
   email,
   pendente,
   endereco,
+  gerar,
 }: {
   id: number;
   nome: string;
   email: string;
   pendente: boolean;
   endereco: string | null;
+  gerar?: () => Promise<{ erro?: string; senha?: string }>;
 }) {
   const [senha, setSenha] = useState<string | null>(null);
   const [gerando, iniciar] = useTransition();
@@ -49,7 +51,7 @@ export function RedefinirSenha({
           });
           if (!ok) return;
           iniciar(async () => {
-            const resultado = await gerarNovaSenha(id);
+            const resultado = await (gerar ? gerar() : gerarNovaSenha(id));
             if (resultado.senha) setSenha(resultado.senha);
             else notificar(resultado.erro ?? "Não foi possível gerar a senha.", "erro");
           });

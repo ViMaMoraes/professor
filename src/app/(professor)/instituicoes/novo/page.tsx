@@ -9,7 +9,7 @@ import { opcoesDeAlunos } from "../opcoes-alunos";
 export const metadata: Metadata = { title: "Nova instituição" };
 
 export default async function PaginaNovaInstituicao() {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   return (
     <>
       <Voltar href="/instituicoes">Voltar para instituições</Voltar>

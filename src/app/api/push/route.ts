@@ -19,6 +19,10 @@ export async function POST(request: Request) {
   const dados = Inscricao.safeParse(await request.json().catch(() => null));
   if (!dados.success) return Response.json({ erro: "Inscrição inválida." }, { status: 400 });
 
+  // a equipe de um estúdio ainda não recebe notificações (iriam para a lista do dono, ex.: mensalidades)
+  if (usuario.tipo === "professor" && usuario.membro) {
+    return Response.json({ erro: "As notificações no celular ainda são só para o responsável pelo estúdio." }, { status: 403 });
+  }
   const { endpoint, keys } = dados.data;
   const db = await getDb();
   // o mesmo aparelho fica numa lista só (de quem está logado agora), para não receber avisos de outra conta

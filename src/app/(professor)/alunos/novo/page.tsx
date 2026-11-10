@@ -3,16 +3,17 @@ import type { Metadata } from "next";
 
 import { BotaoLink, Cabecalho, Card, Voltar } from "@/components/ui";
 import { UsoDoPlano } from "@/components/uso-do-plano";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirAcesso } from "@/lib/auth";
 import { contarAlunosAtivos, listarInstituicoes } from "@/lib/consultas";
 import { cabeMaisUmAluno, limiteDeAlunos, nomeDoPlano } from "@/lib/planos";
 
 import { FormAluno } from "../form-aluno";
+import { opcoesDoFormulario } from "../opcoes-equipe";
 
 export const metadata: Metadata = { title: "Novo aluno" };
 
 export default async function PaginaNovoAluno() {
-  const professor = await exigirProfessor();
+  const { professor, acesso } = await exigirAcesso("alunos");
   const [instituicoes, ativos] = await Promise.all([listarInstituicoes(professor.id), contarAlunosAtivos(professor.id)]);
   const limite = limiteDeAlunos(professor);
 
@@ -44,7 +45,12 @@ export default async function PaginaNovoAluno() {
       <Voltar href="/alunos">Voltar para alunos</Voltar>
       <Cabecalho titulo="Novo aluno" />
       <UsoDoPlano professor={professor} />
-      <FormAluno instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))} diaPadrao={professor.diaVencimento} duracaoPadrao={professor.duracaoAula} />
+      <FormAluno
+        instituicoes={instituicoes.map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
+        diaPadrao={professor.diaVencimento}
+        duracaoPadrao={professor.duracaoAula}
+        {...await opcoesDoFormulario(professor, acesso)}
+      />
     </>
   );
 }

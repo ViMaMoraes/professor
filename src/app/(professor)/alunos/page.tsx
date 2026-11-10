@@ -5,7 +5,8 @@ import { Suspense } from "react";
 
 import { BotaoLink, Botao, Cabecalho, Card, EsqueletoPagina, Input, Select, Selo, Tabela, Vazio } from "@/components/ui";
 import { UsoDoPlano } from "@/components/uso-do-plano";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirAcesso } from "@/lib/auth";
+import { podeVer } from "@/lib/permissoes";
 import { resumoHorarios } from "@/lib/agenda";
 import { horariosPorAluno, listarAlunos, listarInstituicoes } from "@/lib/consultas";
 import { moeda } from "@/lib/formato";
@@ -28,15 +29,16 @@ export default function PaginaAlunos(props: PageProps<"/alunos">) {
 }
 
 async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const { professor, acesso } = await exigirAcesso("alunos");
+  const verValores = podeVer(acesso, "financeiro");
   const params = await searchParams;
   const busca = typeof params.q === "string" ? params.q.trim() : "";
   const situacao = typeof params.situacao === "string" ? params.situacao : "ativos";
   const instituicaoId = Number(params.instituicao) || undefined;
   const [alunos, instituicoes, horarios] = await Promise.all([
-    listarAlunos(professor.id, { busca, situacao, instituicaoId }),
+    listarAlunos(professor, { busca, situacao, instituicaoId }),
     listarInstituicoes(professor.id, { situacao: "todas" }),
-    horariosPorAluno(professor.id),
+    horariosPorAluno(professor),
   ]);
   const nomeInstituicao = new Map(instituicoes.map(({ instituicao: i }) => [i.id, i.nome]));
 
@@ -78,7 +80,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
                 <th>Aluno</th>
                 <th>Curso</th>
                 <th>Aula</th>
-                <th>Mensalidade</th>
+                {verValores && <th>Mensalidade</th>}
                 <th>Acesso</th>
               </tr>
             </thead>
@@ -105,7 +107,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/alunos">["sea
                     {a.nivel && <span className="text-xs text-suave"> · {a.nivel}</span>}
                   </td>
                   <td className="whitespace-nowrap">{resumoHorarios(horarios.get(a.id) ?? []) || "—"}</td>
-                  <td className="whitespace-nowrap">{moeda(a.mensalidadeCentavos)}</td>
+                  {verValores && <td className="whitespace-nowrap">{moeda(a.mensalidadeCentavos)}</td>}
                   <td>
                     {a.usuario ? (
                       <Selo cor="verde">

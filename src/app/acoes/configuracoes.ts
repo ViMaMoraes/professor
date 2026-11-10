@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { exigirProfessor } from "@/lib/auth";
+import { exigirDono } from "@/lib/auth";
 import { codigoEmUso, emailEmUso } from "@/lib/consultas";
 import { erroCodigo, normalizarCodigo } from "@/lib/usuario";
 import { getDb, schema } from "@/lib/db";
@@ -14,7 +14,7 @@ import { erroDocumento, erroTelefone, mascaraDocumento, mascaraRg, mascaraTelefo
 import { texto, type EstadoForm } from "@/lib/estado-form";
 
 export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirDono();
   const db = await getDb();
 
   const nome = texto(dados, "nome");
@@ -53,6 +53,8 @@ export async function salvarConfiguracoes(_: EstadoForm, dados: FormData): Promi
       nome,
       email,
       codigo,
+      tipoConta: dados.get("tipoConta") === "estudio" ? "estudio" : "autonomo",
+      nomeEstudio: dados.get("tipoConta") === "estudio" ? (texto(dados, "nomeEstudio")?.slice(0, 80) ?? null) : professor.nomeEstudio,
       documento: mascaraDocumento(texto(dados, "documento")) || null,
       telefone: mascaraTelefone(texto(dados, "telefone")) || null,
       endereco: texto(dados, "endereco"),

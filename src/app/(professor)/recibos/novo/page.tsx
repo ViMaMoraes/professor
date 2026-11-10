@@ -25,7 +25,7 @@ export default function PaginaNovoRecibo(props: PageProps<"/recibos/novo">) {
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/recibos/novo">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("recibos");
   const params = await searchParams;
   // vindo do Financeiro: pagamento marcado (vira recibo) ou mês/valor em aberto
   const pagamento = Number(params.pagamento) ? await buscarPagamento(professor.id, Number(params.pagamento)) : undefined;
@@ -46,7 +46,7 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/recibos/no
   // inclui inativos quando o recibo vem do Financeiro (ex.: aluno que saiu mas pagou o mês)
   const situacao = pagamento || params.referencia ? "todos" : undefined;
   const [alunos, instituicoes] = await Promise.all([
-    listarAlunos(professor.id, { situacao }),
+    listarAlunos(professor, { situacao }),
     listarInstituicoes(professor.id, { situacao: situacao && "todas" }),
   ]);
   if (alunos.length === 0 && instituicoes.length === 0) {

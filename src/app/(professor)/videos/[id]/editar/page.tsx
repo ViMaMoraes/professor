@@ -10,12 +10,12 @@ import { FormVideo } from "../../form-video";
 export const metadata: Metadata = { title: "Editar vídeo" };
 
 export default async function PaginaEditarVideo(props: PageProps<"/videos/[id]/editar">) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const id = Number((await props.params).id);
   const [dados, modulos, alunos, instituicoes] = await Promise.all([
     buscarVideo(professor.id, id),
     listarModulos(professor.id),
-    listarAlunos(professor.id),
+    listarAlunos(professor),
     listarInstituicoes(professor.id),
   ]);
   if (!dados) notFound();

@@ -6,7 +6,8 @@ import { Suspense, type ReactNode } from "react";
 import { SeloPresenca } from "@/components/selos";
 import { BotaoLink, Card, CardTitulo, cn, Esqueleto, Selo } from "@/components/ui";
 import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, somarDiasAgenda } from "@/lib/agenda";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirAcesso } from "@/lib/auth";
+import { filtroDeAlunos, podeVer } from "@/lib/permissoes";
 import { resumoCobranca } from "@/lib/cobranca";
 import { DIAS_SEMANA } from "@/lib/constantes";
 import { agendaDoPeriodo, listarRecibos, presencasNaData, recebidoPorMes, resumoPainel } from "@/lib/consultas";
@@ -23,7 +24,15 @@ export default function PaginaPainel(props: PageProps<"/painel">) {
 }
 
 async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const { professor, membro, acesso } = await exigirAcesso();
+  // a equipe de um estúdio só vê o que o dono liberou: sem financeiro, nada de valores no painel
+  const ver = {
+    alunos: podeVer(acesso, "alunos"),
+    chamada: podeVer(acesso, "chamada"),
+    financeiro: podeVer(acesso, "financeiro"),
+    recibos: podeVer(acesso, "recibos"),
+    materiais: podeVer(acesso, "materiais"),
+  };
   const hoje = hojeISO();
   const diaSemana = DIAS_SEMANA[new Date(`${hoje}T12:00:00Z`).getUTCDay()];
   // cartão de aulas: hoje (em Brasília) ou o dia escolhido nas setas (?dia=AAAA-MM-DD)
@@ -32,11 +41,13 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
   const dia = typeof diaParam === "string" && isoValido(diaParam) ? diaParam : hojeAulas;
   const [resumo, porMes, recibos, agendaDia, chamadasDia, cobranca] = await Promise.all([
     resumoPainel(professor.id, hoje),
-    recebidoPorMes(professor.id, hoje),
-    listarRecibos(professor.id),
+    ver.financeiro ? recebidoPorMes(professor.id, hoje) : [],
+    ver.recibos ? listarRecibos(professor.id) : [],
     agendaDoPeriodo(professor, dia, dia),
-    presencasNaData(professor.id, dia),
-    resumoCobranca(professor.id, hoje, professor.diaVencimento),
+    presencasNaData(professor, dia),
+    ver.financeiro
+      ? resumoCobranca(professor.id, hoje, professor.diaVencimento)
+      : { atrasados: [], vencendo: [], totalAtrasado: 0, totalVencendo: 0 },
   ]);
   // aulas do dia pela agenda (fixas e reposições); desmarcadas pelo professor não entram
   const aulasHoje = agendaDia.filter((o) => o.desmarcada?.por !== "professor");
@@ -58,15 +69,19 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
           <p className="text-sm text-suave">
             {diaSemana}, {dataBR(hoje)}
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Olá, {primeiroNome(professor.nome)}!</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Olá, {primeiroNome((membro ?? professor).nome)}!</h1>
         </div>
         <div className="flex gap-2">
-          <BotaoLink href="/chamada">
-            <CircleCheckBig /> Chamada de hoje
-          </BotaoLink>
-          <BotaoLink href="/recibos/novo" variante="secundario">
-            <ReceiptText /> Novo recibo
-          </BotaoLink>
+          {ver.chamada && (
+            <BotaoLink href="/chamada">
+              <CircleCheckBig /> Chamada de hoje
+            </BotaoLink>
+          )}
+          {ver.recibos && (
+            <BotaoLink href="/recibos/novo" variante="secundario">
+              <ReceiptText /> Novo recibo
+            </BotaoLink>
+          )}
         </div>
       </div>
 
@@ -101,40 +116,50 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
       )}
 
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Indicador titulo="Alunos ativos" valor={resumo.alunosAtivos} icone={<Users />} href="/alunos" />
-        <Indicador titulo="Chamadas hoje" valor={resumo.chamadasHoje} icone={<CircleCheckBig />} href="/chamada" />
-        <Indicador titulo="Recebido no mês" valor={moeda(resumo.recebidoMes)} icone={<Wallet />} href="/recibos" />
-        <Indicador titulo="Materiais" valor={resumo.materiais} icone={<CloudDownload />} href="/materiais" />
+        {ver.alunos && filtroDeAlunos(acesso) == null && (
+          <Indicador titulo="Alunos ativos" valor={resumo.alunosAtivos} icone={<Users />} href="/alunos" />
+        )}
+        {ver.chamada && filtroDeAlunos(acesso) == null && (
+          <Indicador titulo="Chamadas hoje" valor={resumo.chamadasHoje} icone={<CircleCheckBig />} href="/chamada" />
+        )}
+        {ver.financeiro && <Indicador titulo="Recebido no mês" valor={moeda(resumo.recebidoMes)} icone={<Wallet />} href="/recibos" />}
+        {ver.materiais && <Indicador titulo="Materiais" valor={resumo.materiais} icone={<CloudDownload />} href="/materiais" />}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardTitulo icone={<Wallet />}>Recebido por mês</CardTitulo>
-          <div className="flex h-56 items-end gap-3 p-5">
-            {porMes.map((m) => {
-              const mes = MESES[Number(m.mes.slice(5, 7)) - 1].slice(0, 3);
-              return (
-                <div key={m.mes} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
-                  <span className="text-xs font-medium text-suave tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
-                    {moeda(m.total)}
-                  </span>
-                  <div
-                    className="w-full max-w-12 rounded-t-lg bg-marca transition-all group-hover:opacity-80"
-                    style={{ height: `${Math.max((m.total / maiorMes) * 100, m.total ? 4 : 1)}%` }}
-                  />
-                  <span className="text-xs text-suave capitalize">{mes}</span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+        {ver.financeiro && (
+          <Card className="lg:col-span-3">
+            <CardTitulo icone={<Wallet />}>Recebido por mês</CardTitulo>
+            <div className="flex h-56 items-end gap-3 p-5">
+              {porMes.map((m) => {
+                const mes = MESES[Number(m.mes.slice(5, 7)) - 1].slice(0, 3);
+                return (
+                  <div key={m.mes} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
+                    <span className="text-xs font-medium text-suave tabular-nums opacity-0 transition-opacity group-hover:opacity-100">
+                      {moeda(m.total)}
+                    </span>
+                    <div
+                      className="w-full max-w-12 rounded-t-lg bg-marca transition-all group-hover:opacity-80"
+                      style={{ height: `${Math.max((m.total / maiorMes) * 100, m.total ? 4 : 1)}%` }}
+                    />
+                    <span className="text-xs text-suave capitalize">{mes}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
-        <Card className="lg:col-span-2">
+        <Card className={ver.financeiro ? "lg:col-span-2" : "lg:col-span-5"}>
           <CardTitulo
             icone={<CircleCheckBig />}
             acao={
               <span className="flex items-center gap-0.5">
-                <Link href={`/painel?dia=${somarDiasAgenda(dia, -1)}`} className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto" aria-label="Dia anterior">
+                <Link
+                  href={`/painel?dia=${somarDiasAgenda(dia, -1)}`}
+                  className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto"
+                  aria-label="Dia anterior"
+                >
                   <ChevronLeft className="size-4" />
                 </Link>
                 {dia !== hojeAulas && (
@@ -142,7 +167,11 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
                     hoje
                   </Link>
                 )}
-                <Link href={`/painel?dia=${somarDiasAgenda(dia, 1)}`} className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto" aria-label="Próximo dia">
+                <Link
+                  href={`/painel?dia=${somarDiasAgenda(dia, 1)}`}
+                  className="rounded-lg p-1.5 text-suave hover:bg-fundo hover:text-texto"
+                  aria-label="Próximo dia"
+                >
                   <ChevronRight className="size-4" />
                 </Link>
                 <Link href={`/agenda?semana=${dia}`} className="ml-1 rounded-lg px-2 py-1 text-xs text-marca-texto hover:bg-fundo">
@@ -179,34 +208,36 @@ async function Painel({ searchParams }: { searchParams: PageProps<"/painel">["se
           )}
         </Card>
 
-        <Card className="lg:col-span-5">
-          <CardTitulo
-            icone={<ReceiptText />}
-            acao={
-              <Link href="/recibos" className="text-sm text-marca-texto hover:underline">
-                Ver todos
-              </Link>
-            }
-          >
-            Últimos recibos
-          </CardTitulo>
-          {recibos.length === 0 ? (
-            <p className="p-5 text-sm text-suave">Nenhum recibo ainda.</p>
-          ) : (
-            <ul className="divide-y divide-borda">
-              {recibos.slice(0, 5).map(({ recibo, aluno, instituicao }) => (
-                <li key={recibo.id}>
-                  <Link href={`/recibos/${recibo.id}`} className="flex items-center gap-4 px-5 py-3 text-sm hover:bg-fundo/60">
-                    <span className="font-mono text-xs text-suave">#{numeroRecibo(recibo.numero)}</span>
-                    <span className="min-w-0 flex-1 truncate font-medium">{instituicao?.nome ?? aluno?.nome}</span>
-                    <span className="hidden text-suave sm:inline">{dataBR(recibo.dataPagamento)}</span>
-                    <span className="font-semibold tabular-nums">{moeda(recibo.valorCentavos)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        {ver.recibos && (
+          <Card className="lg:col-span-5">
+            <CardTitulo
+              icone={<ReceiptText />}
+              acao={
+                <Link href="/recibos" className="text-sm text-marca-texto hover:underline">
+                  Ver todos
+                </Link>
+              }
+            >
+              Últimos recibos
+            </CardTitulo>
+            {recibos.length === 0 ? (
+              <p className="p-5 text-sm text-suave">Nenhum recibo ainda.</p>
+            ) : (
+              <ul className="divide-y divide-borda">
+                {recibos.slice(0, 5).map(({ recibo, aluno, instituicao }) => (
+                  <li key={recibo.id}>
+                    <Link href={`/recibos/${recibo.id}`} className="flex items-center gap-4 px-5 py-3 text-sm hover:bg-fundo/60">
+                      <span className="font-mono text-xs text-suave">#{numeroRecibo(recibo.numero)}</span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{instituicao?.nome ?? aluno?.nome}</span>
+                      <span className="hidden text-suave sm:inline">{dataBR(recibo.dataPagamento)}</span>
+                      <span className="font-semibold tabular-nums">{moeda(recibo.valorCentavos)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
       </div>
     </>
   );

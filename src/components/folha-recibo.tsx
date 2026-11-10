@@ -1,7 +1,7 @@
 import type { Recibo } from "@/lib/db/schema";
 import { numeroRecibo } from "@/lib/formato";
 import type { Pagador } from "@/lib/pagador";
-import { linhaDataRecibo, textoRecibo, type ProfessorRecibo } from "@/lib/recibo-pdf";
+import { linhaDataRecibo, nomeNaAssinatura, textoRecibo, type ProfessorRecibo } from "@/lib/recibo-pdf";
 
 import { cn } from "./ui";
 
@@ -32,7 +32,7 @@ export function FolhaRecibo({
             <img src={professor.assinatura} alt="Assinatura" className="max-h-full max-w-full" />
           )}
         </div>
-        <div className="border-t border-zinc-800 pt-1 text-sm">{professor.nome}</div>
+        <div className="border-t border-zinc-800 pt-1 text-sm">{nomeNaAssinatura(professor)}</div>
       </div>
     </div>
   );

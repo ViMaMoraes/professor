@@ -40,6 +40,15 @@ async function fazerLogin(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
     await iniciarSessao({ tipo: "professor", id: professor.id });
     redirect(professor.trocarSenha ? "/trocar-senha" : "/painel");
   }
+  // alguém da equipe de um estúdio: entra na conta do dono
+  const membro = professor ? null : await db.query.membros.findFirst({ where: eq(schema.membros.email, email) });
+  if (membro && (await bcrypt.compare(senha, membro.senhaHash))) {
+    const dono = await db.query.professores.findFirst({ where: eq(schema.professores.id, membro.professorId) });
+    if (!membro.ativo || !dono || dono.tipoConta !== "estudio") return { erro: "Seu acesso está bloqueado. Fale com o responsável pelo estúdio." };
+    if (!contaLiberada(dono)) return { erro: "O acesso do estúdio está suspenso no momento. Fale com o responsável pelo estúdio." };
+    await iniciarSessao({ tipo: "membro", id: membro.id });
+    redirect(membro.trocarSenha ? "/trocar-senha" : "/painel");
+  }
   return { erro: "E-mail ou senha inválidos." };
 }
 
@@ -67,16 +76,16 @@ export async function entrarAluno(estado: EstadoForm, dados: FormData): Promise<
 export async function definirSenha(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
   const usuario = await usuarioAtual();
   if (usuario?.tipo !== "professor") redirect("/login");
-  const { professor } = usuario;
+  // quem troca: o dono da conta ou a pessoa da equipe que entrou
+  const pessoa = usuario.membro ?? usuario.professor;
   const nova = String(dados.get("novaSenha") ?? "");
   if (nova.length < 6) return { erro: "A senha precisa ter pelo menos 6 caracteres." };
   if (nova !== dados.get("confirmar")) return { erro: "As duas senhas não são iguais." };
-  if (await bcrypt.compare(nova, professor.senhaHash)) return { erro: "Escolha uma senha diferente da provisória." };
+  if (await bcrypt.compare(nova, pessoa.senhaHash)) return { erro: "Escolha uma senha diferente da provisória." };
   const db = await getDb();
-  await db
-    .update(schema.professores)
-    .set({ senhaHash: await bcrypt.hash(nova, 10), trocarSenha: false })
-    .where(eq(schema.professores.id, professor.id));
+  const novaSenha = { senhaHash: await bcrypt.hash(nova, 10), trocarSenha: false };
+  if (usuario.membro) await db.update(schema.membros).set(novaSenha).where(eq(schema.membros.id, usuario.membro.id));
+  else await db.update(schema.professores).set(novaSenha).where(eq(schema.professores.id, usuario.professor.id));
   redirect("/painel");
 }
 

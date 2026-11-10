@@ -11,8 +11,8 @@ import { isoValido } from "@/lib/formato";
 
 /** Adiciona (registroId = null) ou edita um registro do diário de aulas de um aluno deste professor. */
 export async function salvarRegistroDiario(alunoId: number, registroId: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
-  if (!(await buscarAluno(professor.id, alunoId))) return { erro: "Aluno não encontrado." };
+  const professor = await exigirProfessor("chamada");
+  if (!(await buscarAluno(professor, alunoId))) return { erro: "Aluno não encontrado." };
 
   const data = texto(dados, "data");
   const conteudo = texto(dados, "conteudo");
@@ -37,8 +37,8 @@ export async function salvarRegistroDiario(alunoId: number, registroId: number |
 }
 
 export async function excluirRegistroDiario(alunoId: number, registroId: number) {
-  const professor = await exigirProfessor();
-  if (!(await buscarAluno(professor.id, alunoId))) return;
+  const professor = await exigirProfessor("chamada");
+  if (!(await buscarAluno(professor, alunoId))) return;
   const db = await getDb();
   await db.delete(schema.diario).where(and(eq(schema.diario.id, registroId), eq(schema.diario.alunoId, alunoId)));
   revalidatePath(`/alunos/${alunoId}`);

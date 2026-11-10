@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { usuarioAtual } from "@/lib/auth";
+import { professorPodeVer, usuarioAtual } from "@/lib/auth";
 import { buscarMateriaisPorIds, materiaisDoAluno } from "@/lib/consultas";
 import { limparNomeArquivo, montarLote } from "@/lib/drive-lote";
 
@@ -21,6 +21,8 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   const usuario = await usuarioAtual();
   if (!usuario) return Response.json({ erro: "Não autorizado." }, { status: 401 });
+  // equipe de estúdio: só com o módulo liberado
+  if (usuario.tipo === "professor" && !professorPodeVer(usuario, "materiais")) return Response.json({ erro: "Sem permissão." }, { status: 403 });
 
   const pedido = Pedido.safeParse(await request.json().catch(() => null));
   if (!pedido.success) return Response.json({ erro: "Pedido inválido." }, { status: 400 });

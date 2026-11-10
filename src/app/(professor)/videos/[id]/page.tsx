@@ -22,7 +22,7 @@ function quando(iso: string) {
 }
 
 export default async function PaginaVideo(props: PageProps<"/videos/[id]">) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const id = Number((await props.params).id);
   const [dados, modulos] = await Promise.all([buscarVideo(professor.id, id), listarModulos(professor.id)]);
   if (!dados) notFound();

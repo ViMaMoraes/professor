@@ -1,4 +1,5 @@
-import { usuarioAtual } from "@/lib/auth";
+import { acessoDe, professorPodeVer, usuarioAtual } from "@/lib/auth";
+import { filtroDeAlunos } from "@/lib/permissoes";
 import { buscarInstituicao, historicoPresencas } from "@/lib/consultas";
 import { hojeISO, isoValido } from "@/lib/formato";
 import { gerarPlanilhaChamada } from "@/lib/planilha-chamada";
@@ -7,6 +8,7 @@ import { gerarPlanilhaChamada } from "@/lib/planilha-chamada";
 export async function GET(request: Request) {
   const usuario = await usuarioAtual();
   if (usuario?.tipo !== "professor") return new Response("Não autorizado", { status: 401 });
+  if (!professorPodeVer(usuario, "chamada")) return new Response("Sem permissão", { status: 403 });
 
   const params = new URL(request.url).searchParams;
   const hoje = hojeISO();
@@ -16,7 +18,9 @@ export async function GET(request: Request) {
   const instituicaoId = Number(params.get("instituicao")) || undefined;
   const instituicao = instituicaoId ? await buscarInstituicao(usuario.professor.id, instituicaoId) : undefined;
 
-  const linhas = await historicoPresencas(usuario.professor.id, inicio, fim, alunoId, instituicao?.id);
+  // quem da equipe só vê os próprios alunos exporta só a chamada deles
+  const conta = { id: usuario.professor.id, escopoMembro: filtroDeAlunos(acessoDe(usuario)) };
+  const linhas = await historicoPresencas(conta, inicio, fim, alunoId, instituicao?.id);
   const registros = linhas.map(({ presenca, aluno }) => ({ ...presenca, aluno }));
   const arquivo = await gerarPlanilhaChamada(registros, { inicio, fim }, instituicao?.nome);
 

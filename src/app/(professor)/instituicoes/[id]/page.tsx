@@ -12,16 +12,16 @@ import { dataBR, hojeISO, MESES, moeda, numeroRecibo } from "@/lib/formato";
 import { contarPorAluno } from "@/lib/planilha-chamada";
 
 export default async function PaginaInstituicao(props: PageProps<"/instituicoes/[id]">) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   const instituicao = await buscarInstituicao(professor.id, Number((await props.params).id));
   if (!instituicao) notFound();
 
   const hoje = hojeISO();
   const inicioMes = hoje.slice(0, 8) + "01";
   const [alunos, recibos, chamadasMes] = await Promise.all([
-    listarAlunos(professor.id, { instituicaoId: instituicao.id, situacao: "todos" }),
+    listarAlunos(professor, { instituicaoId: instituicao.id, situacao: "todos" }),
     listarRecibos(professor.id, { instituicaoId: instituicao.id }),
-    historicoPresencas(professor.id, inicioMes, hoje, undefined, instituicao.id),
+    historicoPresencas(professor, inicioMes, hoje, undefined, instituicao.id),
   ]);
   const frequencia = new Map(
     contarPorAluno(chamadasMes.map(({ presenca, aluno }) => ({ ...presenca, aluno }))).map((r) => [r.aluno.id, r]),

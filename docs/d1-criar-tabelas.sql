@@ -24,12 +24,31 @@ CREATE TABLE IF NOT EXISTS `professores` (
   `master` integer DEFAULT false NOT NULL,
   `ativo` integer DEFAULT true NOT NULL,
   `acesso_ate` text,
+  `tipo_conta` text DEFAULT 'autonomo' NOT NULL,
+  `nome_estudio` text,
   `plano` text DEFAULT 'premium' NOT NULL,
   `codigo` text,
   `criado_em` text
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `professores_email_unique` ON `professores` (`email`);
 CREATE UNIQUE INDEX IF NOT EXISTS `professores_codigo_unique` ON `professores` (`codigo`);
+
+CREATE TABLE IF NOT EXISTS `membros` (
+  `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  `professor_id` integer NOT NULL,
+  `nome` text NOT NULL,
+  `email` text NOT NULL,
+  `senha_hash` text NOT NULL,
+  `trocar_senha` integer DEFAULT true NOT NULL,
+  `cargo` text DEFAULT 'professor' NOT NULL,
+  `modulos` text DEFAULT '' NOT NULL,
+  `todos_alunos` integer DEFAULT false NOT NULL,
+  `ativo` integer DEFAULT true NOT NULL,
+  `criado_em` text,
+  FOREIGN KEY (`professor_id`) REFERENCES `professores`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE UNIQUE INDEX IF NOT EXISTS `membros_email_unique` ON `membros` (`email`);
+CREATE INDEX IF NOT EXISTS `membros_professor` ON `membros` (`professor_id`);
 
 CREATE TABLE IF NOT EXISTS `instituicoes` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -78,6 +97,15 @@ CREATE TABLE IF NOT EXISTS `alunos` (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS `alunos_professor_usuario` ON `alunos` (`professor_id`,`usuario`);
 CREATE INDEX IF NOT EXISTS `alunos_professor` ON `alunos` (`professor_id`);
+
+CREATE TABLE IF NOT EXISTS `aluno_equipe` (
+  `aluno_id` integer NOT NULL,
+  `membro_id` integer NOT NULL,
+  PRIMARY KEY(`aluno_id`, `membro_id`),
+  FOREIGN KEY (`aluno_id`) REFERENCES `alunos`(`id`) ON UPDATE no action ON DELETE cascade,
+  FOREIGN KEY (`membro_id`) REFERENCES `membros`(`id`) ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS `aluno_equipe_membro` ON `aluno_equipe` (`membro_id`);
 
 CREATE TABLE IF NOT EXISTS `presencas` (
   `id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -310,4 +338,5 @@ INSERT OR IGNORE INTO `d1_migrations` (`name`) VALUES
   ('0010_videos.sql'),
   ('0011_planos.sql'),
   ('0012_planos_plus_premium.sql'),
-  ('0013_usuario_por_professor.sql');
+  ('0013_usuario_por_professor.sql'),
+  ('0014_equipe_estudio.sql');

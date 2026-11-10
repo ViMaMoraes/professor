@@ -16,7 +16,7 @@ import { TRATAMENTOS } from "@/lib/pagador";
 const { instituicoes, alunos } = schema;
 
 export async function salvarInstituicao(id: number | null, _: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   const db = await getDb();
   if (id && !(await buscarInstituicao(professor.id, id))) return { erro: "Instituição não encontrada." };
 
@@ -58,7 +58,7 @@ export async function salvarInstituicao(id: number | null, _: EstadoForm, dados:
 
   // alunos marcados no formulário passam a ser desta instituição (só alunos deste professor)
   if (dados.get("atualizarAlunos")) {
-    const meus = await listarAlunos(professor.id, { situacao: "todos" });
+    const meus = await listarAlunos(professor, { situacao: "todos" });
     const marcados = new Set(dados.getAll("alunos").map(Number));
     const comandos = meus
       .filter((a) => marcados.has(a.id) !== (a.instituicaoId === instituicaoId))
@@ -78,7 +78,7 @@ export async function salvarInstituicao(id: number | null, _: EstadoForm, dados:
 }
 
 export async function alternarInstituicao(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   const instituicao = await buscarInstituicao(professor.id, id);
   if (!instituicao) return;
   const db = await getDb();
@@ -88,7 +88,7 @@ export async function alternarInstituicao(id: number) {
 
 /** Exclui a instituição e os recibos dela. Os alunos continuam cadastrados (só perdem o vínculo). */
 export async function excluirInstituicao(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   const db = await getDb();
   await db.delete(instituicoes).where(and(eq(instituicoes.id, id), eq(instituicoes.professorId, professor.id)));
   revalidatePath("/", "layout");

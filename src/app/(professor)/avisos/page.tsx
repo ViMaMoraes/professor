@@ -14,10 +14,10 @@ import { FormAviso } from "./form-aviso";
 export const metadata: Metadata = { title: "Avisos" };
 
 export default async function PaginaAvisos() {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("avisos");
   const [avisos, alunos, instituicoes, inscritos] = await Promise.all([
     listarAvisos(professor.id),
-    listarAlunos(professor.id),
+    listarAlunos(professor),
     listarInstituicoes(professor.id),
     contarInscritos(professor.id),
   ]);

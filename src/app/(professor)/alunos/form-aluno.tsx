@@ -20,6 +20,11 @@ type Props = {
   diaPadrao: number;
   horarios?: { diaSemana: number; hora: string | null; duracaoMin: number | null }[];
   duracaoPadrao: number;
+  /** Mostra mensalidade, vencimento e descrição do recibo (a equipe sem o Financeiro não vê valores). */
+  verValores?: boolean;
+  /** Estúdio: professores da equipe que podem ser escolhidos para o aluno (só para quem atribui). */
+  equipe?: { id: number; nome: string }[];
+  equipeDoAluno?: number[];
 };
 
 export function FormAluno(props: Props) {
@@ -28,7 +33,17 @@ export function FormAluno(props: Props) {
   return <CamposAluno key={versao} {...props} limpar={() => setVersao((v) => v + 1)} />;
 }
 
-function CamposAluno({ aluno, instituicoes, diaPadrao, horarios, duracaoPadrao, limpar }: Props & { limpar: () => void }) {
+function CamposAluno({
+  aluno,
+  instituicoes,
+  diaPadrao,
+  horarios,
+  duracaoPadrao,
+  verValores = true,
+  equipe,
+  equipeDoAluno,
+  limpar,
+}: Props & { limpar: () => void }) {
   const [usuario, setUsuario] = useState(aluno?.usuario ?? "");
   // num aluno novo, o usuário vai sendo sugerido enquanto o nome é digitado (até ser editado à mão)
   const [mexeuNoUsuario, setMexeuNoUsuario] = useState(Boolean(aluno));
@@ -93,18 +108,38 @@ function CamposAluno({ aluno, instituicoes, diaPadrao, horarios, duracaoPadrao, 
           <Campo rotulo="Horários de aula" dica="Pode ter mais de um por semana. Aparecem na Agenda e geram o lembrete do aluno." className="sm:col-span-2 lg:col-span-3">
             <EditorHorarios iniciais={horarios ?? []} duracaoPadrao={duracaoPadrao} />
           </Campo>
-          <Campo rotulo="Mensalidade (R$)">
-            <Input name="mensalidade" inputMode="decimal" placeholder="150,00" defaultValue={centavosParaCampo(aluno?.mensalidadeCentavos)} />
-          </Campo>
-          <Campo rotulo="Vencimento" dica="Dia do mês em que a mensalidade vence (Financeiro).">
-            <SelectVencimento name="diaVencimento" valor={aluno?.diaVencimento} padrao={diaPadrao} />
-          </Campo>
+          {equipe && equipe.length > 0 && (
+            <fieldset className="sm:col-span-2 lg:col-span-3">
+              <legend className="mb-1.5 text-sm font-medium">Professores do aluno</legend>
+              <p className="mb-2 text-xs text-suave">Quem da equipe dá aula para ele. Pode marcar mais de um; você sempre vê todos os alunos.</p>
+              <div className="flex flex-wrap gap-2">
+                {equipe.map((m) => (
+                  <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-borda px-3 py-1.5 text-sm has-checked:border-marca has-checked:bg-marca-suave">
+                    <input type="checkbox" name="equipe" value={m.id} defaultChecked={equipeDoAluno?.includes(m.id)} className="size-4 accent-marca" />
+                    {m.nome}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {verValores && (
+            <>
+              <Campo rotulo="Mensalidade (R$)">
+                <Input name="mensalidade" inputMode="decimal" placeholder="150,00" defaultValue={centavosParaCampo(aluno?.mensalidadeCentavos)} />
+              </Campo>
+              <Campo rotulo="Vencimento" dica="Dia do mês em que a mensalidade vence (Financeiro).">
+                <SelectVencimento name="diaVencimento" valor={aluno?.diaVencimento} padrao={diaPadrao} />
+              </Campo>
+            </>
+          )}
           <Campo rotulo="Início das aulas">
             <Input type="date" name="dataInicio" defaultValue={aluno?.dataInicio ?? ""} />
           </Campo>
-          <Campo rotulo="Descrição do pagamento (recibo)" dica="Ex.: “às aulas de piano”. Vem preenchida ao gerar o recibo." className="sm:col-span-2 lg:col-span-3">
-            <Input name="descricaoRecibo" placeholder="às aulas de piano" defaultValue={aluno?.descricaoRecibo ?? ""} />
-          </Campo>
+          {verValores && (
+            <Campo rotulo="Descrição do pagamento (recibo)" dica="Ex.: “às aulas de piano”. Vem preenchida ao gerar o recibo." className="sm:col-span-2 lg:col-span-3">
+              <Input name="descricaoRecibo" placeholder="às aulas de piano" defaultValue={aluno?.descricaoRecibo ?? ""} />
+            </Campo>
+          )}
           <Campo rotulo="Observações" className="sm:col-span-2 lg:col-span-3">
             <Textarea name="observacoes" rows={3} placeholder="Objetivos, conteúdo, preferências..." defaultValue={aluno?.observacoes ?? ""} />
           </Campo>

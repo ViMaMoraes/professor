@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Cabecalho, EsqueletoPagina, Voltar } from "@/components/ui";
-import { exigirProfessor } from "@/lib/auth";
-import { buscarAluno, horariosDoAluno, listarInstituicoes } from "@/lib/consultas";
+import { exigirAcesso } from "@/lib/auth";
+import { buscarAluno, equipePorAluno, horariosDoAluno, listarInstituicoes } from "@/lib/consultas";
 
 import { FormAluno } from "../../form-aluno";
+import { opcoesDoFormulario } from "../../opcoes-equipe";
 
 export default function PaginaEditarAluno(props: PageProps<"/alunos/[id]/editar">) {
   return (
@@ -16,8 +17,8 @@ export default function PaginaEditarAluno(props: PageProps<"/alunos/[id]/editar"
 }
 
 async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["params"] }) {
-  const professor = await exigirProfessor();
-  const aluno = await buscarAluno(professor.id, Number((await params).id));
+  const { professor, acesso } = await exigirAcesso("alunos");
+  const aluno = await buscarAluno(professor, Number((await params).id));
   if (!aluno) notFound();
   const { senhaHash, ...dados } = aluno;
   void senhaHash;
@@ -31,6 +32,8 @@ async function Conteudo({ params }: { params: PageProps<"/alunos/[id]/editar">["
         duracaoPadrao={professor.duracaoAula}
         horarios={await horariosDoAluno(aluno.id)}
         instituicoes={(await listarInstituicoes(professor.id, { situacao: "todas" })).map(({ instituicao: i }) => ({ id: i.id, nome: i.nome }))}
+        {...await opcoesDoFormulario(professor, acesso)}
+        equipeDoAluno={(await equipePorAluno(professor.id)).get(aluno.id) ?? []}
       />
     </>
   );

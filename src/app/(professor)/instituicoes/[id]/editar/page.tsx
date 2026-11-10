@@ -8,7 +8,7 @@ import { FormInstituicao } from "../../form-instituicao";
 import { opcoesDeAlunos } from "../../opcoes-alunos";
 
 export default async function PaginaEditarInstituicao(props: PageProps<"/instituicoes/[id]/editar">) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("instituicoes");
   const instituicao = await buscarInstituicao(professor.id, Number((await props.params).id));
   if (!instituicao) notFound();
   return (

@@ -4,7 +4,7 @@ import { valorPorExtenso, numeroPorExtenso } from "../extenso";
 import { centavosParaCampo, dataBR, dataPorExtenso, isoValido, lerValorEmCentavos, moeda, somarDias } from "../formato";
 import { linkWhatsapp, mensagemCobranca } from "../mensagens";
 import { pagadorDoRecibo, referenteA } from "../pagador";
-import { linhaDataRecibo, textoRecibo } from "../recibo-pdf";
+import { linhaDataRecibo, nomeNaAssinatura, textoRecibo } from "../recibo-pdf";
 import { normalizarUsuario, sugerirUsuario } from "../usuario";
 
 describe("valores", () => {
@@ -129,6 +129,26 @@ describe("texto do recibo", () => {
     expect(textoRecibo(recibo, { recebiDe: "de Ana" }, { ...professor, documento: null, rg: null, endereco: null })).toBe(
       "Eu, Marcus Vinicius de Moraes, recebi de Ana a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino.",
     );
+  });
+  it("conta de estúdio: o recibo sai no nome do estúdio, e a assinatura com o dono e o estúdio", () => {
+    const estudio = {
+      nome: "Ana Lima",
+      documento: "12345678000195",
+      rg: "123456789",
+      endereco: "Rua das Flores, 10",
+      cidade: "Campinas/SP",
+      assinatura: null,
+      tipoConta: "estudio" as const,
+      nomeEstudio: "Estúdio Harmonia",
+    };
+    expect(textoRecibo(recibo, { recebiDe: "de Ana" }, estudio)).toBe(
+      "Estúdio Harmonia, CNPJ: 12.345.678/0001-95, com endereço na Rua das Flores, 10 - Campinas/SP, recebeu de Ana " +
+        "a quantia de R$ 800,00 (oitocentos reais) referente às aulas de violino.",
+    );
+    expect(nomeNaAssinatura(estudio)).toBe("Ana Lima · Estúdio Harmonia");
+    // estúdio sem nome preenchido: continua no nome da pessoa
+    expect(textoRecibo(recibo, { recebiDe: "de Ana" }, { ...estudio, nomeEstudio: " " })).toMatch(/^Eu, Ana Lima,/);
+    expect(nomeNaAssinatura({ ...estudio, tipoConta: "autonomo" })).toBe("Ana Lima");
   });
   it("CPF, RG e CNPJ cadastrados sem pontuação saem formatados", () => {
     const semPontos = { ...professor, documento: "46510148870", rg: "394737234" };

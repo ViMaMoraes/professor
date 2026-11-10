@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
-import { usuarioAtual } from "@/lib/auth";
+import { professorPodeVer, usuarioAtual } from "@/lib/auth";
 import { videosDoAluno } from "@/lib/consultas";
 import { getDb, schema } from "@/lib/db";
 import { buscarVideoDrive, chaveGoogle } from "@/lib/video-drive";
@@ -10,6 +10,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/videos/[id]/
   const chave = chaveGoogle();
   const usuario = await usuarioAtual();
   if (!usuario) return new Response(null, { status: 401 });
+  // equipe de estúdio: só com o módulo liberado
+  if (usuario.tipo === "professor" && !professorPodeVer(usuario, "videos")) return new Response(null, { status: 403 });
   const id = Number((await ctx.params).id);
 
   let video: { origem: string; origemId: string; link: string } | undefined;

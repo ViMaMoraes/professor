@@ -12,14 +12,14 @@ import { isoValido, lerValorEmCentavos } from "@/lib/formato";
 
 /** "Marcar como pago" no Financeiro: registra o pagamento do mês sem emitir recibo. */
 export async function marcarPagamento(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("financeiro");
   const tipo = dados.get("tipo");
   const pagadorId = Number(dados.get("pagadorId"));
   const referencia = dados.get("referencia");
   const valor = lerValorEmCentavos(dados.get("valor"));
   const data = texto(dados, "dataPagamento");
 
-  const dono = tipo === "instituicao" ? await buscarInstituicao(professor.id, pagadorId) : await buscarAluno(professor.id, pagadorId);
+  const dono = tipo === "instituicao" ? await buscarInstituicao(professor.id, pagadorId) : await buscarAluno(professor, pagadorId);
   if (!dono) return { erro: "Aluno ou instituição não encontrado." };
   if (!mesValido(referencia)) return { erro: "Mês de referência inválido." };
   if (!valor) return { erro: "Informe o valor pago." };
@@ -42,7 +42,7 @@ export async function marcarPagamento(_: EstadoForm, dados: FormData): Promise<E
 
 /** Desfaz um pagamento marcado à mão (ex.: marcou o aluno errado). */
 export async function excluirPagamento(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("financeiro");
   const db = await getDb();
   await db.delete(schema.pagamentos).where(and(eq(schema.pagamentos.id, id), eq(schema.pagamentos.professorId, professor.id)));
   revalidatePath("/", "layout");

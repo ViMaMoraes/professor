@@ -11,7 +11,7 @@ import { notificarAlunos } from "@/lib/push";
 
 /** Envia um aviso: fica no app do aluno e chega como notificação em quem ativou. */
 export async function enviarAviso(_: EstadoForm, dados: FormData): Promise<EstadoForm> {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("avisos");
   const titulo = texto(dados, "titulo");
   const mensagem = texto(dados, "mensagem");
   const destino = dados.get("destino");
@@ -20,7 +20,7 @@ export async function enviarAviso(_: EstadoForm, dados: FormData): Promise<Estad
   if (mensagem && mensagem.length > 2000) return { erro: "A mensagem pode ter no máximo 2000 caracteres." };
 
   // só alunos ativos deste professor
-  const ativos = await listarAlunos(professor.id);
+  const ativos = await listarAlunos(professor);
   let alunoIds: number[];
   if (destino === "todos") {
     alunoIds = ativos.map((a) => a.id);
@@ -35,7 +35,8 @@ export async function enviarAviso(_: EstadoForm, dados: FormData): Promise<Estad
     if (alunoIds.length === 0) return { erro: "Escolha pelo menos um aluno." };
   }
 
-  const paraTodos = destino === "todos";
+  // equipe que só vê os próprios alunos: "todos" = todos os alunos dela (não os do estúdio inteiro)
+  const paraTodos = destino === "todos" && professor.escopoMembro == null;
   const db = await getDb();
   const [aviso] = await db
     .insert(schema.avisos)
@@ -55,7 +56,7 @@ export async function enviarAviso(_: EstadoForm, dados: FormData): Promise<Estad
 }
 
 export async function excluirAviso(id: number) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("avisos");
   const db = await getDb();
   await db.delete(schema.avisos).where(and(eq(schema.avisos.id, id), eq(schema.avisos.professorId, professor.id)));
   revalidatePath("/avisos");

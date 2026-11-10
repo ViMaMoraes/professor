@@ -5,7 +5,8 @@ import { jwtVerify, SignJWT } from "jose";
 
 import { PASTA_DADOS } from "./caminhos";
 
-export type Sessao = { tipo: "professor" | "aluno"; id: number };
+// "membro" = alguém da equipe de um estúdio (tabela membros), que entra na conta do dono
+export type Sessao = { tipo: "professor" | "membro" | "aluno"; id: number };
 
 export const COOKIE_SESSAO = "sessao";
 const DIA = 60 * 60 * 24;
@@ -51,7 +52,7 @@ export async function lerToken(token: string | undefined): Promise<Sessao | null
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, chave(), { algorithms: ["HS256"] });
-    if ((payload.tipo === "professor" || payload.tipo === "aluno") && typeof payload.id === "number") {
+    if ((payload.tipo === "professor" || payload.tipo === "membro" || payload.tipo === "aluno") && typeof payload.id === "number") {
       return { tipo: payload.tipo, id: payload.id };
     }
   } catch {

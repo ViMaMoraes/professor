@@ -20,12 +20,12 @@ export default function PaginaEditarRecibo(props: PageProps<"/recibos/[id]/edita
 }
 
 async function Conteudo({ params }: { params: PageProps<"/recibos/[id]/editar">["params"] }) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("recibos");
   const linha = await buscarRecibo(Number((await params).id), { professorId: professor.id });
   if (!linha) notFound();
   // inclui inativos: o recibo pode ser de um aluno ou instituição que não está mais ativo
   const [alunos, instituicoes] = await Promise.all([
-    listarAlunos(professor.id, { situacao: "todos" }),
+    listarAlunos(professor, { situacao: "todos" }),
     listarInstituicoes(professor.id, { situacao: "todas" }),
   ]);
   return (

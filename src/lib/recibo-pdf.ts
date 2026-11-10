@@ -9,7 +9,18 @@ import { referenteA, type Pagador } from "./pagador";
 const CINZA = rgb(0.45, 0.45, 0.45);
 const PRETO = rgb(0.1, 0.1, 0.1);
 
-export type ProfessorRecibo = Pick<Professor, "nome" | "documento" | "rg" | "endereco" | "cidade" | "assinatura">;
+export type ProfessorRecibo = Pick<Professor, "nome" | "documento" | "rg" | "endereco" | "cidade" | "assinatura"> &
+  Partial<Pick<Professor, "tipoConta" | "nomeEstudio">>;
+
+/** Conta de estúdio com nome preenchido: o recibo sai no nome do estúdio. */
+const estudioDo = (professor: ProfessorRecibo | undefined) =>
+  professor?.tipoConta === "estudio" && professor.nomeEstudio?.trim() ? professor.nomeEstudio.trim() : null;
+
+/** Nome embaixo da linha da assinatura: o do dono, e o do estúdio quando houver. */
+export function nomeNaAssinatura(professor: ProfessorRecibo | undefined) {
+  const estudio = estudioDo(professor);
+  return professor ? (estudio ? `${professor.nome} · ${estudio}` : professor.nome) : "Assinatura";
+}
 
 const RUAS = /^(rua|r\.|avenida|av\.?|travessa|alameda|estrada|rodovia|praça|praca|rodovia)\s/i;
 
@@ -17,10 +28,22 @@ const RUAS = /^(rua|r\.|avenida|av\.?|travessa|alameda|estrada|rodovia|praça|pr
  * Texto do recibo, no modelo:
  * "Eu, Nome, CPF: ..., RG: ..., residente na Rua ... - Cidade/UF, recebi da Instituição X a quantia de
  * R$ 800,00 (oitocentos reais) referente às aulas de violino."
+ * Estúdio: "Estúdio X, CNPJ: ..., com endereço na Rua ... - Cidade/UF, recebeu da ...".
  */
 export function textoRecibo(recibo: Recibo, pagador: Pick<Pagador, "recebiDe">, professor: ProfessorRecibo | undefined) {
   const partes: string[] = [];
-  if (professor) {
+  const estudio = estudioDo(professor);
+  if (professor && estudio) {
+    partes.push(estudio);
+    if (professor.documento) {
+      const documento = formatarDocumento(professor.documento);
+      partes.push(`${soDigitos(documento).length === 14 ? "CNPJ" : "CPF"}: ${documento}`);
+    }
+    if (professor.endereco) {
+      const local = professor.cidade ? `${professor.endereco} - ${professor.cidade}` : professor.endereco;
+      partes.push(`com endereço ${RUAS.test(professor.endereco) ? "na" : "em"} ${local}`);
+    }
+  } else if (professor) {
     partes.push(`Eu, ${professor.nome}`);
     if (professor.documento) {
       const documento = formatarDocumento(professor.documento);
@@ -32,7 +55,7 @@ export function textoRecibo(recibo: Recibo, pagador: Pick<Pagador, "recebiDe">, 
       partes.push(`${RUAS.test(professor.endereco) ? "residente na" : "residente em"} ${local}`);
     }
   }
-  const quem = partes.length ? `${partes.join(", ")}, recebi` : "Recebi";
+  const quem = partes.length ? `${partes.join(", ")}, ${estudio ? "recebeu" : "recebi"}` : "Recebi";
   let texto =
     `${quem} ${pagador.recebiDe} a quantia de ${moeda(recibo.valorCentavos)} ` +
     `(${valorPorExtenso(recibo.valorCentavos)}) ${referenteA(recibo.referente)}.`;
@@ -109,7 +132,7 @@ export async function gerarReciboPdf(recibo: Recibo, pagador: Pagador, professor
     }
   }
   pagina.drawLine({ start: { x: margem, y }, end: { x: margem + larguraLinha, y }, thickness: 0.8, color: PRETO });
-  pagina.drawText(professor?.nome ?? "Assinatura", { x: margem, y: y - 15, size: 11, font: normal, color: PRETO });
+  pagina.drawText(nomeNaAssinatura(professor), { x: margem, y: y - 15, size: 11, font: normal, color: PRETO });
 
   return pdf.save();
 }

@@ -15,7 +15,7 @@ import { agruparPorModulo, urlCapa } from "@/lib/video";
 export const metadata: Metadata = { title: "Vídeos" };
 
 export default async function PaginaVideos() {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("videos");
   const [lista, modulos] = await Promise.all([listarVideos(professor.id), listarModulos(professor.id)]);
   const grupos = agruparPorModulo(
     lista.map((l) => ({ ...l.video, publico: l.publico, vistos: l.vistos })),

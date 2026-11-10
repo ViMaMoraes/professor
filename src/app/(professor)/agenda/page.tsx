@@ -8,7 +8,7 @@ import { AtivarNotificacoes } from "@/components/ativar-notificacoes";
 import { BotaoAcao } from "@/components/botao-acao";
 import { BotaoLink, Cabecalho, Card, CardTitulo, cn, EsqueletoPagina, Selo } from "@/components/ui";
 import { agoraBrasilia, DIAS_LONGOS, diaDaSemana, inicioDaSemana, somarDiasAgenda, type Ocorrencia } from "@/lib/agenda";
-import { exigirProfessor } from "@/lib/auth";
+import { exigirAcesso } from "@/lib/auth";
 import { agendaDoPeriodo, reposicoesPendentes } from "@/lib/consultas";
 import { mesValido, nomeMes, somarMeses } from "@/lib/financeiro";
 import { dataBR, isoValido } from "@/lib/formato";
@@ -34,7 +34,7 @@ const quando = (o: Pick<Ocorrencia, "data" | "hora">) =>
   `${DIAS_LONGOS[diaDaSemana(o.data)].toLowerCase()}, ${diaMes(o.data)}${o.hora ? ` às ${o.hora}` : ""}`;
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/agenda">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const { professor, membro } = await exigirAcesso("agenda");
   const params = await searchParams;
   const hoje = agoraBrasilia().data;
   // duas visões: calendário do mês (padrão) e lista da semana
@@ -55,10 +55,11 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/agenda">["
   const ultimoDia = somarDiasAgenda(inicioDaSemana(somarDiasAgenda(`${somarMeses(mes, 1)}-01`, -1)), 6);
   const [agenda, pendentes] = await Promise.all([
     visao === "mes" ? agendaDoPeriodo(professor, primeiroDia, ultimoDia) : agendaDoPeriodo(professor, segunda, domingo),
-    reposicoesPendentes(professor.id),
+    reposicoesPendentes(professor),
   ]);
   const dias = Array.from({ length: 7 }, (_, i) => somarDiasAgenda(segunda, i));
-  const chavePublica = chavePublicaVapid();
+  // as notificações no celular ainda são só do dono da conta (não da equipe)
+  const chavePublica = membro ? null : chavePublicaVapid();
 
   return (
     <>

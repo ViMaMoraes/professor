@@ -25,7 +25,7 @@ export default function PaginaHistorico(props: PageProps<"/chamada/historico">) 
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/historico">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("chamada");
   const params = await searchParams;
   const hoje = hojeISO();
   const inicio = typeof params.inicio === "string" && isoValido(params.inicio) ? params.inicio : hoje.slice(0, 8) + "01";
@@ -35,8 +35,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada/hi
   const instituicaoId = Number(params.instituicao) || undefined;
 
   const [registros, alunos, instituicoes] = await Promise.all([
-    historicoPresencas(professor.id, inicio, fim, alunoId, instituicaoId),
-    listarAlunos(professor.id, { situacao: "todos" }),
+    historicoPresencas(professor, inicio, fim, alunoId, instituicaoId),
+    listarAlunos(professor, { situacao: "todos" }),
     listarInstituicoes(professor.id, { situacao: "todas" }),
   ]);
   const filtroAluno = `${alunoId ? `&aluno=${alunoId}` : ""}${instituicaoId ? `&instituicao=${instituicaoId}` : ""}`;

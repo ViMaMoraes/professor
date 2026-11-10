@@ -33,7 +33,7 @@ export default function PaginaChamada(props: PageProps<"/chamada">) {
 }
 
 async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("chamada");
   const params = await searchParams;
   const dia = typeof params.data === "string" && isoValido(params.data) ? params.data : hojeISO();
   const instituicaoId = Number(params.instituicao) || undefined;
@@ -42,8 +42,8 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/chamada">[
   const diaSemana = DIAS_SEMANA[new Date(`${dia}T12:00:00Z`).getUTCDay()];
 
   const [ativos, registros, instituicoes, agenda] = await Promise.all([
-    listarAlunos(professor.id, { instituicaoId }),
-    presencasNaData(professor.id, dia),
+    listarAlunos(professor, { instituicaoId }),
+    presencasNaData(professor, dia),
     listarInstituicoes(professor.id),
     agendaDoPeriodo(professor, dia, dia),
   ]);

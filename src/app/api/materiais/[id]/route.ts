@@ -1,4 +1,4 @@
-import { usuarioAtual } from "@/lib/auth";
+import { professorPodeVer, usuarioAtual } from "@/lib/auth";
 import { alunoPodeBaixar, buscarMaterial } from "@/lib/consultas";
 import { urlAbrir, urlBaixar, urlVer } from "@/lib/drive";
 
@@ -10,6 +10,8 @@ import { urlAbrir, urlBaixar, urlVer } from "@/lib/drive";
 export async function GET(request: Request, ctx: RouteContext<"/api/materiais/[id]">) {
   const usuario = await usuarioAtual();
   if (!usuario) return new Response("Não autorizado", { status: 401 });
+  // equipe de estúdio: só com o módulo liberado
+  if (usuario.tipo === "professor" && !professorPodeVer(usuario, "materiais")) return new Response("Sem permissão", { status: 403 });
 
   const id = Number((await ctx.params).id);
   const material =

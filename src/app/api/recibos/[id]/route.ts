@@ -1,4 +1,4 @@
-import { usuarioAtual } from "@/lib/auth";
+import { professorPodeVer, usuarioAtual } from "@/lib/auth";
 import { buscarProfessor, buscarRecibo } from "@/lib/consultas";
 import { numeroRecibo } from "@/lib/formato";
 import { pagadorDoRecibo } from "@/lib/pagador";
@@ -9,6 +9,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/recibos/[id]
   // recibos são só do professor (o aluno entra sem senha, então não vê documentos financeiros)
   const usuario = await usuarioAtual();
   if (usuario?.tipo !== "professor") return new Response("Não autorizado", { status: 401 });
+  if (!professorPodeVer(usuario, "recibos")) return new Response("Sem permissão", { status: 403 });
 
   const id = Number((await ctx.params).id);
   const linha = await buscarRecibo(id, { professorId: usuario.professor.id });

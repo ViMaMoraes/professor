@@ -1,9 +1,27 @@
 "use client";
 
-import { Bell, Building2, CalendarDays, CircleCheckBig, Clapperboard, CloudDownload, Crown, LayoutDashboard, Menu, ReceiptText, Settings, Users, Wallet, X } from "lucide-react";
+import {
+  Bell,
+  Building2,
+  CalendarDays,
+  CircleCheckBig,
+  Clapperboard,
+  CloudDownload,
+  Crown,
+  LayoutDashboard,
+  Menu,
+  ReceiptText,
+  Settings,
+  UserCog,
+  Users,
+  Wallet,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
+
+import { moduloDoCaminho, podeVer, type Acesso } from "@/lib/permissoes";
 
 import { Logo } from "./logo";
 import { cn } from "./ui";
@@ -19,18 +37,35 @@ const ITENS = [
   { href: "/materiais", nome: "Downloads", icone: CloudDownload },
   { href: "/videos", nome: "Vídeos", icone: Clapperboard },
   { href: "/avisos", nome: "Avisos", icone: Bell },
-  { href: "/configuracoes", nome: "Configurações", icone: Settings },
 ];
+const ITEM_EQUIPE = { href: "/equipe", nome: "Equipe", icone: UserCog };
+const ITEM_CONFIGURACOES = { href: "/configuracoes", nome: "Configurações", icone: Settings };
 const ITEM_ADMIN = { href: "/admin", nome: "Administração", icone: Crown };
 
-export function MenuLateral({ rodape, master = false }: { rodape: ReactNode; master?: boolean }) {
+type Opcoes = { master: boolean; estudio: boolean; acesso: Acesso };
+
+/** Itens que esta pessoa vê: a equipe só os módulos liberados; Equipe (estúdio), Configurações e Administração só o dono. */
+function itensDoMenu({ master, estudio, acesso }: Opcoes) {
+  const dono = acesso.dono;
+  return [
+    ...ITENS.filter(({ href }) => {
+      const modulo = moduloDoCaminho(href);
+      return !modulo || (modulo !== "dono" && podeVer(acesso, modulo));
+    }),
+    ...(dono && estudio ? [ITEM_EQUIPE] : []),
+    ...(dono ? [ITEM_CONFIGURACOES] : []),
+    ...(dono && master ? [ITEM_ADMIN] : []),
+  ];
+}
+
+export function MenuLateral({ rodape, ...opcoes }: Opcoes & { rodape: ReactNode }) {
   const [aberto, setAberto] = useState(false);
 
   const fechar = () => setAberto(false);
   // usePathname depende da URL; o fallback mostra os mesmos links sem destaque enquanto ela chega
   const navegacao = (
-    <Suspense fallback={<Navegacao caminho="" aoNavegar={fechar} master={master} />}>
-      <NavegacaoAtiva aoNavegar={fechar} master={master} />
+    <Suspense fallback={<Navegacao caminho="" aoNavegar={fechar} opcoes={opcoes} />}>
+      <NavegacaoAtiva aoNavegar={fechar} opcoes={opcoes} />
     </Suspense>
   );
 
@@ -76,14 +111,14 @@ export function MenuLateral({ rodape, master = false }: { rodape: ReactNode; mas
   );
 }
 
-function NavegacaoAtiva({ aoNavegar, master }: { aoNavegar: () => void; master: boolean }) {
-  return <Navegacao caminho={usePathname()} aoNavegar={aoNavegar} master={master} />;
+function NavegacaoAtiva({ aoNavegar, opcoes }: { aoNavegar: () => void; opcoes: Opcoes }) {
+  return <Navegacao caminho={usePathname()} aoNavegar={aoNavegar} opcoes={opcoes} />;
 }
 
-function Navegacao({ caminho, aoNavegar, master }: { caminho: string; aoNavegar: () => void; master: boolean }) {
+function Navegacao({ caminho, aoNavegar, opcoes }: { caminho: string; aoNavegar: () => void; opcoes: Opcoes }) {
   return (
     <nav className="flex flex-col gap-1">
-      {(master ? [...ITENS, ITEM_ADMIN] : ITENS).map(({ href, nome, icone: Icone }) => {
+      {itensDoMenu(opcoes).map(({ href, nome, icone: Icone }) => {
         const ativo = caminho === href || caminho.startsWith(href + "/");
         return (
           <Link

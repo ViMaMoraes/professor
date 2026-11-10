@@ -28,7 +28,7 @@ export default function PaginaRecibos(props: PageProps<"/recibos">) {
 }
 
 async function Lista({ searchParams }: { searchParams: PageProps<"/recibos">["searchParams"] }) {
-  const professor = await exigirProfessor();
+  const professor = await exigirProfessor("recibos");
   const params = await searchParams;
   // filtro "pagador" = "aluno-12" ou "instituicao-3" (também aceita ?aluno=12 / ?instituicao=3)
   const [tipo, idTexto] = typeof params.pagador === "string" ? params.pagador.split("-") : [];
@@ -37,7 +37,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/recibos">["se
   const filtroAtual = alunoId ? `aluno-${alunoId}` : instituicaoId ? `instituicao-${instituicaoId}` : "";
   const [linhas, alunos, instituicoes] = await Promise.all([
     listarRecibos(professor.id, { alunoId, instituicaoId }),
-    listarAlunos(professor.id, { situacao: "todos" }),
+    listarAlunos(professor, { situacao: "todos" }),
     listarInstituicoes(professor.id, { situacao: "todas" }),
   ]);
   const total = linhas.reduce((soma, l) => soma + l.recibo.valorCentavos, 0);
