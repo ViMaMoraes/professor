@@ -103,6 +103,7 @@ O aluno entra em **`/aluno`** (ou na aba *Acesso aluno* do login) com o **usuár
 - os materiais liberados para ele, para ver no site, baixar ou abrir no Drive, inclusive vários de uma vez em ZIP ou PDF único;
 - a mensagem do professor para ele, em destaque;
 - "Minhas aulas": o diário com o conteúdo de cada aula e o que estudar em casa;
+- a aba **Presença**: a frequência dele (presença e reposição contam como presente, a mesma conta da página do aluno no professor), quantas presenças, reposições, faltas justificadas e faltas, e a lista de aulas mês a mês. A anotação que o professor escreve na chamada não aparece para o aluno;
 - os avisos do professor;
 - o botão para **ativar as notificações** no celular.
 

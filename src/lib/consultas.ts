@@ -46,6 +46,17 @@ export async function presencasDoAluno(alunoId: number, limite = 50) {
   return db.select().from(presencas).where(eq(presencas.alunoId, alunoId)).orderBy(desc(presencas.data)).limit(limite);
 }
 
+/** Chamadas do aluno para a área dele: só a data e a situação (a anotação da aula é do professor). */
+export async function chamadasParaOAluno(alunoId: number) {
+  const db = await getDb();
+  return db
+    .select({ data: presencas.data, status: presencas.status })
+    .from(presencas)
+    .where(eq(presencas.alunoId, alunoId))
+    .orderBy(desc(presencas.data))
+    .limit(1000);
+}
+
 export async function frequenciaDoAluno(alunoId: number) {
   const db = await getDb();
   const [linha] = await db

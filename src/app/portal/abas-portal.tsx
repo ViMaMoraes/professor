@@ -1,17 +1,18 @@
 "use client";
 
-import { Clapperboard, House } from "lucide-react";
+import { CalendarCheck, Clapperboard, House } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/components/ui";
 
-/** Abas da área do aluno: Início (downloads, aulas, avisos) e Vídeos. */
+/** Abas da área do aluno: Início (downloads, aulas, avisos), Vídeos e Presença. */
 export function AbasPortal() {
   const caminho = usePathname();
   const abas = [
     { href: "/portal", nome: "Início", Icone: House, ativa: caminho === "/portal" },
     { href: "/portal/videos", nome: "Vídeos", Icone: Clapperboard, ativa: caminho.startsWith("/portal/videos") },
+    { href: "/portal/presenca", nome: "Presença", Icone: CalendarCheck, ativa: caminho === "/portal/presenca" },
   ];
   return (
     <nav className="mx-auto flex max-w-5xl gap-1 px-4" aria-label="Área do aluno">
